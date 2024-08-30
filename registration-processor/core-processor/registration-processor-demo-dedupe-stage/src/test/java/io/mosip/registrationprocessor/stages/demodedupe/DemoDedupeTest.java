@@ -131,7 +131,7 @@ public class DemoDedupeTest {
 
 		Mockito.when(packetInfoDao.findDemoById(regId)).thenReturn(Dtos);
 
-		Mockito.when(packetInfoDao.getAllDemographicInfoDtos(any(), any(), any(), any())).thenReturn(Dtos);
+		Mockito.when(packetInfoDao.getAllDemographicInfoDtos(any(), any(), any(),any(), any())).thenReturn(Dtos);
 
 		List<DemographicInfoDto> duplicates = demoDedupe.performDedupe(regId);
 		assertEquals("Test for Dedupe Duplicate found", false, duplicates.isEmpty());

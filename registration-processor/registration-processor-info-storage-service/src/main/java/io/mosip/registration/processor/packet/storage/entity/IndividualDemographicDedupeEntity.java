@@ -39,6 +39,9 @@ public class IndividualDemographicDedupeEntity extends BasePacketEntity<Individu
 	@Column(name = "gender")
 	private String gender;
 
+	@Column(name = "nrcId", nullable = false)
+	private String nrcId;
+
 	@Column(name = "mobile_number")
 	private String phone;
 
@@ -114,6 +117,17 @@ public class IndividualDemographicDedupeEntity extends BasePacketEntity<Individu
 	public void setGender(String genderCode) {
 		this.gender = genderCode;
 	}
+
+	/** Get the nrcId.
+	 * @return the nrcId
+	 */
+	public String getNrcId() {
+		return nrcId;
+	}
+	/** Sets the nrcId.
+	 * @param nrcId the new nrcId
+	 */
+	public void setNrcId(String nrcId) {this.nrcId = nrcId;}
 
 	public String getPhone() {
 		return phone;
@@ -222,6 +236,7 @@ public class IndividualDemographicDedupeEntity extends BasePacketEntity<Individu
 				Objects.equals(name, that.name) &&
 				Objects.equals(dob, that.dob) &&
 				Objects.equals(gender, that.gender) &&
+				Objects.equals(nrcId, that.nrcId)&&
 				Objects.equals(phone, that.phone) &&
 				Objects.equals(email, that.email) &&
 				Objects.equals(postalCode, that.postalCode) &&
@@ -236,6 +251,6 @@ public class IndividualDemographicDedupeEntity extends BasePacketEntity<Individu
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(regId, process, iteration, name, dob, gender, phone, email, postalCode, isActive, crBy, crDtimes, updBy, updDtimes, isDeleted, delDtimes);
+		return Objects.hash(regId, process, iteration, name, dob, gender, nrcId, phone, email, postalCode, isActive, crBy, crDtimes, updBy, updDtimes, isDeleted, delDtimes);
 	}
 }

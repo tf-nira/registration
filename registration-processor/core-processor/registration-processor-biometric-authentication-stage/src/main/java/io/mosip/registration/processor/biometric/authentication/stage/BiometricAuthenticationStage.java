@@ -370,7 +370,7 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 			registrationStatusDto.setSubStatusCode(StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED_FILE_NOT_FOUND.getCode());
 			return false;
 		}
-		String uin = utility.getUIn(registrationId, process, ProviderStageName.BIO_AUTH);
+		String uin = utility.getUINByHandle(registrationId, process, ProviderStageName.BIO_AUTH);
 
 		bioUtil.authenticateBiometrics(uin,BiometricAuthenticationConstants.INDIVIDUAL_TYPE_UIN,biometricRecord.getSegments(),registrationStatusDto,StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getMessage(),StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getCode());
 		return true;

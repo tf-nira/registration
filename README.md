@@ -43,7 +43,10 @@ Staged architecture:
       * Biometric extraction
       * Finalization
       * Printing
-
+ * Group 8 stages (For Uganda)
+      * Citizenship Verification
+ * Group 9 stages (For Uganda)
+      * Payment Validation
 The control and data flow in the stages is controlled by [Workflow engine](registration-processor/workflow-engine/)
 
 Other services:

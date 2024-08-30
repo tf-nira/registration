@@ -18,5 +18,6 @@
     	<module>registration-processor-message-sender-stage</module>
     	<module>registration-processor-credential-requestor-stage</module>
 		<module>registration-processor-registration-transaction-service</module>
-  </modules>
+		<module>registration-processor-payment-validator-stage</module>
+  	</modules>
 </project>
