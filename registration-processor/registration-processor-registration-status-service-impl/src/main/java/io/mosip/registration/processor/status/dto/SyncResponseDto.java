@@ -29,6 +29,7 @@ public class SyncResponseDto implements Serializable {
 	 * @return the status
 	 */
 	public String getStatus() {
+
 		return status;
 	}
 

@@ -1442,7 +1442,24 @@ public enum PlatformErrorMessages {
 			"Not able to access the API resource"),
 
 	INDIVIDUAL_BIOMETRIC_AUTHENTICATION_FAILED(PlatformConstants.RPR_BIOMETRIC_AUTHENTICATION_MODULE + "004",
-			"Bio authentication failed")
+			"Bio authentication failed"),
+	
+	/** Payment validator stage errors */
+	RPR_PYVS_PACKET_RETRIEVAL_FAILED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "001", "Failed to retrieve packet details"),
+	RPR_PYVS_WRONG_PROCESS(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "002", "Wrong process or usecase"),
+	RPR_PYVS_INVALID_PRN(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "003", "Invalid PRN was entered"),
+	RPR_PYVS_UIN_DOESNT_EXIST(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "004", "NIN entered does not exist"),
+	RPR_PYVS_PRN_NOT_PAID(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "005", "PRN not paid for"),
+	RPR_PYVS_PRN_NOT_VALID_FOR_USECASE(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "006", "PRN not valid for process or usecase"),
+	RPR_PYVS_PRN_ALREADY_USED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "007", "PRN already used"),
+	RPR_PYVS_CONSUMPTION_FAILED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "008", "PRN consumption failed"),
+	RPR_PYVS_GATEWAY_SERVICE_ACCESS_FAILED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "009", "Failed to access Payment gateway API"),
+	RPR_PYVS_PRN_STATUS_REQUEST_FAILED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "010", "PRN status request failed"),
+	RPR_PYVS_IDREPO_UIN_RETRIEVAL_FAILED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "011", "UIN details retrieval from IDRepo failed"), 
+	RPR_PYVS_FAILED(PlatformConstants.RPR_PAYMENT_VALIDATOR_STAGE + "012", "Payment Validation failed"),
+	// Citizenship Verification stage
+	RPR_CITIZENSHIP_VERIFICATION_FAILED(PlatformConstants.RPR_CITIZENSHIP_VERIFICATION_MODULE + "001", "Citizenship Verification failed")
+	
 	;
 
 

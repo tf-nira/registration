@@ -138,6 +138,10 @@ public final class PlatformConstants {
 	public static final String RPR_WORKFLOW_ACTION_JOB = RPR_REGISTRATION_PROCESSOR_PREFIX + "WAJ-";
 
 	public static final String RPR_FINALIZATION_STAGE = RPR_REGISTRATION_PROCESSOR_PREFIX + "FIN-";
+	
+	public static final String RPR_PAYMENT_VALIDATOR_STAGE = RPR_REGISTRATION_PROCESSOR_PREFIX + "PAYMENT_VALIDATOR";
+
+	public static final String RPR_CITIZENSHIP_VERIFICATION_MODULE = RPR_REGISTRATION_PROCESSOR_PREFIX + "CV-";
 
 	/**
 	 * Instantiates a new RPR platform error codes.

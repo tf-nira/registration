@@ -373,7 +373,41 @@ public enum StatusUtil {
 	VERIFICATION_SUCCESS(StatusConstants.VERIFICATION_STAGE + "001", "Verification success"),
 	VERIFICATION_FAILED(StatusConstants.VERIFICATION_STAGE + "002", "Verification failed"),
 	VERIFICATION_SENT(StatusConstants.VERIFICATION_STAGE + "003", "Sent for verification"),
-	VERIFICATION_RESEND(StatusConstants.VERIFICATION_STAGE + "004", "Resend for verification");
+	VERIFICATION_RESEND(StatusConstants.VERIFICATION_STAGE + "004", "Resend for verification"),
+	
+	// Payment validator stage
+	PAYMENT_VALIDATION_SUCCESS(StatusConstants.PAYMENT_VALIDATOR_STAGE + "001", "Payment Validation success"),
+	PAYMENT_VALIDATION_FAILED(StatusConstants.PAYMENT_VALIDATOR_STAGE + "002", "Payment Validation failed"),
+	PAYMENT_VALIDATION_SENT(StatusConstants.PAYMENT_VALIDATOR_STAGE + "003", "Sent for payment validation"),
+	PAYMENT_VALIDATION_RESEND(StatusConstants.PAYMENT_VALIDATOR_STAGE + "004", "Resend for payment validation"),
+	
+	// Citizenship Verification stage
+	CITIZENSHIP_VERIFICATION_SUCCESS(StatusConstants.CITIZENSHIP_VERIFICATION + "001", "Citizenship Verification success"),
+	CITIZENSHIP_VERIFICATION_FAILED(StatusConstants.CITIZENSHIP_VERIFICATION + "002", "Citizenship Verification failed"),
+	CITIZENSHIP_VERIFICATION_SENT(StatusConstants.CITIZENSHIP_VERIFICATION + "003", " Sent for Citizenship Verification"),
+	CITIZENSHIP_VERIFICATION_RESEND(StatusConstants.CITIZENSHIP_VERIFICATION + "004", "Resend for Citizenship Verification"), 
+	CITIZENSHIP_VERIFICATION_NIN_USAGE_EXCEEDED(StatusConstants.CITIZENSHIP_VERIFICATION + "005", "NIN is used more than the specified Number of times"),
+	CITIZENSHIP_VERIFICATION_STATUS_CHECK_FAILED(StatusConstants.CITIZENSHIP_VERIFICATION + "006", "Status check failed"),
+	CITIZENSHIP_VERIFICATION_AGE_DIFFERENCE_FAILED(StatusConstants.CITIZENSHIP_VERIFICATION + "007", "Age difference with the applicant is less than 15 years"),
+	CITIZENSHIP_VERIFICATION_PARENT_INFO_PROCESSING_ERROR(StatusConstants.CITIZENSHIP_VERIFICATION + "008", "Error processing Parent information"),
+	CITIZENSHIP_VERIFICATION_UIN_NOT_FOUND(StatusConstants.CITIZENSHIP_VERIFICATION + "009", "NIN not found in repo data"), 
+	CITIZENSHIP_VERIFICATION_PLACE_OF_ORIGIN_MISMATCH(StatusConstants.CITIZENSHIP_VERIFICATION + "010", "Mismatch in Parents Place of Origin"),
+	CITIZENSHIP_VERIFICATION_CLAN_MISMATCH(StatusConstants.CITIZENSHIP_VERIFICATION + "011", "Mismatch in Parents  Clan"),
+	CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH(StatusConstants.CITIZENSHIP_VERIFICATION + "012", "Mismatch in Parents  Tribe"), 
+	CITIZENSHIP_VERIFICATION_GUARDIAN_VALIDATION_FAILED(StatusConstants.CITIZENSHIP_VERIFICATION + "013", "Guardian information validation failed"),
+	CITIZENSHIP_VERIFICATION_GUARDIAN_INFO_PROCESSING_ERROR(StatusConstants.CITIZENSHIP_VERIFICATION + "014", "Error during guardian information validation"),
+	CITIZENSHIP_VERIFICATION_INSUFFICIENT_FATHER_INFO(StatusConstants.CITIZENSHIP_VERIFICATION + "015", "Insufficient father's information provided"),
+	CITIZENSHIP_VERIFICATION_NO_PARENT_NIN(StatusConstants.CITIZENSHIP_VERIFICATION + "016", "No parent has NIN"), 
+	CITIZENSHIP_VERIFICATION_GUARDIAN_NIN_MISSING(StatusConstants.CITIZENSHIP_VERIFICATION + "017", "GUARDIAN_NIN is missing"),
+	CITIZENSHIP_VERIFICATION_NOT_CITIZEN_BYBIRTH(StatusConstants.CITIZENSHIP_VERIFICATION + "018", "Not Citizen By Birth"), 
+	CITIZENSHIP_VERIFICATION_NOTIFICATION_FAILURE(StatusConstants.CITIZENSHIP_VERIFICATION + "019", "Send notification failed for rid"),
+	CITIZENSHIP_VERIFICATION_DECEASED_STATUS_ERROR(StatusConstants.CITIZENSHIP_VERIFICATION + "020", "Error handling deceased status"),
+	CITIZENSHIP_VERIFICATION_UNEXPECTED_LIVING_STATUS(StatusConstants.CITIZENSHIP_VERIFICATION + "021", "Unexpected living status"),
+	CITIZENSHIP_VERIFICATION_STATUS_INVALID(StatusConstants.CITIZENSHIP_VERIFICATION + "022", "Invalid status provided"),
+	CITIZENSHIP_VERIFICATION_ALIVE_UIN_DEACTIVATED(StatusConstants.CITIZENSHIP_VERIFICATION + "023", "Operation failed: Living status is alive but UIN status is deactivated"),
+	CITIZENSHIP_VERIFICATION_UNEXPECTED_UIN_STATUS(StatusConstants.CITIZENSHIP_VERIFICATION + "024", "Unexpected UIN status for alive individual");
+	
+	
 
 	private final String statusComment;
 	private final String statusCode;

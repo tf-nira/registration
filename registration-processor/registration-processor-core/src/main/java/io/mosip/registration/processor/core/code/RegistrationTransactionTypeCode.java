@@ -61,9 +61,13 @@ public enum RegistrationTransactionTypeCode {
 
 	/** The internal workflow action. */
 	INTERNAL_WORKFLOW_ACTION,
+	
+	PAYMENT_VALIDATION,
 
 	/** The workflow resume. */
 	WORKFLOW_RESUME,
 	/** The uin finalization  */
-	FINALIZATION;
+	FINALIZATION, 
+	
+	CITIZENSHIP_VERIFICATION,
 }

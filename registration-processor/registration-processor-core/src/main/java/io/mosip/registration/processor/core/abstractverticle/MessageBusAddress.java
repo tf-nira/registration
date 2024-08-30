@@ -252,7 +252,21 @@ public class MessageBusAddress implements Serializable {
 
 	/** The Constant WORKFLOW_INTERNAL_ACTION_ADDRESS. */
 	public static final MessageBusAddress WORKFLOW_INTERNAL_ACTION_ADDRESS = new MessageBusAddress(
-			"workflow-internal-action");
+			"workflow-internal-action");/** The Constant PAYMENT_VALIDATOR_BUS_IN */
+	public static final MessageBusAddress PAYMENT_VALIDATOR_BUS_IN = new MessageBusAddress(
+			"payment-validator-bus-in");
+	
+	/** The Constant PAYMENT_VALIDATOR_BUS_OUT */
+	public static final MessageBusAddress PAYMENT_VALIDATOR_BUS_OUT = new MessageBusAddress(
+			"payment-validator-bus-out");
+	
+	/** The Constant CITIZENSHIP_VERIFICATION_BUS_IN */
+	public static final MessageBusAddress CITIZENSHIP_VERIFICATION_BUS_IN = new MessageBusAddress(
+			"citizenship-verification-bus-in");
+	
+	/** The Constant CITIZENSHIP_VERIFICATION_BUS_OUT */
+	public static final MessageBusAddress CITIZENSHIP_VERIFICATION_BUS_OUT = new MessageBusAddress(
+			"citizenship-verification-bus-out");
 	
 	/*
 	 * (non-Javadoc)
