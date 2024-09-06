@@ -20,6 +20,7 @@ on:
       - master
       - 1.*
       - develop
+      - tf_nira_dev
 
 jobs:
   build-maven-registration:
