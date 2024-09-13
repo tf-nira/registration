@@ -21,6 +21,7 @@ CREATE TABLE regprc.individual_demographic_dedup(
 	workflow_instance_id character varying(36),
 	process character varying(36),
 	iteration integer DEFAULT 1,
+	nrcid character varying(64) NOT NULL
 	CONSTRAINT pk_idemogd_id PRIMARY KEY (workflow_instance_id,lang_code)
 
 );
