@@ -327,6 +327,7 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 				exceptions.add(exceptionsDTO);
 			} else {
 				BiometricInfoDTO biometricInfoDTO = new BiometricInfoDTO();
+				biometricInfoDTO.setType(bir.getBdbInfo().getType().get(0).name());
 				if (!bir.getBdbInfo().getSubtype().isEmpty()) {
 					biometricInfoDTO.setSubType(String.join(" ", bir.getBdbInfo().getSubtype()));
 				}
