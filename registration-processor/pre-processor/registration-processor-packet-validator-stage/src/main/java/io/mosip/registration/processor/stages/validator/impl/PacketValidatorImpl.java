@@ -112,7 +112,7 @@ public class PacketValidatorImpl implements PacketValidator {
 
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())) {
-				uin = utility.getUIn(id, process, ProviderStageName.PACKET_VALIDATOR);
+				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
 				if (uin == null) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), id,

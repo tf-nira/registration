@@ -187,7 +187,6 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 		if (fieldMap.get(tribeValue) != null)
 			anonymousProfileDTO.setTribe(getLanguageBasedValueForSimpleType(fieldMap.get(tribeValue), language));
 
-
 		// set email and phone
 		String emailValue = JsonUtil.getJSONValue(
 				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.EMAIL),
@@ -327,7 +326,6 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 				exceptions.add(exceptionsDTO);
 			} else {
 				BiometricInfoDTO biometricInfoDTO = new BiometricInfoDTO();
-				biometricInfoDTO.setType(bir.getBdbInfo().getType().get(0).name());
 				if (!bir.getBdbInfo().getSubtype().isEmpty()) {
 					biometricInfoDTO.setSubType(String.join(" ", bir.getBdbInfo().getSubtype()));
 				}
