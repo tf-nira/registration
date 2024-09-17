@@ -71,7 +71,7 @@ public static final String GUARDIAN_TRIBE = "applicantPlaceOfOriginIndigenousCom
 
 public static final String GUARDIAN_PLACE_OF_ORIGIN = "applicantplaceoforigin";
 public static final String APPLICANT_DATEOFBIRTH = "dateOfBirth";
-public static final String APPLICANT_CITIZENSHIPTYPE = "applicantCitizenshipType";
+public static final String APPLICANT_CITIZENSHIPTYPE = "userServiceType";
 public static final String FATHER_LIVINGSTATUS = "fatherlivingStatus";
 public static final String MOTHER_LIVINGSTATUS = "motherlivingstatus";
 public static final String CLAN = "Clan";
