@@ -187,7 +187,6 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 		if (fieldMap.get(tribeValue) != null)
 			anonymousProfileDTO.setTribe(getLanguageBasedValueForSimpleType(fieldMap.get(tribeValue), language));
 
-
 		// set email and phone
 		String emailValue = JsonUtil.getJSONValue(
 				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.EMAIL),
