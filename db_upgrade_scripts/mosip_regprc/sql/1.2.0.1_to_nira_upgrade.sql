@@ -17,7 +17,6 @@ CREATE TABLE consumed__nin_introducer (
     last_used TIMESTAMP WITHOUT TIME ZONE
 );
 
-ALTER TABLE regprc.individual_demographic_dedup ADD COLUMN nrcid character varying(64) NOT NULL;
 
 INSERT INTO regprc.transaction_type (code,descr,lang_code,is_active,cr_by,cr_dtimes,upd_by,upd_dtimes,is_deleted,del_dtimes) VALUES
 	 ('CITIZENSHIP_VERIFICATION','transaction_done','eng',true,'MOSIP_SYSTEM',now(),NULL,NULL,false,NULL);
