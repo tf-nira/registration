@@ -135,7 +135,6 @@ public class PacketInfoDao {
 		demo.setGenderCode(object.getGender());
 		demo.setDob(object.getDob());
 		demo.setPhone(object.getPhone());
-		demo.setNrcId(object.getNrcId());
 		demo.setEmail(object.getEmail());
 		demo.setPostalcode(object.getPostalCode());
 		return demo;
@@ -185,7 +184,7 @@ public class PacketInfoDao {
 	 *            the lang code
 	 * @return the all demographic entities
 	 */
-	private List<IndividualDemographicDedupeEntity> getAllDemographicEntities(String name, String gender, String nrcId, String dob,String langCode) {
+	private List<IndividualDemographicDedupeEntity> getAllDemographicEntities(String name, String gender, String dob,String langCode) {
 		Map<String, Object> params = new HashMap<>();
 		String className = IndividualDemographicDedupeEntity.class.getSimpleName();
 		String alias = IndividualDemographicDedupeEntity.class.getName().toLowerCase().substring(0, 1);
@@ -203,10 +202,6 @@ public class PacketInfoDao {
 			query.append(alias + ".dob=:dob ").append(AND);
 			params.put("dob", dob);
 
-			if (nrcId != null) {
-				query.append(alias + ".nrcId=:nrcId ").append(AND);
-				params.put("nrcId", nrcId);
-			}
 		}
 		query.append(alias + ".id.langCode=:langCode").append(AND);
 		params.put("langCode", langCode);
@@ -228,10 +223,10 @@ public class PacketInfoDao {
 	 *            the lang code
 	 * @return the all demographic info dtos
 	 */
-	public List<DemographicInfoDto> getAllDemographicInfoDtos(String name, String gender, String dob,String nrcId, String langCode) {
+	public List<DemographicInfoDto> getAllDemographicInfoDtos(String name, String gender, String dob, String langCode) {
 
 		List<DemographicInfoDto> demographicInfoDtos = new ArrayList<>();
-		List<IndividualDemographicDedupeEntity> demographicInfoEntities = getAllDemographicEntities(name, gender, dob,nrcId,
+		List<IndividualDemographicDedupeEntity> demographicInfoEntities = getAllDemographicEntities(name, gender, dob,
 				langCode);
 		for (IndividualDemographicDedupeEntity entity : demographicInfoEntities) {
 			demographicInfoDtos.add(convertEntityToDemographicDto(entity));

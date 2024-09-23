@@ -27,7 +27,4 @@ public class IndividualDemographicDedupe {
 
 	/** The email. */
 	private String email;
-
-	/** The NRCID. */
-	private String nrcId;
 }
