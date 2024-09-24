@@ -27,3 +27,7 @@ EXPOSE 8082
 
 # Command to start Nginx in the foreground
 CMD ["nginx", "-g", "daemon off;"]
+
+# Optional: Add a health check (customize as necessary)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl --fail http://localhost:8082/healthcheck.txt || exit 1
