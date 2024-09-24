@@ -16,6 +16,12 @@ ARG container_user_group=mosip
 ARG container_user_uid=1001
 ARG container_user_gid=1001
 
+# Additional build-time arguments for tracking metadata
+ARG SOURCE
+ARG COMMIT_HASH
+ARG COMMIT_ID
+ARG BUILD_TIME
+
 # Set environment variables from build-time arguments
 ENV active_profile_env=${active_profile}
 ENV spring_config_label_env=${spring_config_label}
@@ -53,6 +59,12 @@ RUN chown -R ${container_user}:${container_user} ${work_dir}
 
 # Switch to the created user
 USER ${container_user_uid}:${container_user_gid}
+
+# Add metadata to the image
+LABEL source=${SOURCE}
+LABEL commit_hash=${COMMIT_HASH}
+LABEL commit_id=${COMMIT_ID}
+LABEL build_time=${BUILD_TIME}
 
 # Define the entrypoint to download and run the necessary services
 CMD wget "${artifactory_url_env}/artifactory/libs-release-local/io/mosip/testing/regproc-reprocessor-ceylon-cache-repo.zip" \
