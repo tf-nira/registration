@@ -460,7 +460,6 @@ public class MessageNotificationServiceImpl
 				maskedNin = "*******" + NIN.substring(7);
 				attributes.put("MASKEDNIN", maskedNin);
 			}
-			attributes.put("MASKEDNIN", maskedNin);
 			attributes.put("RID", id);
 			attributes.put("UIN", uin);
 			attributes.put("VID", getVid(uin));
