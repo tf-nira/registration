@@ -451,6 +451,15 @@ public class MessageNotificationServiceImpl
 		if (idType.toString().equalsIgnoreCase(UIN)) {
 			JSONObject jsonObject = utility.idrepoRetrieveIdentityByRid(id);
 			uin = JsonUtil.getJSONValue(jsonObject, UIN);
+			String maskedNin="" ;
+			String NIN = (jsonObject != null && JsonUtil.getJSONValue(jsonObject, "NIN") != null)
+					? JsonUtil.getJSONValue(jsonObject, "NIN")
+					: "";
+
+			if (NIN.length() >= 7) {
+				maskedNin = "*******" + NIN.substring(7);
+				attributes.put("MASKEDNIN", maskedNin);
+			}
 			attributes.put("RID", id);
 			attributes.put("UIN", uin);
 			attributes.put("VID", getVid(uin));
