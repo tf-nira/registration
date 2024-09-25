@@ -458,9 +458,7 @@ public class MessageNotificationServiceImpl
 
 			if (NIN.length() >= 7) {
 				maskedNin = "*******" + NIN.substring(7);
-			} else {
-
-				maskedNin = "*******";
+				attributes.put("MASKEDNIN", maskedNin);
 			}
 			attributes.put("MASKEDNIN", maskedNin);
 			attributes.put("RID", id);
