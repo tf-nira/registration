@@ -370,10 +370,18 @@ public class CitizenshipVerificationProcessor {
 	    }
 		if (parentFoundDTO.isParentNINFoundInMosip() == false && isParentInfoValid == false) {
 			boolean isOnDemandValid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
+			String fatherOrMother = "";
+			if (fatherNIN != null) {
+				fatherOrMother = "Father";
+			} else {
+				fatherOrMother = "Mother";
+			}
 			if (isOnDemandValid == true) {
 				registrationStatusDto.setLatestTransactionStatusCode(
 						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
-				registrationStatusDto.setStatusComment(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
+				registrationStatusDto.setStatusComment(
+						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage() + fatherOrMother
+								+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 				regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
@@ -382,10 +390,12 @@ public class CitizenshipVerificationProcessor {
 				throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
 						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 			} else {
+
 				logAndSetStatusError(registrationStatusDto,
 						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
 						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
+						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage() + fatherOrMother
+								+ " failed",
 						RegistrationStatusCode.FAILED.toString(), description, applicantFields.get("registrationId"));
 				isParentInfoValid = false;
 			}
@@ -685,7 +695,9 @@ public class CitizenshipVerificationProcessor {
 					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
 							.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
 					registrationStatusDto
-							.setStatusComment(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
+							.setStatusComment(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage()
+									+ guardianRelationValue
+									+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
 					registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
 					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 					regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
@@ -697,7 +709,8 @@ public class CitizenshipVerificationProcessor {
 					logAndSetStatusError(registrationStatusDto,
 							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
 							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getCode(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
+							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage()
+									+ guardianRelationValue + " failed",
 							RegistrationStatusCode.FAILED.toString(), description,
 							applicantFields.get("registrationId"));
 				}
