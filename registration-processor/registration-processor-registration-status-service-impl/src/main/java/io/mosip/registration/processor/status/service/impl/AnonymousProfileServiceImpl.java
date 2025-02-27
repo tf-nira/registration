@@ -124,8 +124,7 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 		AnonymousProfileDTO anonymousProfileDTO = new AnonymousProfileDTO();
 		anonymousProfileDTO.setProcessName(
 				getFieldValueFromMetaInfo(metaInfoMap, JsonConstant.METADATA, JsonConstant.REGISTRATIONTYPE));
-		anonymousProfileDTO.setService(
-				getFieldValueFromMetaInfo(metaInfoMap, JsonConstant.METADATA, JsonConstant.REGISTRATIONTYPE));
+		anonymousProfileDTO.setService(anonymousProfileDTO.getProcessName());
 		anonymousProfileDTO.setProcessStage(processStage);
 		anonymousProfileDTO.setCitizenship("some citizenship");
 		anonymousProfileDTO.setStatus(statusCode);
