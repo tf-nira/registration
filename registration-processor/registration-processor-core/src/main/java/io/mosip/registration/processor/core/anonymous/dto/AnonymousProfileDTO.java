@@ -29,6 +29,7 @@ public class AnonymousProfileDTO {
 	private String disability;
 	private String tribe;
 	private String district;
+	private String service;
 	private String serviceType;
 	
 }

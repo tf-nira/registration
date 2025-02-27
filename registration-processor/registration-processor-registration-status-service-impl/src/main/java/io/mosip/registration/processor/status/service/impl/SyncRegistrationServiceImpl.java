@@ -563,6 +563,7 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 		AnonymousProfileDTO dto=new AnonymousProfileDTO();
 		try{
 			dto.setProcessName(registrationDto.getRegistrationType());
+			dto.setService(registrationDto.getRegistrationType());
 			dto.setStatus("REGISTERED");
 			dto.setStartDateTime(timeStamp);
 			dto.setDate(LocalDate.now(ZoneId.of("UTC")).toString());
