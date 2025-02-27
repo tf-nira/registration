@@ -88,8 +88,6 @@ public class IntroducerValidator {
 	@Value("#{T(java.util.Arrays).asList('${mosip.regproc.common.before-cbeff-others-attibute.reg-client-versions:}')}")
 	private List<String> regClientVersionsBeforeCbeffOthersAttritube;
 
-	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
-	private String firstIdAgelimit;
 
 	/**
 	 * Checks if is valid introducer.
@@ -105,16 +103,6 @@ public class IntroducerValidator {
 	 * @throws RegistrationProcessorCheckedException
 	 */
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
-		if (registrationStatusDto.getRegistrationType().equals("FIRSTID")) {
-			int age = utility.getApplicantAge(registrationId, registrationStatusDto.getRegistrationType(),
-					ProviderStageName.INTRODUCER_VALIDATOR);
-			int ageThreshold = Integer.parseInt(firstIdAgelimit);
-			if (age < ageThreshold) {
-				throw new ValidationFailedException(StatusUtil.INTRODUCER_APPLICANT_AGE_CHECK_FAILED.getMessage(),
-						StatusUtil.INTRODUCER_APPLICANT_AGE_CHECK_FAILED.getCode());
-			}
-		}
-
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
 		String introducerNIN = packetManagerService.getFieldByMappingJsonKey(registrationId,

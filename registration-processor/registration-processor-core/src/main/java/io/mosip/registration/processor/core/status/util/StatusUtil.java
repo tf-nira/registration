@@ -72,7 +72,10 @@ public enum StatusUtil {
 			"Consent is not agreed for the packet to process further"),
 	PVM_ALREADY_CARD_EXISTS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "018",
 			"Already card is present for applicant"),
-
+	PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "019",
+			"Applicant is not eligible to GetFirstId service"),
+	PVM_APPLICANT_NOT_ELIGIBLE_LOST(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "020",
+			"Applicant is not eligible for  Lost service"),
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
@@ -149,9 +152,9 @@ public enum StatusUtil {
 	INTRODUCER_AUTHENTICATION_FAILED(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "001",
 			"INTRODUCER Biometric Authentication Failed - "),
 	UIN_RID_NOT_FOUND(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "002",
-			"UIN or RID of Introducer Not Found in Packet"),
+			"NIN of Introducer Not Found in Packet"),
 	INTRODUCER_UIN_NOT_FOUND(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "003",
-			"Introducer UIN not Found for the Given RID"),
+			"Introducer NIN not Found for the Given RID"),
 	INTRODUCER_BIOMETRIC_FILE_NAME_NOT_FOUND(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "004",
 			"Introducer Biometric File Name Not Found"),
 	PACKET_ON_HOLD(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "005",

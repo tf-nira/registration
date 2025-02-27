@@ -82,6 +82,9 @@ public class PacketValidatorImpl implements PacketValidator {
 	@Value("${mosip.regproc.packet.validator.validate-update-renewal-nin:false}")
 	private boolean isEnabled;
 
+	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
+	private String firstIdAgelimit;
+
 	@Override
 	public boolean validate(String id, String process, PacketValidationDto packetValidationDto)
 			throws ApisResourceAccessException, RegistrationProcessorCheckedException, IOException,
@@ -160,9 +163,29 @@ public class PacketValidatorImpl implements PacketValidator {
 				}
 			}
 		}
-
+		if (process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
+					ProviderStageName.PACKET_VALIDATOR);
+			if (StringUtils.isNotEmpty(handle)) {
+				if (!validateAgeToGetCard(id, process, packetValidationDto)) {
+					packetValidationDto.setPacketValidaionFailureMessage(
+							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_LOST.getMessage());
+					packetValidationDto
+							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_LOST.getCode());
+					return false;
+				}
+			}
+	
+		}
 		if (process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
 			try {
+				if (!validateAgeToGetCard(id, process, packetValidationDto)) {
+					packetValidationDto.setPacketValidaionFailureMessage(
+							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getMessage());
+					packetValidationDto
+							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getCode());
+					return false;
+				}
 			ResponseDTO responseDTO = utility.getIdrepoResponseByHandle(id, process,
 					ProviderStageName.PACKET_VALIDATOR);
 			boolean isValidFirstID=true;
@@ -331,7 +354,19 @@ public class PacketValidatorImpl implements PacketValidator {
 		return true;
 
 	}
-	
+
+	private boolean validateAgeToGetCard(String id, String process, PacketValidationDto packetValidationDto)
+			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
+			int age = utility.getApplicantAge(id, process,
+					ProviderStageName.PACKET_VALIDATOR);
+			int ageThreshold = Integer.parseInt(firstIdAgelimit);
+			if (age < ageThreshold) {
+
+				return false;
+			}
+			return true;
+
+	}
 	
 
 }
