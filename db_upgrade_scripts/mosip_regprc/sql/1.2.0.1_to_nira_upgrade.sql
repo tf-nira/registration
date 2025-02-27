@@ -11,7 +11,7 @@ GRANT SELECT, INSERT, TRUNCATE, REFERENCES, UPDATE, DELETE ON ALL TABLES IN SCHE
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA regprc TO postgres;
 
 ----------------------------------------------Multiple table level changes on regprc db-------------------------------------------------------
-CREATE TABLE consumed__nin_introducer (
+CREATE TABLE consumed_nin_introducer (
     nin character varying (500) PRIMARY KEY,
     usage_count INTEGER,
     last_used TIMESTAMP WITHOUT TIME ZONE
