@@ -292,7 +292,6 @@ public class LegacyDataValidator {
 				.findByWorkflowInstanceId(registrationStatusDto.getWorkflowInstanceId());
 		Map<String, String> demographics = migrationResponse.getDemographics();
 		Map<String, DocumentDto> documents = migrationResponse.getDocuments();
-		if (registrationType.equals("UPDATE") || registrationType.equals("FIRSTID")) {
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
@@ -304,7 +303,7 @@ public class LegacyDataValidator {
 				}
 			}
 			documents.putAll(packetDocuments);
-		}
+
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(migrationResponse.getRid());
 		packetDto.setSource("DATAMIGRATOR");
