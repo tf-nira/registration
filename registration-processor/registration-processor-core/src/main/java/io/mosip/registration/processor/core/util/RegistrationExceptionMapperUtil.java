@@ -200,7 +200,7 @@ public class RegistrationExceptionMapperUtil {
 		statusMap.put(RegistrationExceptionTypeCode.DATA_MIGRATION_EXCEPTION,
 				RegistrationTransactionStatusCode.FAILED);
 		statusMap.put(RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION,
-				RegistrationTransactionStatusCode.FAILED);
+				RegistrationTransactionStatusCode.REJECTED);
 		statusMap.put(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET, RegistrationTransactionStatusCode.REPROCESS);
 		return unmodifiableMap;
 

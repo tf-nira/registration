@@ -53,6 +53,7 @@ import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.idrepo.dto.Documents;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
+import io.mosip.registration.processor.core.migration.dto.MigrationOnDemandResponse;
 import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
 import io.mosip.registration.processor.core.packet.dto.DocumentDto;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
@@ -152,11 +153,14 @@ public class LegacyDataVal {
 						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
 						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
 					}
-					String migrationResponse = objectMapper.readValue(
+					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
+							.readValue(
 							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-							String.class);
-					if (migrationResponse != null) {
-						regProcLogger.info("ondemand migration happended for registration id : {}", registrationId);
+									MigrationOnDemandResponse.class);
+					if (migrationOnDemandResponse != null) {
+						regProcLogger.info(
+								"ondemand migration happended for registration id  and migration rid is  : {} {}",
+								registrationId, migrationOnDemandResponse.getRid());
 						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
 								StatusUtil.LEGACY_DATA_FAILED.getCode());
 					} else {
