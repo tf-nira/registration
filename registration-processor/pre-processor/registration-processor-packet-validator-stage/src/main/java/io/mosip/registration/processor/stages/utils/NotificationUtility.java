@@ -190,6 +190,9 @@ public class NotificationUtility {
 						&& (registrationAdditionalInfoDTO.getEmail() != null
 						&& !registrationAdditionalInfoDTO.getEmail().isEmpty())) {
 					if (registrationStatusDto.getRegistrationType().equals("UPDATE") || enableEmailForOtherProcess) {
+						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+								"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
 					sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
 				}
 				} else if (notificationType.equalsIgnoreCase("SMS") && (registrationAdditionalInfoDTO.getPhone() != null
