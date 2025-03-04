@@ -347,9 +347,15 @@ public class NotificationServiceImpl implements NotificationService {
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
 						&& isTemplateAvailable(messageSenderDto)) {
 					if (process.equals("UPDATE") || enableEmailForOtherProcess) {
+						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), id,
+								"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
 					isEmailSuccess = sendEmail(id, process, attributes, ccEMailList, regType, messageSenderDto,
 							description);
 				} else {
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"enter else case" + enableEmailForOtherProcess);
 					isEmailSuccess = true;
 				}
 						
@@ -577,6 +583,8 @@ public class NotificationServiceImpl implements NotificationService {
 				}
 			});
 		}
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+				messageSenderDto.getEmailTemplateCode(), "template available" + messageSenderDto.isTemplateAvailable());
 		return messageSenderDto.isTemplateAvailable();
 	}
 
