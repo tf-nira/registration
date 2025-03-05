@@ -1,12 +1,14 @@
 package io.mosip.registration.processor.packet.storage.utils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
+import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
@@ -19,6 +21,7 @@ import io.mosip.kernel.biosdk.provider.spi.iBioProviderApi;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.CryptoUtil;
+import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
@@ -70,7 +73,8 @@ public class BioSdkUtil {
 
 			if (null != data && !(data.isEmpty())) {
 				BIR bir = CbeffValidator.getBIRFromXML(CryptoUtil.decodeURLSafeBase64(data));
-				Map<BiometricType, List<BIR>> firstMp = getMapFromBirList(bir.getBirs());
+				List<BIR> filteredBirs = filterExceptionBiometrics(bir);
+				Map<BiometricType, List<BIR>> firstMp = getMapFromBirList(filteredBirs);
 				Map<BiometricType, List<BIR>> secondMp = getMapFromBirList(list);
 				regProcLogger
 						.debug("BioSdkUtil :: authenticateBiometrics :: BIR size fetch from ID repo " + firstMp.size());
@@ -128,4 +132,19 @@ public class BioSdkUtil {
 
 	}
 
+	private List<BIR> filterExceptionBiometrics(BIR bir)
+			throws JsonProcessingException, IOException, JSONException {
+		List<BIR> segments = bir.getBirs().stream().filter(bio -> {
+			Map<String, String> othersMap = bio.getOthers().entrySet().stream()
+					.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+			return (othersMap == null || !othersMap.containsKey("EXCEPTION")) ? true
+					: !(Boolean.parseBoolean(othersMap.get("EXCEPTION")));
+		}).collect(Collectors.toList());
+		if (segments != null) {
+			segments = segments.stream().filter(bio -> !bio.getBdbInfo().getType().get(0).name()
+					.equalsIgnoreCase(BiometricType.EXCEPTION_PHOTO.name())).collect(Collectors.toList());
+		}
+
+		return segments;
+	}
 }
