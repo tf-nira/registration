@@ -100,9 +100,14 @@ public class ABISHandlerUtil {
 				if (!CollectionUtils.isEmpty(machedRefIds)) {
 					List<String> matchedRegIds = packetInfoDao.getAbisRefRegIdsByMatchedRefIds(machedRefIds);
 					if (!CollectionUtils.isEmpty(matchedRegIds)) {
+						List<String> registrationTypes = new ArrayList<String>();
+						registrationTypes.add("UPDATE");
+						registrationTypes.add("RENEWAL");
+						registrationTypes.add("LOST");
+						registrationTypes.add("FIRSTID");
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
-								.getWithoutStatusCode(matchedRegIds,
-										RegistrationStatusCode.REJECTED.toString());
+								.getWithoutStatusCodeAndRegistartionType(matchedRegIds,
+										RegistrationStatusCode.REJECTED.toString(), registrationTypes);
 						List<RegistrationStatusEntity> processingRegistrationStatusEntities = matchedRegistrationStatusEntities
 								.stream()
 								.filter(e -> RegistrationStatusCode.PROCESSING.toString().equals(e.getStatusCode()))

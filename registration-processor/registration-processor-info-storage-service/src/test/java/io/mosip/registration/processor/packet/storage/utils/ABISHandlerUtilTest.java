@@ -1,6 +1,28 @@
 
 package io.mosip.registration.processor.packet.storage.utils;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.assertj.core.util.Lists;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
 import io.mosip.registration.processor.core.constant.AbisConstant;
@@ -17,27 +39,6 @@ import io.mosip.registration.processor.packet.storage.dto.ApplicantInfoDto;
 import io.mosip.registration.processor.packet.storage.mapper.PacketInfoMapper;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
-import org.assertj.core.util.Lists;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
 
 /**
  * The Class PacketInfoManagerImplTest.
@@ -124,7 +125,14 @@ public class ABISHandlerUtilTest {
             when(packetInfoManager.getAbisResponseDetails(dto.getMatchedBioRefId())).thenReturn(Lists.newArrayList(responseDetDto));
         }
         when(packetInfoDao.getAbisRefRegIdsByMatchedRefIds(matchedRids)).thenReturn(matchedRids);
-        when(packetInfoDao.getWithoutStatusCode(matchedRids, RegistrationStatusCode.REJECTED.toString()))
+		List<String> registrationTypes = new ArrayList<String>();
+		registrationTypes.add("UPDATE");
+		registrationTypes.add("RENEWAL");
+		registrationTypes.add("LOST");
+		registrationTypes.add("FIRSTID");
+		when(packetInfoDao.getWithoutStatusCodeAndRegistartionType(matchedRids,
+				RegistrationStatusCode.REJECTED.toString(),
+				registrationTypes))
                 .thenReturn(registrationStatusEntityList);
         when(idRepoService.getUinByRid("10002100820001420210108085103", new String())).thenReturn("123456789");
         when(idRepoService.getUinByRid("10002100820001420210108085102", new String())).thenReturn("987654321");
