@@ -25,6 +25,8 @@ import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCo
 import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
+import io.mosip.registration.processor.core.exception.LegacyDataBiomtericException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
@@ -101,10 +103,21 @@ public class LegacyDataProcessor {
 			object.setInternalError(Boolean.FALSE);
 			isTransactionSuccessful = true;
 		} catch (DataMigrationPacketCreationException e) {
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REJECTED,
 					StatusUtil.DATA_MIGRATION_API_FAILED,
 					RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+		} catch (LegacyDataValidationException e) {
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+					StatusUtil.LEGACY_DATA_SYSTEM_FAILED,
+					RegistrationExceptionTypeCode.LEGACY_FAILED, description,
+					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+		} 
+		catch (LegacyDataBiomtericException e) {
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+					StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED,
+					RegistrationExceptionTypeCode.LEGACY_FAILED, description,
+					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (PacketManagerException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
