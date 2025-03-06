@@ -45,6 +45,8 @@ import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
+import io.mosip.registration.processor.core.exception.LegacyDataBiomtericException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
@@ -130,7 +132,8 @@ public class LegacyDataVal {
 			LogDescription description, MessageDTO object)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
 			ValidationFailedException, JAXBException, NoSuchAlgorithmException,
-			NumberFormatException, JSONException, DataMigrationPacketCreationException {
+			NumberFormatException, JSONException, DataMigrationPacketCreationException, LegacyDataValidationException,
+			LegacyDataBiomtericException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
@@ -192,7 +195,7 @@ public class LegacyDataVal {
 	private Map<String, String> getBiometricsWSQFormat(String registrationId,
 			InternalRegistrationStatusDto registrationStatusDto)
 			throws IOException, ApisResourceAccessException, PacketManagerException, JsonProcessingException,
-			ValidationFailedException
+			LegacyDataBiomtericException
 	{
 		
 		JSONObject regProcessorIdentityJson = utility
@@ -210,8 +213,8 @@ public class LegacyDataVal {
 				|| biometricRecord.getSegments().isEmpty()) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					registrationId, RegistrationStatusCode.FAILED.toString() + "Biometrics are not present for packet");
-			throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-					StatusUtil.LEGACY_DATA_FAILED.getCode());
+			throw new LegacyDataBiomtericException(StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage(),
+					StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getCode());
 		}
 		Map<String, byte[]> isoImageMap = new HashMap<String, byte[]>();
 		for (BIR bir : biometricRecord.getSegments()) {
@@ -240,7 +243,7 @@ public class LegacyDataVal {
 
 	private String checkNINAVailableInLegacy(String registrationId, Map<String, String> positionAndWsqMap)
 			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
-			ValidationFailedException {
+			ValidationFailedException, LegacyDataValidationException {
 		String NIN = null;
 		Envelope requestEnvelope = createIdentifyPersonRequest(positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
@@ -276,8 +279,8 @@ public class LegacyDataVal {
 					registrationId,
 					RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
-			throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage(),
-					StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());
+			throw new LegacyDataValidationException(StatusUtil.LEGACY_DATA_SYSTEM_FAILED.getMessage(),
+					StatusUtil.LEGACY_DATA_SYSTEM_FAILED.getCode());
 		}
 		return NIN;
 	}

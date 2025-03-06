@@ -429,25 +429,29 @@ public enum StatusUtil {
 			" ondemand migration is in progress"),
 	// Legacy data validation stage
 	LEGACY_DATA_VALIDATION_SUCCESS(StatusConstants.LEGACY_DATA_VALIDATION_SUCCESS + "001",
-			"Legacy data validation  success"),
+			"Person found in mosip"),
 	LEGACY_DATA_VALIDATION_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "002",
-			"Legacy data validation failed"),
+			"Biometrics - Person not found in legacy"),
 	ON_DEMAND_PACKET_CREATION_SUCCESS(StatusConstants.LEGACY_DATA_VALIDATION_SUCCESS + "003",
 			"OnDemand Packet created"),
 	ON_DEMAND_PACKET_CREATION_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "004",
-			"OnDemand Packet creattion failed"),
+			"OnDemand Packet creation failed"),
 	DATA_MIGRATION_API_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "005",
-			"Data Migration api failed"),
+			"Data Migration failed"),
 	LEGACY_DATA_SUCCESS(StatusConstants.LEGACY_DATA_SUCCESS + "001",
-			"Legacy data validation  success"),
+			"Unique biometrics - Person not found in legacy"),
 	LEGACY_DATA_FAILED(StatusConstants.LEGACY_DATA_FAILED + "002",
-			"Legacy data validation failed"),
+			"Duplicate biometrics - Person found in legacy"),
 	LEGACY_DATA_ON_DEMAND_PACKET_CREATION_SUCCESS(StatusConstants.LEGACY_DATA_SUCCESS + "003",
 			"OnDemand Packet created"),
 	LEGACY_DATA_ON_DEMAND_PACKET_CREATION_FAILED(StatusConstants.LEGACY_DATA_FAILED + "004",
-			"OnDemand Packet creattion failed"),
+			"OnDemand Packet creation failed"),
 	LEGACY_DATA_DATA_MIGRATION_API_FAILED(StatusConstants.LEGACY_DATA_FAILED + "005",
-			"Data Migration api failed");
+			"Data Migration failed"),
+	LEGACY_DATA_BIOMETRIC_FAILED(StatusConstants.LEGACY_DATA_FAILED + "006",
+			"Fingerprint Biometrics are not present for packet to verify against legacy"),
+	LEGACY_DATA_SYSTEM_FAILED(StatusConstants.LEGACY_DATA_FAILED + "007",
+			"Error from legacy system");
 
 	private final String statusComment;
 	private final String statusCode;
