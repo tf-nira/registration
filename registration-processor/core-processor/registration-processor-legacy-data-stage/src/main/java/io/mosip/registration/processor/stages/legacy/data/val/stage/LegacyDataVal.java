@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +15,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONTokener;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,14 +28,11 @@ import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.CryptoUtil;
-import io.mosip.kernel.core.util.DateUtils;
 import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
 import io.mosip.registration.processor.core.code.ApiName;
-import io.mosip.registration.processor.core.code.ModuleName;
 import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
@@ -52,17 +46,14 @@ import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
 import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
-import io.mosip.registration.processor.core.idrepo.dto.Documents;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.migration.dto.MigrationOnDemandResponse;
 import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
-import io.mosip.registration.processor.core.packet.dto.DocumentDto;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
-import io.mosip.registration.processor.packet.storage.dto.Document;
 import io.mosip.registration.processor.packet.storage.utils.FingrePrintConvertor;
 import io.mosip.registration.processor.packet.storage.utils.LegacyDataApiUtility;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
@@ -84,7 +75,6 @@ import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.SyncRegistrationDto;
 import io.mosip.registration.processor.status.dto.SyncResponseDto;
-import io.mosip.registration.processor.status.entity.SyncRegistrationEntity;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.status.service.SyncRegistrationService;
 
@@ -170,8 +160,8 @@ public class LegacyDataVal {
 						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
 								registrationId);
 						throw new DataMigrationPacketCreationException(
-								StatusUtil.LEGACY_DATA_DATA_MIGRATION_API_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_DATA_MIGRATION_API_FAILED.getCode());
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
 					}
 
 			} else {
@@ -179,8 +169,8 @@ public class LegacyDataVal {
 						registrationId);
 				registrationStatusDto
 						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-				registrationStatusDto.setStatusComment(StatusUtil.LEGACY_DATA_VALIDATION_SUCCESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_VALIDATION_SUCCESS.getCode());
+				registrationStatusDto.setStatusComment(StatusUtil.LEGACY_DATA_SUCCESS.getMessage());
+				registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_SUCCESS.getCode());
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 
 				description.setMessage(
@@ -342,131 +332,4 @@ public class LegacyDataVal {
 		marshaller.marshal(envelope, sw);
 		return sw.toString();
 	}
-
-	private Map<String, DocumentDto> getAllDocumentsByRegId(String regId, String process,
-			JSONObject demographicIdentity)
-			throws IOException, ApisResourceAccessException, PacketManagerException, JsonProcessingException
-	{
-		JSONObject idJSON = demographicIdentity;
-		List<Documents> applicantDocuments = new ArrayList<>();
-		JSONObject docJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT);
-		Map<String, DocumentDto> documents = new HashMap<String, DocumentDto>();
-		for (Object doc : docJson.values()) {
-			Map docMap = (LinkedHashMap) doc;
-			String docValue = docMap.values().iterator().next().toString();
-			HashMap<String, String> docInIdentityJson = (HashMap<String, String>) idJSON.get(docValue);
-			if (docInIdentityJson != null) {
-				DocumentDto documentDto = getIdDocument(regId, docValue, process);
-				if (documentDto != null) {
-					documents.put(docValue, documentDto);
-				}
-			}
-
-		}
-
-		return documents;
-	}
-
-	private DocumentDto getIdDocument(String registrationId, String dockey, String process)
-			throws IOException, ApisResourceAccessException, PacketManagerException,
-			io.mosip.kernel.core.util.exception.JsonProcessingException {
-
-		Document document = packetManagerService.getDocument(registrationId, dockey, process,
-				ProviderStageName.UIN_GENERATOR);
-		if (document != null) {
-			DocumentDto documentDto = new DocumentDto();
-			documentDto.setDocument(document.getDocument());
-			documentDto.setFormat(document.getFormat());
-			documentDto.setType(document.getFormat());
-			documentDto.setValue(document.getValue());
-			return documentDto;
-		}
-		return null;
-	}
-
-	private void loadDemographicIdentity(Map<String, String> fieldMap, JSONObject demographicIdentity)
-			throws IOException, JSONException {
-		for (Map.Entry e : fieldMap.entrySet()) {
-			if (e.getValue() != null) {
-				String value = e.getValue().toString();
-				if (value != null) {
-					Object json = new JSONTokener(value).nextValue();
-					if (json instanceof org.json.JSONObject) {
-						HashMap<String, Object> hashMap = objectMapper.readValue(value, HashMap.class);
-						demographicIdentity.putIfAbsent(e.getKey(), hashMap);
-					} else if (json instanceof JSONArray) {
-						List jsonList = new ArrayList<>();
-						JSONArray jsonArray = new JSONArray(value);
-						for (int i = 0; i < jsonArray.length(); i++) {
-							Object obj = jsonArray.get(i);
-							HashMap<String, Object> hashMap = objectMapper.readValue(obj.toString(), HashMap.class);
-							jsonList.add(hashMap);
-						}
-						demographicIdentity.putIfAbsent(e.getKey(), jsonList);
-					} else
-						demographicIdentity.putIfAbsent(e.getKey(), value);
-				} else
-					demographicIdentity.putIfAbsent(e.getKey(), value);
-			}
-		}
-	}
-
-	private Map<String, BiometricRecord> getBiometrics(String registrationId, String registrationType)
-			throws IOException, ApisResourceAccessException, PacketManagerException, JsonProcessingException
-	{
-		Map<String, BiometricRecord> biometricData = new HashMap<String, BiometricRecord>();
-		JSONObject regProcessorIdentityJson = utility
-				.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
-		String individualBiometricsLabel = JsonUtil.getJSONValue(
-				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
-				MappingJsonConstants.VALUE);
-		BiometricRecord biometricRecord = packetManagerService.getBiometrics(registrationId, individualBiometricsLabel,
-				registrationType,
-					ProviderStageName.LEGACY_DATA_VALIDATOR);
-			if (biometricRecord != null) {
-				biometricData.put(individualBiometricsLabel, biometricRecord);
-			}
-
-		return biometricData;
-	}
-
-		private void createRegistrationStatusEntity(String stageName, SyncRegistrationEntity regEntity) {
-			InternalRegistrationStatusDto dto = registrationStatusService.getRegistrationStatus(
-					regEntity.getRegistrationId(), regEntity.getRegistrationType(), 1,
-					regEntity.getWorkflowInstanceId());
-			if (dto == null) {
-				dto = new InternalRegistrationStatusDto();
-				dto.setRetryCount(0);
-			} else {
-				int retryCount = dto.getRetryCount() != null ? dto.getRetryCount() + 1 : 1;
-				dto.setRetryCount(retryCount);
-
-			}
-			dto.setRegistrationId(regEntity.getRegistrationId());
-			dto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.LEGACY_DATA.toString());
-			dto.setLatestTransactionTimes(DateUtils.getUTCCurrentDateTime());
-			dto.setRegistrationStageName(stageName);
-			dto.setRegistrationType(regEntity.getRegistrationType());
-			dto.setReferenceRegistrationId(null);
-			dto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-			dto.setLangCode("eng");
-			dto.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage());
-			dto.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
-			dto.setReProcessRetryCount(0);
-			dto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-			dto.setIsActive(true);
-			dto.setCreatedBy("MOSIP");
-			dto.setIsDeleted(false);
-			dto.setSource(regEntity.getSource());
-			dto.setIteration(1);
-			dto.setWorkflowInstanceId(regEntity.getWorkflowInstanceId());
-
-			/** Module-Id can be Both Success/Error code */
-			String moduleId = PlatformSuccessMessages.RPR_LEGACY_DATA.getCode();
-			String moduleName = ModuleName.LEGACY_DATA.toString();
-			registrationStatusService.addRegistrationStatus(dto, moduleId, moduleName);
-			regProcLogger.info("Successfully created record in registration for ondemand packet : {} ",
-					regEntity.getRegistrationId());
-		}
-
 }

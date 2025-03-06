@@ -446,7 +446,7 @@ public enum StatusUtil {
 			"OnDemand Packet created"),
 	LEGACY_DATA_ON_DEMAND_PACKET_CREATION_FAILED(StatusConstants.LEGACY_DATA_FAILED + "004",
 			"OnDemand Packet creation failed"),
-	LEGACY_DATA_DATA_MIGRATION_API_FAILED(StatusConstants.LEGACY_DATA_FAILED + "005",
+	LEGACY_DATA_MIGRATION_API_FAILED(StatusConstants.LEGACY_DATA_FAILED + "005",
 			"Data Migration failed"),
 	LEGACY_DATA_BIOMETRIC_FAILED(StatusConstants.LEGACY_DATA_FAILED + "006",
 			"Fingerprint Biometrics are not present for packet to verify against legacy"),
