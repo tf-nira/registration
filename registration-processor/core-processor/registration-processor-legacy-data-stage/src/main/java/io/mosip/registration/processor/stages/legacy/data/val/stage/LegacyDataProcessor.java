@@ -104,7 +104,7 @@ public class LegacyDataProcessor {
 			isTransactionSuccessful = true;
 		} catch (DataMigrationPacketCreationException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REJECTED,
-					StatusUtil.DATA_MIGRATION_API_FAILED,
+					StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED,
 					RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (LegacyDataValidationException e) {
@@ -146,7 +146,7 @@ public class LegacyDataProcessor {
 		} catch (ValidationFailedException e) {
 			object.setInternalError(Boolean.FALSE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REJECTED,
-					StatusUtil.LEGACY_DATA_VALIDATION_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
+					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
