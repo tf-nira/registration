@@ -64,6 +64,7 @@ public class MigrationUtil {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@Autowired
 	private RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
 
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
@@ -174,7 +175,7 @@ public class MigrationUtil {
 		GetPersonBody body = new GetPersonBody();
 		GetPerson getPerson = new GetPerson();
 		GetPersonRequest request = new GetPersonRequest();
-		request.setNationalId(NIN);
+		request.setNationalId(NIN.toUpperCase());
 		getPerson.setRequest(request);
 		body.setGetPerson(getPerson);
 		envelope.setBody(body);

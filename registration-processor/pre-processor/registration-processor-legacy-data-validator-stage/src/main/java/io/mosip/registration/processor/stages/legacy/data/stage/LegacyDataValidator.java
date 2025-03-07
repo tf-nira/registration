@@ -448,7 +448,7 @@ public class LegacyDataValidator {
 		Body body = new Body();
 		VerifyPerson verifyPerson = new VerifyPerson();
 		Request request = new Request();
-		request.setNationalId(NIN);
+		request.setNationalId(NIN.toUpperCase());
 		List<Fingerprint> fingerprints = new ArrayList<Fingerprint>();
 		for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
 			Fingerprint fingerprint = new Fingerprint();
