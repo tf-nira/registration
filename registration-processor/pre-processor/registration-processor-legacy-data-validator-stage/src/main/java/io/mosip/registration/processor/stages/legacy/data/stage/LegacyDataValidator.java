@@ -392,6 +392,7 @@ public class LegacyDataValidator {
 		boolean isValid = false;
 		Envelope requestEnvelope = createGetPersonRequest(NIN, positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
+		regProcLogger.debug("(Renewal process)Request to legacy system : {}", request);				
 		String response = (String) restApi.postApi(ApiName.LEGACYAPI, "", "", request, String.class,
 				MediaType.TEXT_XML);
 		regProcLogger.info("Response from legacy system : {}{}", registrationId, response);
