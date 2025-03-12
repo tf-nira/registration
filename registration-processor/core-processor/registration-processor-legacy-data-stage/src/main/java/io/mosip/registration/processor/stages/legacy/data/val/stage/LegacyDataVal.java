@@ -133,7 +133,7 @@ public class LegacyDataVal {
 				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
 						registrationId);
 					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-					migrationRequestDto.setNin(NIN);
+					migrationRequestDto.setNin(NIN.toUpperCase());
 					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
 					requestWrapper.setRequest(migrationRequestDto);
 					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
