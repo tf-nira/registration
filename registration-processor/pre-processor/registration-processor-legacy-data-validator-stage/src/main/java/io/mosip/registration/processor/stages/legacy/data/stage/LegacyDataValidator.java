@@ -291,8 +291,14 @@ public class LegacyDataValidator {
 		regProcLogger.info("successfully got  details to create ondemand packet : {}", registrationId);
 		SyncRegistrationEntity regEntity = syncRegistrationService
 				.findByWorkflowInstanceId(registrationStatusDto.getWorkflowInstanceId());
-		Map<String, String> demographics = migrationResponse.getDemographics();
-		Map<String, DocumentDto> documents = migrationResponse.getDocuments();
+		Map<String, String> demographics = new HashMap<String, String>();
+		if (migrationResponse.getDemographics() != null) {
+			demographics.putAll(migrationResponse.getDemographics());
+		}
+		Map<String, DocumentDto> documents = new HashMap<String, DocumentDto>();
+		if (migrationResponse.getDocuments() != null) {
+			documents.putAll(migrationResponse.getDocuments());
+		}
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
@@ -303,7 +309,9 @@ public class LegacyDataValidator {
 					demographics.put(entry.getKey(), entry.getValue());
 				}
 			}
-			documents.putAll(packetDocuments);
+			if (packetDocuments != null) {
+				documents.putAll(packetDocuments);
+			}
 
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(migrationResponse.getRid());
