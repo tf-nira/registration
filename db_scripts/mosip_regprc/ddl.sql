@@ -19,4 +19,4 @@
 \ir ddl/regprc-additional_info_request.sql
 \ir ddl/regprc-fk.sql
 \ir ddl/regprc-anonymous_profile.sql
-\ir ddl/regprc-consumed_introducer_nin.sql
+\ir ddl/regprc-consumed_nin_introducer.sql
