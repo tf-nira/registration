@@ -18,4 +18,5 @@ public class VerificationRequestDTO {
 	private String statusComment;
 	private String foundLink;
 	private String ageGroup;
+	private String applicantPlaceOfResidenceDistrict;
 }

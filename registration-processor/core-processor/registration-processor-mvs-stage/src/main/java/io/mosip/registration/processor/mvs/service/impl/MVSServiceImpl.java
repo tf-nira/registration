@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
+import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
+import io.mosip.registration.processor.status.code.RegistrationType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
@@ -199,6 +202,12 @@ public class MVSServiceImpl implements MVSService {
 
 	@Autowired
 	SaveVerificationRecordUtility saveVerificationRecordUtility;
+
+	@Autowired
+	private BasePacketRepository<RegLostUinDetEntity, String> regLostUinDetEntity;
+
+	@Autowired
+	private IdRepoService idRepoService;
 
 	/** The Constant PROTOCOL. */
 	public static final String PROTOCOL = "https";
@@ -700,6 +709,15 @@ public class MVSServiceImpl implements MVSService {
 		req.setService(registrationStatusDto.getRegistrationType());
 		req.setSource(messageDTO.getSource());
 		req.setRefId(refId);
+
+		if ((RegistrationType.LOST.toString()).equalsIgnoreCase(messageDTO.getReg_type())) {
+			String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(messageDTO.getWorkflowInstanceId());
+
+			JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId, utility.getGetRegProcessorDemographicIdentity());
+			String district = JsonUtil.getJSONValue(jsonObject, "applicantPlaceOfResidenceDistrict");
+
+			if(district != null) req.setApplicantPlaceOfResidenceDistrict(district);
+		}
 		
 		if ("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName())) {
 			req.setStatusComment(registrationStatusDto.getStatusComment());
