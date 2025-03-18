@@ -714,9 +714,9 @@ public class MVSServiceImpl implements MVSService {
 			String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(messageDTO.getWorkflowInstanceId());
 
 			JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId, utility.getGetRegProcessorDemographicIdentity());
-			String district = JsonUtil.getJSONValue(jsonObject, "applicantPlaceOfResidenceDistrict");
+			String districtValue= JsonUtil.getJSONValue(JsonUtil.getJSONObject(jsonObject, MappingJsonConstants.DISTRICT), MappingJsonConstants.VALUE);
 
-			if(district != null) req.setApplicantPlaceOfResidenceDistrict(district);
+			if(districtValue != null) req.setApplicantPlaceOfResidenceDistrict(districtValue);
 		}
 		
 		if ("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName())) {
