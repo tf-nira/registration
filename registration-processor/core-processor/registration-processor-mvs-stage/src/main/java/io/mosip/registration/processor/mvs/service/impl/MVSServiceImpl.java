@@ -234,6 +234,7 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
 		try {
+			registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
@@ -263,7 +264,6 @@ public class MVSServiceImpl implements MVSService {
 				registrationStatusDto
 						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.ERROR.toString());
 			}
-			registrationStatusDto.setRegistrationStageName(stageName);
 
 		} catch (DataShareException de) {
 			messageDTO.setInternalError(true);
@@ -714,8 +714,8 @@ public class MVSServiceImpl implements MVSService {
 			String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(messageDTO.getWorkflowInstanceId());
 
 			JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId, utility.getGetRegProcessorDemographicIdentity());
-			JSONObject districtObject = (JSONObject) ((ArrayList<?>) jsonObject.get(MappingJsonConstants.DISTRICT)).get(0);
-			String districtValue = JsonUtil.getJSONValue(districtObject, MappingJsonConstants.VALUE);
+			LinkedHashMap districtObject = (LinkedHashMap) ((ArrayList<?>) jsonObject.get(MappingJsonConstants.DISTRICT)).get(0);
+			String districtValue = (String) districtObject.get(MappingJsonConstants.VALUE);
 
 			if(districtValue != null) req.setApplicantPlaceOfResidenceDistrict(districtValue);
 		}
