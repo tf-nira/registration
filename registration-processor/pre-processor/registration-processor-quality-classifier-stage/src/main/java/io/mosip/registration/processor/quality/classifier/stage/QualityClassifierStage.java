@@ -262,6 +262,10 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), regId,
 							PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
+					Map<String, String> notificationAttributes = new HashMap<>();
+					notificationAttributes.put("FAILURE_REASON", PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
+					object.setNotificationAttributes(notificationAttributes);
+					
 					throw new FileMissingException(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getCode(),
 							PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
 				}

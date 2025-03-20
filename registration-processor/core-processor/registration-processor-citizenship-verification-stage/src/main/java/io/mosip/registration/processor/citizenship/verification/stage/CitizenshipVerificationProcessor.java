@@ -158,6 +158,9 @@ public class CitizenshipVerificationProcessor {
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (PacketOnHoldException e) {
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", e.getErrorText());
+			object.setNotificationAttributes(notificationAttributes);
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING, StatusUtil.PACKET_ON_HOLD,
 					RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET, description,

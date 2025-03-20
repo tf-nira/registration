@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -242,6 +243,10 @@ public class PacketValidateProcessor {
 							description.getCode() + description.getMessage());
 
 				} else {
+					Map<String, String> notificationAttributes = new HashMap<>();
+	            	notificationAttributes.put("FAILURE_REASON", "validation failed due to invalid data");
+	            	object.setNotificationAttributes(notificationAttributes);
+	            	
 					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
 							.getStatusCode(RegistrationExceptionTypeCode.PACKET_STRUCTURAL_VALIDATION_FAILED));
 					int retryCount = registrationStatusDto.getRetryCount() != null
@@ -264,6 +269,10 @@ public class PacketValidateProcessor {
 
 				}
 			} else {
+				Map<String, String> notificationAttributes = new HashMap<>();
+            	notificationAttributes.put("FAILURE_REASON", "application rejected by supervisor");
+            	object.setNotificationAttributes(notificationAttributes);
+            	
 				registrationStatusDto.setLatestTransactionStatusCode(
 						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.PACKET_REJECTED));
 				int retryCount = registrationStatusDto.getRetryCount() != null

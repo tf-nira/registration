@@ -222,6 +222,9 @@ public class LegacyDataValidator {
 					}
 
 			} else {
+				Map<String, String> notificationAttributes = new HashMap<>();
+				notificationAttributes.put("FAILURE_REASON", "NIN not available in legacy system");
+				object.setNotificationAttributes(notificationAttributes);
 				regProcLogger.error("NIN is not  present in legacy system : {}", registrationId);
 				throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage(),
 						StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());

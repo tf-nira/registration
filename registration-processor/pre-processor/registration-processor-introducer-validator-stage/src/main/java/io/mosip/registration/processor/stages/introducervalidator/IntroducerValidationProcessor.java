@@ -1,6 +1,8 @@
 package io.mosip.registration.processor.stages.introducervalidator;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,6 +138,10 @@ public class IntroducerValidationProcessor {
 					StatusUtil.DB_NOT_ACCESSIBLE, RegistrationExceptionTypeCode.TABLE_NOT_ACCESSIBLE_EXCEPTION,
 					description, PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
 		} catch (ValidationFailedException e) {
+			Map<String, String> notificationAttributes = new HashMap<>();
+        	notificationAttributes.put("FAILURE_REASON", e.getErrorText());
+        	object.setNotificationAttributes(notificationAttributes);
+        	
 			object.setInternalError(Boolean.FALSE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.VALIDATION_FAILED_EXCEPTION, RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION,

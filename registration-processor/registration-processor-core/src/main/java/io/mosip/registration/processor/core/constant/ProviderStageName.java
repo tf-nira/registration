@@ -25,7 +25,8 @@ public enum  ProviderStageName {
     PAYMENT_VALIDATOR("paymentvalidator"),
     CITIZENSHIP_VERIFICATION("citizenshipverification"),
 	LEGACY_DATA_VALIDATOR("legacydatavalidator"),
-	LEGACY_DATA("legacydata");
+	LEGACY_DATA("legacydata"),
+	NOTIFICATION_SENDER("notificationsender");
 
 
     private String value;

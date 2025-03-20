@@ -3,6 +3,7 @@ package io.mosip.registration.processor.biometric.authentication.stage;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -252,6 +253,10 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 					registrationStatusDto.setStatusComment(StatusUtil.BIOMETRIC_AUTHENTICATION_SUCCESS.getMessage());
 				}
 			} else {
+				Map<String, String> notificationAttributes = new HashMap<>();
+				notificationAttributes.put("FAILURE_REASON", StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getMessage());
+				object.setNotificationAttributes(notificationAttributes);
+				
 				registrationStatusDto.setSubStatusCode(StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getCode());
 				registrationStatusDto
 						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());

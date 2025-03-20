@@ -19,6 +19,8 @@ public enum NotificationTemplateType {
 	/** The technical issue. */
 	TECHNICAL_ISSUE,
 	
+	TECHNICAL_ISSUE_WITH_ERROR,
+	
 	/** The MVS packet reject. */
 	MVS_PACKET_REJECTED,
 	
