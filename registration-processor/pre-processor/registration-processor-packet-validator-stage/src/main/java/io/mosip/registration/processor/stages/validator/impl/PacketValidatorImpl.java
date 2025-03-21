@@ -39,6 +39,7 @@ import io.mosip.registration.processor.core.packet.dto.FieldValue;
 import io.mosip.registration.processor.core.packet.dto.packetvalidator.PacketValidationDto;
 import io.mosip.registration.processor.core.spi.packet.validator.PacketValidator;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
+import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.packet.storage.dto.ValidatePacketResponse;
 import io.mosip.registration.processor.packet.storage.exception.IdRepoAppException;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
@@ -85,6 +86,10 @@ public class PacketValidatorImpl implements PacketValidator {
 	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
 	private String firstIdAgelimit;
 
+	@Value("${mosip.regproc.packet.validator.max.number.spouses:4}")
+	private Integer maxNumberOfSpouses;
+
+	@SuppressWarnings("unused")
 	@Override
 	public boolean validate(String id, String process, PacketValidationDto packetValidationDto)
 			throws ApisResourceAccessException, RegistrationProcessorCheckedException, IOException,
@@ -117,13 +122,15 @@ public class PacketValidatorImpl implements PacketValidator {
 				return false;
 			}
 			
-			if (isEnabled) {
+
 
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
 					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
 				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
+				// In production we need to enable isEnabled property so added or condition
+				if (uin != null || isEnabled) {
 				if (uin == null) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), id,
@@ -137,6 +144,14 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
+				if (!checkNumberOfSpouses(jsonObject, id, process)) {
+					packetValidationDto.setPacketValidaionFailureMessage(
+							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getMessage());
+					packetValidationDto
+							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getCode());
+					return false;
+				}
+				boolean isValidSpouse;
 				String status = utility.retrieveIdrepoJsonStatus(uin);
 				if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 						&& status.equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
@@ -146,7 +161,7 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new RegistrationProcessorCheckedException(
 							PlatformErrorMessages.RPR_PVM_UPDATE_DEACTIVATED.getCode(), "UIN is Deactivated");
 				}
-			}
+
 			// check if uin is in idrepisitory
 			if (RegistrationType.UPDATE.name().equalsIgnoreCase(process)
 					|| RegistrationType.RES_UPDATE.name().equalsIgnoreCase(process)
@@ -175,8 +190,9 @@ public class PacketValidatorImpl implements PacketValidator {
 					return false;
 				}
 			}
-	
 		}
+		}
+	
 		if (process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
 			try {
 				if (!validateAgeToGetCard(id, process, packetValidationDto)) {
@@ -368,5 +384,27 @@ public class PacketValidatorImpl implements PacketValidator {
 
 	}
 	
-
+	private boolean checkNumberOfSpouses(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+		boolean isValidNumberOfSpouse = true;
+		String numberOfOtherSpousesInDb = JsonUtil.getJSONValue(jsonObject, MappingJsonConstants.NUMBEROFOTHERSPOUSES);
+		if (numberOfOtherSpousesInDb != null) {
+			int numberOfOtherSpousesInDbValue = Integer.parseInt(numberOfOtherSpousesInDb);
+			String numberOfOtherSpousesInPacket = packetManagerService.getFieldByMappingJsonKey(
+					id, MappingJsonConstants.NUMBEROFOTHERSPOUSES,
+					process, ProviderStageName.PACKET_VALIDATOR);
+			if (numberOfOtherSpousesInPacket != null) {
+				int numberOfOtherSpousesInPacketValue = Integer.parseInt(numberOfOtherSpousesInPacket);
+				if (numberOfOtherSpousesInDbValue < maxNumberOfSpouses) {
+					int leftOutSpouses = maxNumberOfSpouses - numberOfOtherSpousesInDbValue;
+					if (numberOfOtherSpousesInPacketValue > leftOutSpouses) {
+						isValidNumberOfSpouse = false;
+					}
+				} else if (numberOfOtherSpousesInDbValue >= maxNumberOfSpouses) {
+					isValidNumberOfSpouse = false;
+				}
+			}
+		}
+		return isValidNumberOfSpouse;
+	}
 }

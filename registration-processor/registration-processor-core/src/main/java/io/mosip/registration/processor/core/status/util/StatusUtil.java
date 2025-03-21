@@ -76,6 +76,8 @@ public enum StatusUtil {
 			"Applicant is not eligible to GetFirstId service"),
 	PVM_APPLICANT_NOT_ELIGIBLE_LOST(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "020",
 			"Applicant is not eligible for  Lost service"),
+	PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "021",
+			"Applicant number of spouse has exceeded the maximum"),
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
