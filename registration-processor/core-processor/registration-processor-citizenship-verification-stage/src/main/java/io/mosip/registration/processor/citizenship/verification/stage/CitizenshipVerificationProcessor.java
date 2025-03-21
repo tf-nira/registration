@@ -408,9 +408,8 @@ public class CitizenshipVerificationProcessor {
 		else {
 			regProcLogger.info("ParentNIN found but validation status is {}. Checking age criteria for MVS redirection.", 
 			        isParentInfoValid ? "valid" : "invalid");
-			LocalDate currentDate = LocalDate.now();
-			int age = Period.between(applicantDob, currentDate).getYears();
-			regProcLogger.info("Calculated applicant age: {} years (threshold: {}) for registrationId: {}", 
+			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			regProcLogger.info("Applicant age: {} years (threshold: {}) for registrationId: {}", 
 			        age, ageCheckCVS, registrationStatusDto.getRegistrationId());
 			if(age >= ageCheckCVS) { 
 				regProcLogger.info("Applicant age {} meets MVS redirection threshold of {}. Redirecting packet to MVS.", 
@@ -709,13 +708,8 @@ public class CitizenshipVerificationProcessor {
 				}
 			
 			//moving the packet directly to mvs if age >= 25.
-			LocalDate currentDate = LocalDate.now();
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dobFormat);
-			LocalDate applicantDob = parseDate(applicantFields.get(MappingJsonConstants.APPLICANT_DATEOFBIRTH), formatter);
-			regProcLogger.info("Parsed applicant date of birth from string '{}' to LocalDate: {}", 
-				    applicantFields.get(MappingJsonConstants.APPLICANT_DATEOFBIRTH), applicantDob);
-			int age = Period.between(applicantDob, currentDate).getYears();
-			regProcLogger.info("Calculated applicant age: {} years for registrationId: {}", 
+			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			regProcLogger.info("Applicant age: {} years for registrationId: {}", 
 				    age, applicantFields.get("registrationId"));
 			if(age >= ageCheckCVS) {
 				regProcLogger.info("Applicant age {} is >= configured threshold {}. Redirecting to MVS for registrationId: {}", 
