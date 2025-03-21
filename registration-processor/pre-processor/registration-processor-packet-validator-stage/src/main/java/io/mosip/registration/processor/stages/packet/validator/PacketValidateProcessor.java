@@ -244,7 +244,7 @@ public class PacketValidateProcessor {
 
 				} else {
 					Map<String, String> notificationAttributes = new HashMap<>();
-	            	notificationAttributes.put("FAILURE_REASON", "validation failed due to invalid data");
+	            	notificationAttributes.put("FAILURE_REASON", packetValidationDto.getPacketValidaionFailureMessage());
 	            	object.setNotificationAttributes(notificationAttributes);
 	            	
 					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
