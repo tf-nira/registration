@@ -380,7 +380,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 	private boolean isUpdateAdultPacket(String registartionType, String applicantType) {
 		return (registartionType.equalsIgnoreCase(RegistrationType.UPDATE.name())
 				|| registartionType.equalsIgnoreCase(RegistrationType.RES_UPDATE.name())
-				|| registartionType.equalsIgnoreCase(RegistrationType.RENEWAL.name()))
+				|| registartionType.equalsIgnoreCase(RegistrationType.RENEWAL.name())
+				|| registartionType.equalsIgnoreCase(RegistrationType.FIRSTID.name())
+				|| registartionType.equalsIgnoreCase(RegistrationType.LOST.name()))
 				&& applicantType.equalsIgnoreCase(BiometricAuthenticationConstants.ADULT);
 	}
 
