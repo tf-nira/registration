@@ -3,8 +3,10 @@ package io.mosip.registration.processor.stages.validator.impl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -152,6 +154,14 @@ public class PacketValidatorImpl implements PacketValidator {
 					return false;
 				}
 				boolean isValidSpouse;
+				String ChangeIncitizenshipTypeCop = packetManagerService.getField(id,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, process, ProviderStageName.PACKET_VALIDATOR);
+				if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
+						if (!isValidServiceTypeChange(jsonObject, id, process)) {
+							packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+							packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+							return false;
+						}
+				}
 				String status = utility.retrieveIdrepoJsonStatus(uin);
 				if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 						&& status.equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
@@ -406,5 +416,57 @@ public class PacketValidatorImpl implements PacketValidator {
 			}
 		}
 		return isValidNumberOfSpouse;
+	}
+	private boolean isValidServiceTypeChange(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		Object userServiceTypeInDb = JsonUtil.getJSONValue(jsonObject, MappingJsonConstants.APPLICANT_CITIZENSHIPTYPE);
+		Object citizenshipTypeCop = packetManagerService.getField(id, MappingJsonConstants.CHANGE_IN_APPLICANT_CITIZENSHIPTYPE, process, ProviderStageName.PACKET_VALIDATOR);
+
+		try {
+			// Convert JSON objects to lists
+			List<Map<String, String>> userServiceList = objectMapper.readValue(
+					userServiceTypeInDb.toString(), new TypeReference<>() {});
+			List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
+					citizenshipTypeCop.toString(), new TypeReference<>() {});
+
+			// Extract values if lists are non-empty
+			Optional<String> serviceTypeOpt = userServiceList.stream().findFirst().map(map -> map.get("value"));
+			Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
+
+			if (serviceTypeOpt.isEmpty() || citizenshipTypeOpt.isEmpty()) {
+				return false;
+			}
+
+			String serviceType = serviceTypeOpt.get();
+			String citizenshipType = citizenshipTypeOpt.get();
+
+			// Validate service type change
+			switch (serviceType) {
+				case "By Birth /Descent":
+					return citizenshipType.equalsIgnoreCase("Birth to Registration") ||
+							citizenshipType.equalsIgnoreCase("Birth to Dual Citizenship") ||
+							citizenshipType.equalsIgnoreCase("Birth to Naturalization");
+
+				case "By Registration":
+					return citizenshipType.equalsIgnoreCase("Registration to Dual Citizenship");
+
+				case "By Naturalization":
+					return citizenshipType.equalsIgnoreCase("Naturalisation to Dual Citizenship");
+
+				case "Citizenship under the Article 9":
+					return citizenshipType.equalsIgnoreCase("Citizenship Under Article 9 to Dual Citizenship");
+
+				default:
+					System.out.println("Unknown/Invalid service type: " + serviceType);
+					return false;
+			}
+		} catch (Exception e) {
+			System.err.println("Error processing service type change validation: " + e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
 	}
 }
