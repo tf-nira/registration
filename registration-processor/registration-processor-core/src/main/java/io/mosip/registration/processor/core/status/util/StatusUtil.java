@@ -78,6 +78,8 @@ public enum StatusUtil {
 			"Applicant is not eligible for  Lost service"),
 	PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "021",
 			"Applicant number of spouse has exceeded the maximum"),
+	PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "022",
+			"Applicant existing userServiceType is not eligible for requested change"),
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
