@@ -153,7 +153,6 @@ public class PacketValidatorImpl implements PacketValidator {
 							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getCode());
 					return false;
 				}
-				boolean isValidSpouse;
 				String ChangeIncitizenshipTypeCop = packetManagerService.getField(id,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, process, ProviderStageName.PACKET_VALIDATOR);
 				if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
 						if (!isValidServiceTypeChange(jsonObject, id, process)) {
