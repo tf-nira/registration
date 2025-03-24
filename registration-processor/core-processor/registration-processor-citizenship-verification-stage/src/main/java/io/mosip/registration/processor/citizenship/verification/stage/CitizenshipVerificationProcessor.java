@@ -94,6 +94,9 @@ public class CitizenshipVerificationProcessor {
 	@Value("${registration.processor.applicant.dob.format}")
 	private String dobFormat;
 
+	@Value("${registration.processor.applicant.age.check.cvs}")
+	private int ageCheckCVS;
+	
 	public MessageDTO process(MessageDTO object) {
 
 		LogDescription description = new LogDescription();
@@ -323,7 +326,7 @@ public class CitizenshipVerificationProcessor {
 				} else {
 					regProcLogger.info("Citizenship verification proceed: Atleast one parent has NIN");
 					ifCitizenshipValid = handleValidationWithParentNinFound(applicantFields, registrationStatusDto,
-							description);
+							description, object);
 				}
 			}
 
@@ -337,7 +340,7 @@ public class CitizenshipVerificationProcessor {
 	}
 
 	private boolean handleValidationWithParentNinFound(Map<String, String> applicantFields,
-			InternalRegistrationStatusDto registrationStatusDto, LogDescription description)
+			InternalRegistrationStatusDto registrationStatusDto, LogDescription description, MessageDTO object)
 			throws JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException,
 			ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
 			JsonProcessingException, DataMigrationPacketCreationException, JAXBException, PacketOnHoldException {
@@ -403,7 +406,27 @@ public class CitizenshipVerificationProcessor {
 				isParentInfoValid = false;
 			}
 		}
-
+		
+		//moving the packet directly to mvs if age >= 25.
+		else {
+			regProcLogger.info("ParentNIN found but validation status is {}. Checking age criteria for MVS redirection.", 
+			        isParentInfoValid ? "valid" : "invalid");
+			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			regProcLogger.info("Applicant age: {} years (threshold: {}) for registrationId: {}", 
+			        age, ageCheckCVS, registrationStatusDto.getRegistrationId());
+			if(age >= ageCheckCVS) { 
+				regProcLogger.info("Applicant age {} meets MVS redirection threshold of {}. Redirecting packet to MVS.", 
+		            age, ageCheckCVS);
+				object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+				regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}", 
+			            registrationStatusDto.getRegistrationId());
+			} else {
+		        regProcLogger.debug("Applicant age {} is below MVS threshold {}. Keeping original message bus address.", 
+		                age, ageCheckCVS);
+		        }
+		}
+		
+		
 	 // Log error only if both NINs are missing or invalid
 	    if (!isParentInfoValid && (fatherNIN == null && motherNIN == null)) {
 	        regProcLogger.error("Neither parent's NIN is provided.");
@@ -686,7 +709,21 @@ public class CitizenshipVerificationProcessor {
 				isValidGuardian = validateSiblingRelationship(applicantFields, guardianInfoJson, registrationStatusDto,
 						description);
 				}
-
+			
+			//moving the packet directly to mvs if age >= 25.
+			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			regProcLogger.info("Applicant age: {} years for registrationId: {}", 
+				    age, applicantFields.get("registrationId"));
+			if(age >= ageCheckCVS) {
+				regProcLogger.info("Applicant age {} is >= configured threshold {}. Redirecting to MVS for registrationId: {}", 
+				        age, ageCheckCVS, applicantFields.get("registrationId"));
+				object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+				regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}", 
+				        applicantFields.get("registrationId"));
+			}else {
+			    regProcLogger.info("Applicant age {} is below configured threshold {}. Continuing normal flow for registrationId: {}", 
+			            age, ageCheckCVS, applicantFields.get("registrationId"));
+			    }
 		}
 			else {
 				regProcLogger.info("On demand migration of guardian NIN for rid {} {}", guardianNin,
