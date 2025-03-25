@@ -233,7 +233,7 @@ public class CustomizedRestApiClient {
 	@SuppressWarnings({ "unchecked", "deprecation" })
 	private HttpEntity<Object> setRequestHeader(Object requestType, MediaType mediaType) throws IOException {
 		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-		headers.add("Authorization", "Bearer " + oauthTemplate.getAccessToken().getValue());
+		//headers.add("Authorization", "Bearer " + oauthTemplate.getAccessToken().getValue());
 		headers.add(TracingConstant.TRACE_HEADER, (String) ContextualData.getOrDefault(TracingConstant.TRACE_ID_KEY));
 		if (mediaType != null) {
 			headers.add("Content-Type", mediaType.toString());
