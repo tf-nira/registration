@@ -1015,44 +1015,45 @@ public class CitizenshipVerificationProcessor {
 		return isValidTribeAndClan;
 	}
 
+private boolean ValidateguardianTribeAndClan(Map<String, String> guardian1, Map<String, String> guardian2,
+											 InternalRegistrationStatusDto registrationStatusDto, LogDescription description,
+											 Map<String, String> applicantFields, String guardianRelationValue) {
 
-	private boolean ValidateguardianTribeAndClan(Map<String, String> guardian1, Map<String, String> guardian2,
-			InternalRegistrationStatusDto registrationStatusDto, LogDescription description,
-			Map<String, String> applicantFields, String guardianRelationValue) {
-		Boolean isValid = false;
-		if (guardian1.get(MappingJsonConstants.TRIBE).equalsIgnoreCase(guardian2.get(MappingJsonConstants.TRIBE))) {
+	Boolean isValid = false;
 
-			if (guardian1.get(MappingJsonConstants.CLAN).equalsIgnoreCase(guardian2.get(MappingJsonConstants.CLAN))) {
+	String guardian1Tribe = guardian1.get(MappingJsonConstants.TRIBE);
+	String guardian2Tribe = guardian2.get(MappingJsonConstants.TRIBE);
+	String guardian1Clan = guardian1.get(MappingJsonConstants.CLAN);
+	String guardian2Clan = guardian2.get(MappingJsonConstants.CLAN);
+	String guardian1Person = guardian1.get(MappingJsonConstants.PERSON);
+	String guardian2Person = guardian2.get(MappingJsonConstants.PERSON);
 
-				{
-					isValid = true;
-
-				}
-			} else {
-
-				logAndSetStatusError(registrationStatusDto,
-						"Mismatch in " + guardian1.get(MappingJsonConstants.PERSON) + ", "
-								+ guardian2.get(MappingJsonConstants.PERSON) + "'s " + MappingJsonConstants.CLAN
-								+ " information.",
-						StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getMessage() + guardianRelationValue
-								+ " information",
-						RegistrationStatusCode.FAILED.toString(), description,
-						applicantFields.get("registrationId"));
-			}
+	if (guardian1Tribe != null && guardian2Tribe != null && guardian1Tribe.equalsIgnoreCase(guardian2Tribe)) {
+		if (guardian1Clan != null && guardian2Clan != null && guardian1Clan.equalsIgnoreCase(guardian2Clan)) {
+			isValid = true;
 		} else {
-
 			logAndSetStatusError(registrationStatusDto,
-					"Mismatch in " + guardian1.get(MappingJsonConstants.PERSON) + ", "
-							+ guardian2.get(MappingJsonConstants.PERSON) + "'s " + MappingJsonConstants.TRIBE
-							+ " information.",
-					StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getCode(),
-					StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getMessage() + guardianRelationValue
-							+ " information",
-					RegistrationStatusCode.FAILED.toString(), description, applicantFields.get("registrationId"));
+					"Mismatch in " + (guardian1Person != null ? guardian1Person : "Unknown") + ", "
+							+ (guardian2Person != null ? guardian2Person : "Unknown") + "'s "
+							+ MappingJsonConstants.CLAN + " information.",
+					StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getCode(),
+					StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getMessage() + guardianRelationValue + " information",
+					RegistrationStatusCode.FAILED.toString(), description,
+					applicantFields.get("registrationId"));
 		}
-
-		return isValid;
+	} else {
+		logAndSetStatusError(registrationStatusDto,
+				"Mismatch in " + (guardian1Person != null ? guardian1Person : "Unknown") + ", "
+						+ (guardian2Person != null ? guardian2Person : "Unknown") + "'s "
+						+ MappingJsonConstants.TRIBE + " information.",
+				StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getCode(),
+				StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getMessage() + guardianRelationValue + " information",
+				RegistrationStatusCode.FAILED.toString(), description,
+				applicantFields.get("registrationId"));
 	}
+
+	return isValid;
+}
+
 
 }
