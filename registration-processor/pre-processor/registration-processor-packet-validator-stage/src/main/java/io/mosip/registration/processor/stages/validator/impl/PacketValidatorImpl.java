@@ -88,6 +88,9 @@ public class PacketValidatorImpl implements PacketValidator {
 	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
 	private String firstIdAgelimit;
 
+	@Value("${mosip.regproc.introducer-validator.renewal.age.limit:16}")
+	private String RenewalAgelimit;
+
 	@Value("${mosip.regproc.packet.validator.max.number.spouses:4}")
 	private Integer maxNumberOfSpouses;
 
@@ -145,6 +148,13 @@ public class PacketValidatorImpl implements PacketValidator {
 							LoggerFileConstant.REGISTRATIONID.toString(), id,
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
+				}
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())){
+					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
+						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
+						packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getCode());
+						return false;
+					}
 				}
 				if (!checkNumberOfSpouses(jsonObject, id, process)) {
 					packetValidationDto.setPacketValidaionFailureMessage(
@@ -390,6 +400,19 @@ public class PacketValidatorImpl implements PacketValidator {
 				return false;
 			}
 			return true;
+
+	}
+
+	private boolean validateAgeToRenewal(String id, String process, PacketValidationDto packetValidationDto)
+			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
+		int age = utility.getApplicantAge(id, process,
+				ProviderStageName.PACKET_VALIDATOR);
+		int ageThreshold = Integer.parseInt(RenewalAgelimit);
+		if (age < ageThreshold) {
+
+			return false;
+		}
+		return true;
 
 	}
 	
