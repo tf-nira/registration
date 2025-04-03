@@ -3,10 +3,9 @@ package io.mosip.registration.processor.stages.validator.impl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map;
+import java.util.Optional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,6 +16,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
@@ -132,7 +132,8 @@ public class PacketValidatorImpl implements PacketValidator {
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
-					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())
+					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
 				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
 				// In production we need to enable isEnabled property so added or condition
 				if (uin != null || isEnabled) {
@@ -196,6 +197,42 @@ public class PacketValidatorImpl implements PacketValidator {
 					return false;
 				}
 			}
+			if (process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+				try {
+					if (!validateAgeToGetCard(id, process, packetValidationDto)) {
+						packetValidationDto.setPacketValidaionFailureMessage(
+								StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getMessage());
+						packetValidationDto.setPacketValidatonStatusCode(
+								StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getCode());
+						return false;
+					}
+					ResponseDTO responseDTO = utility.getIdrepoResponseByHandle(id, process,
+							ProviderStageName.PACKET_VALIDATOR);
+					boolean isValidFirstID = true;
+					if (responseDTO != null) {
+						List<CardDetailDto> cardDetailsDtoList = responseDTO.getCardDetails();
+						for (CardDetailDto cardDetailDto : cardDetailsDtoList) {
+							if (cardDetailDto.getCardNumber() != null && !cardDetailDto.getCardNumber().isEmpty()) {
+								isValidFirstID = false;
+								break;
+							}
+						}
+						if (!isValidFirstID) {
+							packetValidationDto
+									.setPacketValidaionFailureMessage(StatusUtil.PVM_ALREADY_CARD_EXISTS.getMessage());
+							packetValidationDto
+									.setPacketValidatonStatusCode(StatusUtil.PVM_ALREADY_CARD_EXISTS.getCode());
+							return false;
+						}
+					}
+				} catch (Exception e) {
+					// TODO this catch block need to be removed after complete migration
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + StatusUtil.UIN_NOT_FOUND_IDREPO.getMessage());
+				}
+			}
+
 		}
 		if (process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
 			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
@@ -212,39 +249,7 @@ public class PacketValidatorImpl implements PacketValidator {
 		}
 		}
 	
-		if (process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
-			try {
-				if (!validateAgeToGetCard(id, process, packetValidationDto)) {
-					packetValidationDto.setPacketValidaionFailureMessage(
-							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getMessage());
-					packetValidationDto
-							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getCode());
-					return false;
-				}
-			ResponseDTO responseDTO = utility.getIdrepoResponseByHandle(id, process,
-					ProviderStageName.PACKET_VALIDATOR);
-			boolean isValidFirstID=true;
-			if (responseDTO != null) {
-				List<CardDetailDto> cardDetailsDtoList = responseDTO.getCardDetails();
-				for (CardDetailDto cardDetailDto : cardDetailsDtoList) {
-					if (cardDetailDto.getCardNumber() != null && !cardDetailDto.getCardNumber().isEmpty()) {
-						isValidFirstID = false;
-						break;
-					}
-				}
-				if (!isValidFirstID) {
-					packetValidationDto
-							.setPacketValidaionFailureMessage(StatusUtil.PVM_ALREADY_CARD_EXISTS.getMessage());
-					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_ALREADY_CARD_EXISTS.getCode());
-					return false;
-				}
-			}
-		} catch (Exception e) {
-			// TODO this catch block need to be removed after complete migration
-			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					id, "ERROR =======>" + StatusUtil.UIN_NOT_FOUND_IDREPO.getMessage());
-			}
-		}
+
 			// document validation
 			if (!applicantDocumentValidation(id, process, packetValidationDto)) {
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
