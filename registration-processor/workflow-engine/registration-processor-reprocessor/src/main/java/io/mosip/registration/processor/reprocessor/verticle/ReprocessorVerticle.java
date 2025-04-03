@@ -93,7 +93,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Value("${registration.processor.reprocess.restart-from-stage}")
 	private String reprocessRestartFromStage;
 
-	@Value("#{'${registration.processor.reprocess.restart-trigger-filter}'.split(',')}")
+	@Value("#{'${registration.processor.reprocess.restart-trigger-filter:}'.split(',')}")
 	private List<String> reprocessRestartTriggerFilter;
 
 	/** The is transaction successful. */
