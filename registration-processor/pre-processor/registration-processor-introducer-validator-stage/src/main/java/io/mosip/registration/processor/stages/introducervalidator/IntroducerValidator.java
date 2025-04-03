@@ -118,7 +118,6 @@ public class IntroducerValidator {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 			regProcLogger.debug("validate called for registrationId {} {}", registrationId,
 					StatusUtil.UIN_RID_NOT_FOUND.getMessage());
-			//03-04
 			throw new BaseCheckedException(StatusUtil.UIN_RID_NOT_FOUND.getCode(),StatusUtil.UIN_RID_NOT_FOUND.getMessage());
 		}
 
