@@ -2,6 +2,7 @@ package io.mosip.registration.processor.stages.introducervalidator;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -151,6 +152,17 @@ public class IntroducerValidationProcessor {
 					StatusUtil.BASE_UNCHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION,
 					description, PlatformErrorMessages.INTRODUCER_BASE_UNCHECKED_EXCEPTION, e);
 		} catch (BaseCheckedException e) {
+			Map<String, String> notificationAttributes = new HashMap<>();
+
+			try {
+				List<String> errorTexts = e.getErrorTexts();
+				if (errorTexts != null && !errorTexts.isEmpty()) {
+					notificationAttributes.put("FAILURE_REASON", errorTexts.get(0));
+					object.setNotificationAttributes(notificationAttributes);
+				}
+			} catch (NullPointerException ex) {
+				// do nothing only set FAILURE_REASON if there are valid error texts
+			}
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.BASE_CHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_CHECKED_EXCEPTION,
 					description, PlatformErrorMessages.INTRODUCER_BASE_CHECKED_EXCEPTION, e);
