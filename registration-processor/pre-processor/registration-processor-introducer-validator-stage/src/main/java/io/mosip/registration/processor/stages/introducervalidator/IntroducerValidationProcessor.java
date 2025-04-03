@@ -151,6 +151,9 @@ public class IntroducerValidationProcessor {
 					StatusUtil.BASE_UNCHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION,
 					description, PlatformErrorMessages.INTRODUCER_BASE_UNCHECKED_EXCEPTION, e);
 		} catch (BaseCheckedException e) {
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", e.getErrorText());
+			object.setNotificationAttributes(notificationAttributes);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.BASE_CHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_CHECKED_EXCEPTION,
 					description, PlatformErrorMessages.INTRODUCER_BASE_CHECKED_EXCEPTION, e);
