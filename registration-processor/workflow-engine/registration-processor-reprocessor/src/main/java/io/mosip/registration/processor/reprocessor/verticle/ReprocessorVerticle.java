@@ -359,6 +359,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 	private Map<String, Set<String>> intializeReprocessRestartTriggerMapping() {
 		Map<String, Set<String>> reprocessRestartTriggerMap = new HashMap<String, Set<String>>();
+		if (reprocessRestartTriggerFilter != null && !reprocessRestartTriggerFilter.isEmpty()) {
 		for (String filter : reprocessRestartTriggerFilter) {
 			String[] stageAndStatus = filter.split(":");
 			String stageName = stageAndStatus[0];
@@ -376,6 +377,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 					latestTransactionStatusCodeSet);
 		}
 	}
+}
 	return reprocessRestartTriggerMap;
 
 
