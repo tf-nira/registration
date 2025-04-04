@@ -88,6 +88,9 @@ public class IntroducerValidator {
 	@Value("#{T(java.util.Arrays).asList('${mosip.regproc.common.before-cbeff-others-attibute.reg-client-versions:}')}")
 	private List<String> regClientVersionsBeforeCbeffOthersAttritube;
 
+	@Value("#{'${mosip.regproc.mandatory.modalities.for.introducer.auth:Finger}'.split(',')}")
+	private List<String> mandatoryModalitiesForAuth;
+
 
 	/**
 	 * Checks if is valid introducer.
@@ -241,9 +244,8 @@ public class IntroducerValidator {
 	private void validateIntroducerBiometric(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			String introducerUIN)
 			throws Exception {
-		BiometricRecord biometricRecord = packetManagerService.getBiometricsByMappingJsonKey(registrationId,
-				MappingJsonConstants.INTRODUCER_BIO, registrationStatusDto.getRegistrationType(),
-				ProviderStageName.INTRODUCER_VALIDATOR);
+			String biometricFileName = JsonUtil.getJSONValue(JsonUtil.getJSONObject(utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY), MappingJsonConstants.INTRODUCER_BIO), MappingJsonConstants.VALUE);
+			BiometricRecord biometricRecord = packetManagerService.getBiometrics(registrationId,biometricFileName, mandatoryModalitiesForAuth, registrationStatusDto.getRegistrationType(), ProviderStageName.INTRODUCER_VALIDATOR);
 		if (biometricRecord != null && biometricRecord.getSegments() != null) {
 			biometricRecord = filterExceptionBiometrics(biometricRecord, registrationId,
 					registrationStatusDto.getRegistrationType());
