@@ -5,10 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
@@ -166,6 +163,8 @@ public class IntroducerValidatorTest {
 	@Mock
 	ObjectMapper mapper;
 
+	BiometricRecord biometricRecord = new BiometricRecord();
+
 	/**
 	 * Sets the up.
 	 *
@@ -281,7 +280,6 @@ public class IntroducerValidatorTest {
 		bdbInfoType4.setType(singleTypeList4);
 		birType4.setBdbInfo(bdbInfoType4);
 
-		BiometricRecord biometricRecord = new BiometricRecord();
 		biometricRecord.setSegments(Lists.newArrayList(birType3, birType4));
 		when(packetManagerService.getBiometricsByMappingJsonKey(anyString(), any(), any(), any()))
 				.thenReturn(biometricRecord);
@@ -423,6 +421,8 @@ public class IntroducerValidatorTest {
 		registrationStatusDto.setStatusCode("PROCESSED");
 		Mockito.when(registrationStatusService.getRegistrationStatus(anyString(), any(), any(), any())).thenReturn(registrationStatusDto);
 		Mockito.when(idRepoService.getUinByRid(any(), any())).thenReturn("123456789");
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(),any()))
+				.thenReturn(biometricRecord);
 		introducerValidator.validate("reg1234", registrationStatusDto);
 	}
 
@@ -431,12 +431,16 @@ public class IntroducerValidatorTest {
 		// Mockito.when(osiUtils.getMetaDataValue(anyString(),
 		// any())).thenReturn("2015/01/01");
 		demoJson.put("value", "biometreics");
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(),any()))
+				.thenReturn(biometricRecord);
 		introducerValidator.validate("reg1234", registrationStatusDto);
 	}
 	
 	@Test
 	public void testIntroducerAuthSystemError() throws Exception {
 		demoJson.put("value", "biometreics");
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(),any()))
+				.thenReturn(biometricRecord);
 		introducerValidator.validate("reg1234", registrationStatusDto);
 	}
 
@@ -445,6 +449,8 @@ public class IntroducerValidatorTest {
 		registrationStatusDto.setStatusCode("PROCESSED");
 		Mockito.when(registrationStatusService.getRegistrationStatus(anyString(), any(), any(), any())).thenReturn(registrationStatusDto);
 		Mockito.when(idRepoService.getUinByRid(any(), any())).thenReturn("123456789");
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(),any()))
+				.thenReturn(biometricRecord);
 		introducerValidator.validate("reg1234", registrationStatusDto);
 	}
 
