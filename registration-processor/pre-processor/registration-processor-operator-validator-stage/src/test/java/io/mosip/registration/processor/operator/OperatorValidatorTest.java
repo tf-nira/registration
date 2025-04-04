@@ -587,7 +587,7 @@ public class OperatorValidatorTest {
 		individualResponse.setErrors(Arrays.asList(errordto));
 
 		Mockito.when(registrationStatusService.checkUinAvailabilityForRid(any())).thenReturn(true);
-		when(packetManagerService.getBiometricsByMappingJsonKey(anyString(), any(), any(), any()))
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(),any()))
 				.thenReturn(biometricRecord);
 		operatorValidator.validate("reg1234", registrationStatusDto, regOsiDto);
 	}
