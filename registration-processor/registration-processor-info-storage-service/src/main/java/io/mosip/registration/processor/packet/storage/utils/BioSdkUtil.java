@@ -94,7 +94,7 @@ public class BioSdkUtil {
 								.getStatusCode(RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION));
 						registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 
-						throw new ValidationFailedException(errorMsg, errorCode);
+						throw new ValidationFailedException(errorCode,errorMsg);
 					}
 				}
 			}
