@@ -563,8 +563,9 @@ public class BioDedupeProcessor {
 			for (String matchedRegId : matchedRegIds) {
 				JSONObject matchedDemographicIdentity = idRepoService.getIdJsonFromIDRepo(matchedRegId,
 						utilities.getGetRegProcessorDemographicIdentity());
-				matchCount = addMactchedRefId(registrationStatusDto.getRegistrationId(),
-						registrationStatusDto.getRegistrationType(), matchedDemographicIdentity, matchCount, demoMatchedIds, matchedRegId);
+				if(matchedDemographicIdentity != null){
+					matchCount = matchCount + 1;
+				}
 				if (matchCount > 1)
 					break;
 			}
