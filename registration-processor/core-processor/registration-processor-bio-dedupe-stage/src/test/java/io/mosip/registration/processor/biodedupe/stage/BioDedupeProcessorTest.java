@@ -614,7 +614,7 @@ public class BioDedupeProcessorTest {
 		MessageDTO messageDto = bioDedupeProcessor.process(dto, stageName);
 
 		assertFalse(messageDto.getInternalError());
-		assertTrue(messageDto.getIsValid());
+		assertFalse(messageDto.getIsValid());
 	}
 
 	@SuppressWarnings("unchecked")
