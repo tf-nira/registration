@@ -287,6 +287,7 @@ public class WorkflowInternalActionVerticleTest {
 		Mockito.doNothing().when(registrationStatusService).updateRegistrationStatusForWorkflowEngine(any(), any(), any());
 		registrationStatusDto = new InternalRegistrationStatusDto();
 		registrationStatusDto.setRegistrationId("10006100390000920200603070407");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(auditLogRequestBuilder.createAuditRequestBuilder(any(), any(), any(), any(), any(), any(), any()))
 				.thenReturn(null);
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any())).thenReturn(registrationStatusDto);
@@ -314,6 +315,7 @@ public class WorkflowInternalActionVerticleTest {
 		registrationStatusDto = new InternalRegistrationStatusDto();
 		registrationStatusDto.setRegistrationId("10006100390000920200603070407");
 		registrationStatusDto.setRegistrationStageName("Stage");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(auditLogRequestBuilder.createAuditRequestBuilder(any(), any(), any(), any(), any(), any(), any()))
 				.thenReturn(null);
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any())).thenReturn(registrationStatusDto);
@@ -340,6 +342,7 @@ public class WorkflowInternalActionVerticleTest {
 		registrationStatusDto = new InternalRegistrationStatusDto();
 		registrationStatusDto.setRegistrationId("10006100390000920200603070407");
 		registrationStatusDto.setRegistrationStageName("Stage");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(auditLogRequestBuilder.createAuditRequestBuilder(any(), any(), any(), any(), any(), any(), any()))
 				.thenReturn(null);
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any())).thenReturn(registrationStatusDto);
@@ -391,6 +394,7 @@ public class WorkflowInternalActionVerticleTest {
 		Mockito.doNothing().when(registrationStatusService).updateRegistrationStatusForWorkflowEngine(any(), any(), any());
 		registrationStatusDto = new InternalRegistrationStatusDto();
 		registrationStatusDto.setRegistrationId("10006100390000920200603070407");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(auditLogRequestBuilder.createAuditRequestBuilder(any(), any(), any(), any(), any(), any(), any()))
 				.thenReturn(null);
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any()))
@@ -626,6 +630,7 @@ public class WorkflowInternalActionVerticleTest {
 		registrationStatusDto = new InternalRegistrationStatusDto();
 		registrationStatusDto.setRegistrationId("10006100390000920200603070407");
 		registrationStatusDto.setRegistrationStageName("Stage");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(auditLogRequestBuilder.createAuditRequestBuilder(any(), any(), any(), any(), any(), any(), any()))
 				.thenReturn(null);
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any()))
