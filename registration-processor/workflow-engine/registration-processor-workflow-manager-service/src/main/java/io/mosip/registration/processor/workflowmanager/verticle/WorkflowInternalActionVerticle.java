@@ -40,6 +40,7 @@ import io.mosip.registration.processor.core.code.WorkflowActionCode;
 import io.mosip.registration.processor.core.code.WorkflowInternalActionCode;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
+import io.mosip.registration.processor.core.constant.RegistrationType;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.WorkflowActionException;
@@ -466,6 +467,8 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 	}
 
 	private void sendWorkflowCompletedWebSubEvent(InternalRegistrationStatusDto registrationStatusDto, WorkflowInternalActionDTO workflowInternalActionDTO) {
+		if (!registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.MIGRATOR.toString())) {
+
 		WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
 		workflowCompletedEventDTO.setInstanceId(registrationStatusDto.getRegistrationId());
 		workflowCompletedEventDTO.setResultCode(registrationStatusDto.getStatusCode());
@@ -498,7 +501,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		}
 
 		webSubUtil.publishEvent(workflowCompletedEventDTO);
-
+	}
 	}
 
 	private void processRestartParentFlow(WorkflowInternalActionDTO workflowInternalActionDTO)
@@ -631,12 +634,14 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 	private void sendWorkflowPausedForAdditionalInfoEvent(InternalRegistrationStatusDto registrationStatusDto,
 			String additonalInfoRequestId, String additionalInfoProcess) {
+		if (!registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.MIGRATOR.toString())) {
 		WorkflowPausedForAdditionalInfoEventDTO workflowPausedForAdditionalInfoEventDTO = new WorkflowPausedForAdditionalInfoEventDTO();
 		workflowPausedForAdditionalInfoEventDTO.setInstanceId(registrationStatusDto.getRegistrationId());
 		workflowPausedForAdditionalInfoEventDTO.setWorkflowType(registrationStatusDto.getRegistrationType());
 		workflowPausedForAdditionalInfoEventDTO.setAdditionalInfoProcess(additionalInfoProcess);
 		workflowPausedForAdditionalInfoEventDTO.setAdditionalInfoRequestId(additonalInfoRequestId);
 		webSubUtil.publishEvent(workflowPausedForAdditionalInfoEventDTO);
+	}
 
 	}
 }
