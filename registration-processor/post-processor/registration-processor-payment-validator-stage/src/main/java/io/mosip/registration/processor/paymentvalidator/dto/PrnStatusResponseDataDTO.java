@@ -7,57 +7,57 @@ import lombok.Data;
 @Data
 public class PrnStatusResponseDataDTO {
 
-	@JsonProperty("AmountPaid")
+	@JsonProperty("amountPaid")
 	private String amountPaid;
 	
-	@JsonProperty("Currency")
+	@JsonProperty("currency")
 	private String currency;
 	
-	@JsonProperty("DatePaid")
+	@JsonProperty("datePaid")
 	private String datePaid;
 	
-	@JsonProperty("MDAName")
+	@JsonProperty("mdaName")
 	private String mdaName;
 	
-	@JsonProperty("PRN")
+	@JsonProperty("prn")
 	private String prn;
 	
-	@JsonProperty("PaymentBank")
+	@JsonProperty("paymentBank")
 	private String paymentBank;
 	
-	@JsonProperty("PaymentMode")
+	@JsonProperty("paymentMode")
 	private String paymentMode;
 	
-	@JsonProperty("RealizationDate")
+	@JsonProperty("realizationDate")
 	private String realizationDate;
 	
-	@JsonProperty("ReferenceNumber")
+	@JsonProperty("referenceNumber")
 	private String referenceNumber;
 	
-	@JsonProperty("StatusCode")
+	@JsonProperty("statusCode")
 	private String statusCode;
 	
-	@JsonProperty("StatusDesc")
+	@JsonProperty("statusDesc")
 	private String statusDesc;
 	
-	@JsonProperty("TIN")
+	@JsonProperty("tin")
 	private String tin;
 	
-	@JsonProperty("TaxHeadCode")
+	@JsonProperty("taxHeadCode")
 	private String taxHeadCode;
 	
-	@JsonProperty("TaxHeadName")
+	@JsonProperty("taxHeadName")
 	private String taxHeadName;
 	
-	@JsonProperty("TaxPayerEmail")
+	@JsonProperty("taxPayerEmail")
 	private String taxPayerEmail;
 	
-	@JsonProperty("TaxPayerName")
+	@JsonProperty("taxPayerName")
 	private String taxPayerName;
 	
-	@JsonProperty("SearchCode")
+	@JsonProperty("searchCode")
 	private String searchCode;
 	
-	@JsonProperty("ProcessFlow")
+	@JsonProperty("processFlowPaidFor")
 	private String processFlow;
 }
