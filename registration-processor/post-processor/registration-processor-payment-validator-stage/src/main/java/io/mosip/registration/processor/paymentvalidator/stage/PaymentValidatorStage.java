@@ -3,6 +3,8 @@ package io.mosip.registration.processor.paymentvalidator.stage;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
@@ -156,11 +158,11 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
 			registrationStatusDto.setRegistrationStageName(getStageName());
 
-			String prnNum = utilities.getPacketManagerService().getField(regId, "PRN", object.getReg_type(),
+			String prnNum = utilities.getPacketManagerService().getField(regId, "PRNId", object.getReg_type(),
 					ProviderStageName.PAYMENT_VALIDATOR);
 
-			PrnStatusResponseDTO prnStatusResponseMap = checkPrnStatus(prnNum);
-			PrnStatusResponseDataDTO dataResponse = prnStatusResponseMap.getData();
+			PrnStatusResponseDataDTO dataResponse = checkPrnStatus(prnNum);
+			//PrnStatusResponseDataDTO dataResponse = prnStatusResponseMap.getData();
 			
 			if (dataResponse != null) {
 				if (!PrnStatusCode.PRN_STATUS_RECEIVED_CREDITED.getStatusCode()
@@ -382,9 +384,14 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 
 	@Override
 	public void deployVerticle() {
-		mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
-		this.consumeAndSend(mosipEventBus, MessageBusAddress.PAYMENT_VALIDATOR_BUS_IN,
-				MessageBusAddress.PAYMENT_VALIDATOR_BUS_OUT, messageExpiryTimeLimit);
+		MessageDTO obj = new MessageDTO();  // Initialize the object
+		obj.setReg_type("LOST");
+		obj.setRid("10115100040000220250411071247");
+		obj.setWorkflowInstanceId("3de1366a-cf32-4e61-a225-9c5414bb967b");
+		process(obj);
+//		mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
+//		this.consumeAndSend(mosipEventBus, MessageBusAddress.PAYMENT_VALIDATOR_BUS_IN,
+//				MessageBusAddress.PAYMENT_VALIDATOR_BUS_OUT, messageExpiryTimeLimit);
 	}
 
 	@Override
@@ -462,15 +469,18 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * @return PrnStatusResponseDTO
 	 * @throws ApisResourceAccessException 
 	 */
-	private PrnStatusResponseDTO checkPrnStatus(String prn) throws ApisResourceAccessException {
+	private PrnStatusResponseDataDTO checkPrnStatus(String prn) throws ApisResourceAccessException {
 		PrnStatusRequestDTO prnStatusRequestDTO = new PrnStatusRequestDTO();
 		prnStatusRequestDTO.setPRN(prn);
-		PrnStatusResponseDTO response = (PrnStatusResponseDTO) restApi.postApi(ApiName.GETPRNSTATUS, "", "" , prnStatusRequestDTO,
-				PrnStatusResponseDTO.class);
-
-		return response;
+		Object rawResponse = restApi.postApi(ApiName.GETPRNSTATUS, "", "", prnStatusRequestDTO, Object.class);
+		Map<String, Object> responseMap = (Map<String, Object>) rawResponse;
+		Map<String, Object> innerResponseMap = (Map<String, Object>) responseMap.get("response");
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // Ignore unknown fields
+		PrnStatusResponseDataDTO dataDTO = mapper.convertValue(innerResponseMap, PrnStatusResponseDataDTO.class);
+		return dataDTO;
 	}
-	
+
 	/**
 	 * This method validates the PRN taxhead against the registration type i.e. LOST, UPDATE
 	 * 
