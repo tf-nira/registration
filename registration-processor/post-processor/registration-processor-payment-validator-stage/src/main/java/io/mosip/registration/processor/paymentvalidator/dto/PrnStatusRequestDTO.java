@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class PrnStatusRequestDTO {
 
-	@JsonProperty("PRN")
+	@JsonProperty("prn")
 	private String PRN;
 	
 }
