@@ -6,7 +6,9 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -137,6 +139,11 @@ public class LegacyDataValidator {
 
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
+	
+	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
+	private String firstIdAgelimit;
+	
+	private boolean getFirstIdAgeValidFlag;
 
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
@@ -220,6 +227,16 @@ public class LegacyDataValidator {
 						object.setIsValid(true);
 						object.setInternalError(true);
 					}
+					
+					//validation check for get first id
+					if (!getFirstIdAgeValidFlag) {
+						Map<String, String> notificationAttributes = new HashMap<>();
+						notificationAttributes.put("FAILURE_REASON", "GET FIRST ID age less than required threshold");
+						object.setNotificationAttributes(notificationAttributes);
+						regProcLogger.error("GET FIRST ID age validation failed age above threshold, not eligible for card  : {}", registrationId);
+						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getMessage(),
+								StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getCode());
+					}
 
 			} else {
 				Map<String, String> notificationAttributes = new HashMap<>();
@@ -302,6 +319,19 @@ public class LegacyDataValidator {
 		if (migrationResponse.getDocuments() != null) {
 			documents.putAll(migrationResponse.getDocuments());
 		}
+		//age check validation for get first id 
+		String dateOfBirth = demographics.get("dateOfBirth");
+		if (dateOfBirth != null) {
+			LocalDate birthDate = LocalDate.parse(dateOfBirth); //dateOfBirth format yyyy-MM-dd
+			LocalDate currentDate = LocalDate.now();
+			int age = Period.between(birthDate, currentDate).getYears();
+			int ageThreshold = Integer.parseInt(firstIdAgelimit);
+			if (age < ageThreshold) {
+				getFirstIdAgeValidFlag = false;
+			}
+				getFirstIdAgeValidFlag = true;
+		}
+		
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
