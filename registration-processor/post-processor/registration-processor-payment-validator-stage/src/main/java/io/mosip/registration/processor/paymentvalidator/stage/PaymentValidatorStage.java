@@ -86,6 +86,9 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	@Value("${worker.pool.size}")
 	private Integer workerPoolSize;
 
+	@Value("${nira.payment.gateway.statusCode}")
+	private String statusCode;
+
 	/** Mosip router for APIs */
 	@Autowired
 	MosipRouter router;
@@ -165,8 +168,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			//PrnStatusResponseDataDTO dataResponse = prnStatusResponseMap.getData();
 			
 			if (dataResponse != null) {
-				if (!PrnStatusCode.PRN_STATUS_RECEIVED_CREDITED.getStatusCode()
-						.equalsIgnoreCase(dataResponse.getStatusCode())) {
+				if (!statusCode.equalsIgnoreCase(dataResponse.getStatusCode())) {
 					Map<String, String> notificationAttributes = new HashMap<>();
 					notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
 							PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.getMessage());
