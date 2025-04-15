@@ -165,7 +165,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			//PrnStatusResponseDataDTO dataResponse = prnStatusResponseMap.getData();
 			
 			if (dataResponse != null) {
-				if (!PrnStatusCode.PRN_STATUS_AVAILABLE.getStatusCode()
+				if (!PrnStatusCode.PRN_STATUS_RECEIVED_CREDITED.getStatusCode()
 						.equalsIgnoreCase(dataResponse.getStatusCode())) {
 					Map<String, String> notificationAttributes = new HashMap<>();
 					notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
@@ -384,12 +384,11 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 
 	@Override
 	public void deployVerticle() {
-		/*mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
+		mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
 		this.consumeAndSend(mosipEventBus, MessageBusAddress.PAYMENT_VALIDATOR_BUS_IN,
 				MessageBusAddress.PAYMENT_VALIDATOR_BUS_OUT, messageExpiryTimeLimit);
 
-	*/
-		process(new MessageDTO());
+		//process(new MessageDTO());
 	}
 
 	@Override
