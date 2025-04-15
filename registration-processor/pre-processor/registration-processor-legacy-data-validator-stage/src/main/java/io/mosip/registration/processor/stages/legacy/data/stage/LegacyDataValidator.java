@@ -6,11 +6,15 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,6 +71,7 @@ import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.storage.dto.Document;
 import io.mosip.registration.processor.packet.storage.dto.FieldResponseDto;
+import io.mosip.registration.processor.packet.storage.exception.ParsingException;
 import io.mosip.registration.processor.packet.storage.utils.FingrePrintConvertor;
 import io.mosip.registration.processor.packet.storage.utils.IdSchemaUtil;
 import io.mosip.registration.processor.packet.storage.utils.LegacyDataApiUtility;
@@ -143,7 +148,16 @@ public class LegacyDataValidator {
 	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
 	private String firstIdAgelimit;
 	
+	@Value("${mosip.regproc.packet.classifier.tagging.not-available-tag-value}")
+	private String notAvailableTagValue;
+	
+	/** The dob format. */
+	@Value("${registration.processor.applicant.dob.format}")
+	private String dobFormat;
+
+	
 	private boolean getFirstIdAgeValidFlag;
+	
 
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
@@ -322,9 +336,7 @@ public class LegacyDataValidator {
 		//age check validation for get first id 
 		String dateOfBirth = demographics.get("dateOfBirth");
 		if (dateOfBirth != null) {
-			LocalDate birthDate = LocalDate.parse(dateOfBirth); //dateOfBirth format yyyy-MM-dd
-			LocalDate currentDate = LocalDate.now();
-			int age = Period.between(birthDate, currentDate).getYears();
+			int age = calculateAge(dateOfBirth);
 			int ageThreshold = Integer.parseInt(firstIdAgelimit);
 			if (age < ageThreshold) {
 				getFirstIdAgeValidFlag = false;
@@ -332,6 +344,11 @@ public class LegacyDataValidator {
 				getFirstIdAgeValidFlag = true;
 		}
 		
+		if(!getFirstIdAgeValidFlag) {
+			tags.put("META_INFO-META_DATA_registrationType", notAvailableTagValue);
+		}
+		
+		else if(getFirstIdAgeValidFlag) {
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
@@ -345,7 +362,8 @@ public class LegacyDataValidator {
 			if (packetDocuments != null) {
 				documents.putAll(packetDocuments);
 			}
-
+		}
+		
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(migrationResponse.getRid());
 		packetDto.setSource("DATAMIGRATOR");
@@ -605,6 +623,30 @@ public class LegacyDataValidator {
 				return documentDto;
 			}
 			return null;
+		}
+		
+		private int calculateAge(String applicantDob) {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"Utilities::calculateAge():: entry");
+
+			DateFormat sdf = new SimpleDateFormat(dobFormat);
+			Date birthDate = null;
+			try {
+				birthDate = sdf.parse(applicantDob);
+
+			} catch (ParseException e) {
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", "Utilities::calculateAge():: error with error message "
+								+ PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getMessage());
+				throw new ParsingException(PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getCode(), e);
+			}
+			LocalDate ld = new java.sql.Date(birthDate.getTime()).toLocalDate();
+			Period p = Period.between(ld, LocalDate.now());
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"Utilities::calculateAge():: exit");
+
+			return p.getYears();
+
 		}
 
 }
