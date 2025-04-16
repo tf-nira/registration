@@ -13,18 +13,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
+import java.util.*;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import io.mosip.registration.processor.core.constant.RegistrationType;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -154,11 +150,7 @@ public class LegacyDataValidator {
 	/** The dob format. */
 	@Value("${registration.processor.applicant.dob.format}")
 	private String dobFormat;
-
 	
-	private boolean getFirstIdAgeValidFlag;
-	
-
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
@@ -195,8 +187,10 @@ public class LegacyDataValidator {
 					MigrationResponse migrationResponse = objectMapper.readValue(
 							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
 							MigrationResponse.class);
+					Map<String, String> tags = new HashMap<>();
+					tags = object.getTags();
 					PacketDto packetDto = createOnDemandPacket(
-							migrationResponse, registrationStatusDto, object.getTags());
+							migrationResponse, registrationStatusDto, tags, description);
 					if (packetDto != null) {
 						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
 								registrationStatusDto.getRegistrationStageName());
@@ -241,15 +235,13 @@ public class LegacyDataValidator {
 						object.setIsValid(true);
 						object.setInternalError(true);
 					}
-					
-					//validation check for get first id
-					if (!getFirstIdAgeValidFlag) {
+					//validation check for get first id & cop
+					if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
 						Map<String, String> notificationAttributes = new HashMap<>();
-						notificationAttributes.put("FAILURE_REASON", "GET FIRST ID age less than required threshold");
+						notificationAttributes.put("FAILURE_REASON", description.getMessage());
 						object.setNotificationAttributes(notificationAttributes);
-						regProcLogger.error("GET FIRST ID age validation failed age above threshold, not eligible for card  : {}", registrationId);
-						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getMessage(),
-								StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getCode());
+						regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
+						throw new ValidationFailedException(description.getMessage(),description.getCode());
 					}
 
 			} else {
@@ -302,11 +294,13 @@ public class LegacyDataValidator {
 	}
 
 	private PacketDto createOnDemandPacket(MigrationResponse migrationResponse,
-			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags)
+			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags, LogDescription description)
 			throws ApisResourceAccessException,
 			PacketManagerException,
 			JsonProcessingException, IOException, NumberFormatException, JSONException {
 
+		boolean getFirstIdAgeValidFlag = true;
+		boolean isValidCOP = true;
 		String registrationId = registrationStatusDto.getRegistrationId();
 		String registrationType = registrationStatusDto.getRegistrationType();
 		regProcLogger.info("Getting details to create ondemand packet : {}", registrationId);
@@ -333,22 +327,43 @@ public class LegacyDataValidator {
 		if (migrationResponse.getDocuments() != null) {
 			documents.putAll(migrationResponse.getDocuments());
 		}
+		
 		//age check validation for get first id 
-		String dateOfBirth = demographics.get("dateOfBirth");
-		if (dateOfBirth != null) {
-			int age = calculateAge(dateOfBirth);
-			int ageThreshold = Integer.parseInt(firstIdAgelimit);
-			if (age < ageThreshold) {
+		if(registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+			String dateOfBirth = demographics.get("dateOfBirth");
+			if (dateOfBirth != null) {
+				int age = calculateAge(dateOfBirth);
+				int ageThreshold = Integer.parseInt(firstIdAgelimit);
+				if (age < ageThreshold)
+					getFirstIdAgeValidFlag = false;
+				else
+					getFirstIdAgeValidFlag = true;
+			}else {
 				getFirstIdAgeValidFlag = false;
 			}
-				getFirstIdAgeValidFlag = true;
 		}
-		
-		if(!getFirstIdAgeValidFlag) {
-			tags.put("META_INFO-META_DATA_registrationType", notAvailableTagValue);
+		if(registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString())){
+			String ChangeIncitizenshipTypeCop = packetManagerService.getField(registrationId,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, registrationType, ProviderStageName.LEGACY_DATA_VALIDATOR);
+			if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
+				JSONObject demographicsJson = new JSONObject(demographics);
+				isValidCOP = isValidServiceTypeChange(demographicsJson, registrationId, registrationType);
+			}
 		}
-		
-		else if(getFirstIdAgeValidFlag) {
+		if(!getFirstIdAgeValidFlag){
+			tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
+			description.setMessage(
+					StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getMessage());
+			description.setCode(
+					StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getCode());
+		}
+		if(!isValidCOP) {
+			tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
+			description.setMessage(
+					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+			description.setCode(
+					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+		}
+		if(isValidCOP || ((registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) && getFirstIdAgeValidFlag)) {
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
@@ -363,7 +378,6 @@ public class LegacyDataValidator {
 				documents.putAll(packetDocuments);
 			}
 		}
-		
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(migrationResponse.getRid());
 		packetDto.setSource("DATAMIGRATOR");
@@ -649,4 +663,56 @@ public class LegacyDataValidator {
 
 		}
 
+	private boolean isValidServiceTypeChange(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		Object userServiceTypeInDb = JsonUtil.getJSONValue(jsonObject, MappingJsonConstants.APPLICANT_CITIZENSHIPTYPE);
+		Object citizenshipTypeCop = packetManagerService.getField(id, MappingJsonConstants.CHANGE_IN_APPLICANT_CITIZENSHIPTYPE, process, ProviderStageName.LEGACY_DATA_VALIDATOR);
+
+		try {
+			// Convert JSON objects to lists
+			List<Map<String, String>> userServiceList = objectMapper.readValue(
+					userServiceTypeInDb.toString(), new TypeReference<>() {});
+			List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
+					citizenshipTypeCop.toString(), new TypeReference<>() {});
+
+			// Extract values if lists are non-empty
+			Optional<String> serviceTypeOpt = userServiceList.stream().findFirst().map(map -> map.get("value"));
+			Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
+
+			if (serviceTypeOpt.isEmpty() || citizenshipTypeOpt.isEmpty()) {
+				return false;
+			}
+
+			String serviceType = serviceTypeOpt.get();
+			String citizenshipType = citizenshipTypeOpt.get();
+
+			// Validate service type change
+			switch (serviceType) {
+				case "By Birth /Descent":
+					return citizenshipType.equalsIgnoreCase("Birth to Registration") ||
+							citizenshipType.equalsIgnoreCase("Birth to Dual Citizenship") ||
+							citizenshipType.equalsIgnoreCase("Birth to Naturalization");
+
+				case "By Registration":
+					return citizenshipType.equalsIgnoreCase("Registration to Dual Citizenship");
+
+				case "By Naturalization":
+					return citizenshipType.equalsIgnoreCase("Naturalisation to Dual Citizenship");
+
+				case "Citizenship under the Article 9":
+					return citizenshipType.equalsIgnoreCase("Citizenship Under Article 9 to Dual Citizenship");
+
+				default:
+					System.out.println("Unknown/Invalid service type: " + serviceType);
+					return false;
+			}
+		} catch (Exception e) {
+			System.err.println("Error processing service type change validation: " + e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+	}
 }
