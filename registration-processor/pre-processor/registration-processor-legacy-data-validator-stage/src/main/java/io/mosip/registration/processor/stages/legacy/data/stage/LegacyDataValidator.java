@@ -6,10 +6,14 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.util.*;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -63,6 +67,7 @@ import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.storage.dto.Document;
 import io.mosip.registration.processor.packet.storage.dto.FieldResponseDto;
+import io.mosip.registration.processor.packet.storage.exception.ParsingException;
 import io.mosip.registration.processor.packet.storage.utils.FingrePrintConvertor;
 import io.mosip.registration.processor.packet.storage.utils.IdSchemaUtil;
 import io.mosip.registration.processor.packet.storage.utils.LegacyDataApiUtility;
@@ -135,10 +140,17 @@ public class LegacyDataValidator {
 
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
-
+	
+	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
+	private String firstIdAgelimit;
+	
 	@Value("${mosip.regproc.packet.classifier.tagging.not-available-tag-value}")
 	private String notAvailableTagValue;
-
+	
+	/** The dob format. */
+	@Value("${registration.processor.applicant.dob.format}")
+	private String dobFormat;
+	
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
@@ -178,10 +190,21 @@ public class LegacyDataValidator {
 					Map<String, String> tags = new HashMap<>();
 					tags = object.getTags();
 					PacketDto packetDto = createOnDemandPacket(
-							migrationResponse, registrationStatusDto, tags);
+							migrationResponse, registrationStatusDto, tags, description);
+				
 					if (packetDto != null) {
 						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
 								registrationStatusDto.getRegistrationStageName());
+						
+						//validation check for get first id & cop
+						if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
+							Map<String, String> notificationAttributes = new HashMap<>();
+							notificationAttributes.put("FAILURE_REASON", description.getMessage());
+							object.setNotificationAttributes(notificationAttributes);
+							regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
+							throw new ValidationFailedException(description.getMessage(),description.getCode());
+						}
+						
 						if (syncRegistrationEntityForOndemand != null) {
 							registrationStatusDto.setLatestTransactionStatusCode(
 									RegistrationTransactionStatusCode.MERGED.toString());
@@ -223,11 +246,6 @@ public class LegacyDataValidator {
 						object.setIsValid(true);
 						object.setInternalError(true);
 					}
-					if(tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)){
-						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode(),
-								StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage());
-					}
-
 			} else {
 				Map<String, String> notificationAttributes = new HashMap<>();
 				notificationAttributes.put("FAILURE_REASON", "NIN not available in legacy system");
@@ -278,11 +296,12 @@ public class LegacyDataValidator {
 	}
 
 	private PacketDto createOnDemandPacket(MigrationResponse migrationResponse,
-			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags)
+			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags, LogDescription description)
 			throws ApisResourceAccessException,
 			PacketManagerException,
 			JsonProcessingException, IOException, NumberFormatException, JSONException {
 
+		boolean getFirstIdAgeValidFlag = true;
 		boolean isValidCOP = true;
 		String registrationId = registrationStatusDto.getRegistrationId();
 		String registrationType = registrationStatusDto.getRegistrationType();
@@ -310,6 +329,21 @@ public class LegacyDataValidator {
 		if (migrationResponse.getDocuments() != null) {
 			documents.putAll(migrationResponse.getDocuments());
 		}
+		
+		//age check validation for get first id 
+		if(registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+			String dateOfBirth = demographics.get("dateOfBirth");
+			if (dateOfBirth != null) {
+				int age = calculateAge(dateOfBirth);
+				int ageThreshold = Integer.parseInt(firstIdAgelimit);
+				if (age < ageThreshold)
+					getFirstIdAgeValidFlag = false;
+				else
+					getFirstIdAgeValidFlag = true;
+			}else {
+				getFirstIdAgeValidFlag = false;
+			}
+		}
 		if(registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString())){
 			String ChangeIncitizenshipTypeCop = packetManagerService.getField(registrationId,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, registrationType, ProviderStageName.LEGACY_DATA_VALIDATOR);
 			if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
@@ -317,10 +351,21 @@ public class LegacyDataValidator {
 				isValidCOP = isValidServiceTypeChange(demographicsJson, registrationId, registrationType);
 			}
 		}
-		if(!isValidCOP){
+		if(!getFirstIdAgeValidFlag){
 			tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
+			description.setMessage(
+					StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getMessage());
+			description.setCode(
+					StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getCode());
 		}
-		if(isValidCOP) {
+		if(!isValidCOP) {
+			tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
+			description.setMessage(
+					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+			description.setCode(
+					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+		}
+		if((registrationType.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) || (registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString()) && isValidCOP) || ((registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) && getFirstIdAgeValidFlag)) {
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
@@ -335,7 +380,6 @@ public class LegacyDataValidator {
 				documents.putAll(packetDocuments);
 			}
 		}
-
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(migrationResponse.getRid());
 		packetDto.setSource("DATAMIGRATOR");
@@ -595,6 +639,30 @@ public class LegacyDataValidator {
 				return documentDto;
 			}
 			return null;
+		}
+		
+		private int calculateAge(String applicantDob) {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"Utilities::calculateAge():: entry");
+
+			DateFormat sdf = new SimpleDateFormat(dobFormat);
+			Date birthDate = null;
+			try {
+				birthDate = sdf.parse(applicantDob);
+
+			} catch (ParseException e) {
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", "Utilities::calculateAge():: error with error message "
+								+ PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getMessage());
+				throw new ParsingException(PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getCode(), e);
+			}
+			LocalDate ld = new java.sql.Date(birthDate.getTime()).toLocalDate();
+			Period p = Period.between(ld, LocalDate.now());
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"Utilities::calculateAge():: exit");
+
+			return p.getYears();
+
 		}
 
 	private boolean isValidServiceTypeChange(JSONObject jsonObject, String id, String process)

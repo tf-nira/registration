@@ -444,6 +444,8 @@ public enum StatusUtil {
 			"OnDemand Packet creation failed"),
 	DATA_MIGRATION_API_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "005",
 			"Data Migration failed"),
+	LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "006",
+			"Applicant is not eligible to GetFirstId service"),
 	LEGACY_DATA_SUCCESS(StatusConstants.LEGACY_DATA_SUCCESS + "001",
 			"Unique biometrics - Person not found in legacy"),
 	LEGACY_DATA_FAILED(StatusConstants.LEGACY_DATA_FAILED + "002",
