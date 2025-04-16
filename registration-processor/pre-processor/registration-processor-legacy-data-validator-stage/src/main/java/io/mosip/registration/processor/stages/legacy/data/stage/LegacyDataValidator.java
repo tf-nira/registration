@@ -191,6 +191,16 @@ public class LegacyDataValidator {
 					tags = object.getTags();
 					PacketDto packetDto = createOnDemandPacket(
 							migrationResponse, registrationStatusDto, tags, description);
+					
+					//validation check for get first id & cop
+					if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
+						Map<String, String> notificationAttributes = new HashMap<>();
+						notificationAttributes.put("FAILURE_REASON", description.getMessage());
+						object.setNotificationAttributes(notificationAttributes);
+						regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
+						throw new ValidationFailedException(description.getMessage(),description.getCode());
+					}
+					
 					if (packetDto != null) {
 						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
 								registrationStatusDto.getRegistrationStageName());
@@ -235,15 +245,6 @@ public class LegacyDataValidator {
 						object.setIsValid(true);
 						object.setInternalError(true);
 					}
-					//validation check for get first id & cop
-					if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
-						Map<String, String> notificationAttributes = new HashMap<>();
-						notificationAttributes.put("FAILURE_REASON", description.getMessage());
-						object.setNotificationAttributes(notificationAttributes);
-						regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
-						throw new ValidationFailedException(description.getMessage(),description.getCode());
-					}
-
 			} else {
 				Map<String, String> notificationAttributes = new HashMap<>();
 				notificationAttributes.put("FAILURE_REASON", "NIN not available in legacy system");
@@ -363,7 +364,7 @@ public class LegacyDataValidator {
 			description.setCode(
 					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
 		}
-		if(isValidCOP || ((registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) && getFirstIdAgeValidFlag)) {
+		if((registrationType.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) || (registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString()) && isValidCOP) || ((registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) && getFirstIdAgeValidFlag)) {
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
