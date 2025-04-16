@@ -191,19 +191,20 @@ public class LegacyDataValidator {
 					tags = object.getTags();
 					PacketDto packetDto = createOnDemandPacket(
 							migrationResponse, registrationStatusDto, tags, description);
-					
-					//validation check for get first id & cop
-					if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
-						Map<String, String> notificationAttributes = new HashMap<>();
-						notificationAttributes.put("FAILURE_REASON", description.getMessage());
-						object.setNotificationAttributes(notificationAttributes);
-						regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
-						throw new ValidationFailedException(description.getMessage(),description.getCode());
-					}
-					
+				
 					if (packetDto != null) {
 						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
 								registrationStatusDto.getRegistrationStageName());
+						
+						//validation check for get first id & cop
+						if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
+							Map<String, String> notificationAttributes = new HashMap<>();
+							notificationAttributes.put("FAILURE_REASON", description.getMessage());
+							object.setNotificationAttributes(notificationAttributes);
+							regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
+							throw new ValidationFailedException(description.getMessage(),description.getCode());
+						}
+						
 						if (syncRegistrationEntityForOndemand != null) {
 							registrationStatusDto.setLatestTransactionStatusCode(
 									RegistrationTransactionStatusCode.MERGED.toString());
