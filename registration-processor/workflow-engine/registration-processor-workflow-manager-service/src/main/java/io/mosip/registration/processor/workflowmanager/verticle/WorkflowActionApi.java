@@ -4,15 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import io.mosip.registration.processor.core.util.JsonUtil;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import io.mosip.kernel.core.exception.IOException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
 import io.mosip.registration.processor.core.abstractverticle.MosipEventBus;
 import io.mosip.registration.processor.core.abstractverticle.MosipRouter;
@@ -28,6 +25,7 @@ import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
+import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.workflow.dto.ResponseDTO;
 import io.mosip.registration.processor.core.workflow.dto.WorkflowActionDTO;
 import io.mosip.registration.processor.core.workflow.dto.WorkflowActionResponseDTO;
@@ -43,7 +41,7 @@ import io.vertx.ext.web.RoutingContext;
 
 public class WorkflowActionApi extends MosipVerticleAPIManager {
 	
-	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.reprocessor.";
+	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.workflow.action.api.";
 
 	@Value("${vertx.cluster.configuration}")
 	private String clusterManagerUrl;

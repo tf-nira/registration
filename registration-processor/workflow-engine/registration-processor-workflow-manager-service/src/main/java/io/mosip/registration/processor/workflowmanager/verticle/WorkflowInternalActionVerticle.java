@@ -71,7 +71,7 @@ import io.vertx.core.json.JsonObject;
 @Component
 public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
-	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.reprocessor.";
+	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.workflow.manager.";
 
 	/** The Constant USER. */
 	private static final String USER = "MOSIP_SYSTEM";
