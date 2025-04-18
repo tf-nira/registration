@@ -207,40 +207,44 @@ public class PacketUploaderServiceImpl implements PacketUploaderService<MessageD
             final byte[] encryptedByteArray = getPakcetFromDMZ(regEntity.getPacketId(),registrationId);
 
             if (encryptedByteArray != null) {
-            	InputStream decryptedPacket = decryptor.decrypt(
-                        registrationId,
-                        utility.getRefId(registrationId, regEntity.getReferenceId()),
-                        new ByteArrayInputStream(encryptedByteArray));
-                final byte[] decryptedPacketBytes = IOUtils.toByteArray(decryptedPacket);
-                int retrycount = (dto.getRetryCount() == null) ? 0 : dto.getRetryCount() + 1;
-                dto.setRetryCount(retrycount);
-                if (retrycount < getMaxRetryCount()) {
 
-                    messageDTO = uploadPacket(regEntity, dto, ZipUtils.unzipAndGetFiles(new ByteArrayInputStream(decryptedPacketBytes)), messageDTO, description);
-                    if (messageDTO.getIsValid()) {
-                        dto.setLatestTransactionStatusCode(
-                                RegistrationTransactionStatusCode.SUCCESS.toString());
-                        isTransactionSuccessful = true;
-                        description.setMessage(PlatformSuccessMessages.RPR_PUM_PACKET_UPLOADER.getMessage());
+                if (validateHashCode(new ByteArrayInputStream(encryptedByteArray), regEntity, registrationId, dto,
+                        description)) {
+                    InputStream decryptedPacket = decryptor.decrypt(
+                            registrationId,
+                            utility.getRefId(registrationId, regEntity.getReferenceId()),
+                            new ByteArrayInputStream(encryptedByteArray));
+                    final byte[] decryptedPacketBytes = IOUtils.toByteArray(decryptedPacket);
+                    int retrycount = (dto.getRetryCount() == null) ? 0 : dto.getRetryCount() + 1;
+                    dto.setRetryCount(retrycount);
+                    if (retrycount < getMaxRetryCount()) {
+
+                        messageDTO = uploadPacket(regEntity, dto, ZipUtils.unzipAndGetFiles(new ByteArrayInputStream(decryptedPacketBytes)), messageDTO, description);
+                        if (messageDTO.getIsValid()) {
+                            dto.setLatestTransactionStatusCode(
+                                    RegistrationTransactionStatusCode.SUCCESS.toString());
+                            isTransactionSuccessful = true;
+                            description.setMessage(PlatformSuccessMessages.RPR_PUM_PACKET_UPLOADER.getMessage());
+                            regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+                                    LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+                                    description.getMessage());
+
+                        }
+                    } else {
+
+                    	messageDTO.setInternalError(Boolean.TRUE);
+                        description.setMessage(PlatformErrorMessages.RPR_PUM_PACKET_RETRY_CNT_FAILURE.getMessage());
+                        description.setCode(PlatformErrorMessages.RPR_PUM_PACKET_RETRY_CNT_FAILURE.getCode());
+                        dto.setLatestTransactionStatusCode(registrationStatusMapperUtil
+                                .getStatusCode(RegistrationExceptionTypeCode.PACKET_UPLOAD_FAILED_ON_MAX_RETRY_CNT));
+                        dto.setStatusCode(RegistrationStatusCode.FAILED.toString());
+                        dto.setStatusComment(StatusUtil.PACKET_RETRY_CNT_EXCEEDED.getMessage());
+                        dto.setSubStatusCode(StatusUtil.PACKET_RETRY_CNT_EXCEEDED.getCode());
+                        dto.setUpdatedBy(USER);
                         regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
                                 LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
                                 description.getMessage());
-
                     }
-                } else {
-
-                	messageDTO.setInternalError(Boolean.TRUE);
-                    description.setMessage(PlatformErrorMessages.RPR_PUM_PACKET_RETRY_CNT_FAILURE.getMessage());
-                    description.setCode(PlatformErrorMessages.RPR_PUM_PACKET_RETRY_CNT_FAILURE.getCode());
-                    dto.setLatestTransactionStatusCode(registrationStatusMapperUtil
-                            .getStatusCode(RegistrationExceptionTypeCode.PACKET_UPLOAD_FAILED_ON_MAX_RETRY_CNT));
-                    dto.setStatusCode(RegistrationStatusCode.FAILED.toString());
-                    dto.setStatusComment(StatusUtil.PACKET_RETRY_CNT_EXCEEDED.getMessage());
-                    dto.setSubStatusCode(StatusUtil.PACKET_RETRY_CNT_EXCEEDED.getCode());
-                    dto.setUpdatedBy(USER);
-                    regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-                            LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
-                            description.getMessage());
                 }
             } else {
             	 messageDTO.setInternalError(Boolean.TRUE);
@@ -310,7 +314,7 @@ public class PacketUploaderServiceImpl implements PacketUploaderService<MessageD
 
             description.setMessage(PlatformErrorMessages.RPR_PUM_NGINX_ACCESS_FAILED.getMessage());
             description.setCode(PlatformErrorMessages.RPR_PUM_NGINX_ACCESS_FAILED.getCode());
-        } catch (IOException e) {
+        } catch (IOException | NoSuchAlgorithmException e) {
         	messageDTO.setInternalError(Boolean.TRUE);
             dto.setLatestTransactionStatusCode(
                     registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.IOEXCEPTION));
