@@ -186,6 +186,7 @@ public class AbisMiddleWareStageTest {
 		InternalRegistrationStatusDto internalRegStatusDto = new InternalRegistrationStatusDto();
 		internalRegStatusDto.setRegistrationId("");
 		internalRegStatusDto.setLatestTransactionStatusCode("Demodedupe");
+		internalRegStatusDto.setLatestTransactionTypeCode("DEMOGRAPHIC_VERIFICATION");
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any()))
 				.thenReturn(internalRegStatusDto);
 

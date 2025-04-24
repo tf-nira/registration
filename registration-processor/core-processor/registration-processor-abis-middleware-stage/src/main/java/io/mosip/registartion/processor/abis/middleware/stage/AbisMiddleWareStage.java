@@ -68,13 +68,10 @@ import io.mosip.registration.processor.packet.storage.entity.AbisResponsePKEntit
 import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
-import io.mosip.registration.processor.status.code.RegistrationType;
 import io.mosip.registration.processor.status.dao.RegistrationStatusDao;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
-import io.mosip.registration.processor.status.entity.TransactionEntity;
-import io.mosip.registration.processor.status.repositary.TransactionRepository;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.status.utilities.RegistrationUtility;
 
@@ -286,7 +283,7 @@ public class AbisMiddleWareStage extends MosipVerticleAPIManager {
 					registrationId, ExceptionUtils.getStackTrace(e));
 		} finally {
 			if (!isTransactionSuccessful) {
-				String transactionTypeCode = "";
+				String transactionTypeCode = internalRegDto.getLatestTransactionTypeCode();
 				if (transactionTypeCode.equalsIgnoreCase(DEMOGRAPHIC_VERIFICATION)) {
 					internalRegDto.setRegistrationStageName("DemoDedupeStage");
 				} else if (transactionTypeCode.equalsIgnoreCase(BIOGRAPHIC_VERIFICATION)) {
