@@ -183,9 +183,6 @@ public class PacketValidateProcessor {
 		String registrationId = null;
 		InternalRegistrationStatusDto registrationStatusDto = new InternalRegistrationStatusDto();
 		try {
-			registrationStatusDto
-					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PRINT_SERVICE.toString());
-			registrationStatusDto.setRegistrationStageName(stageName);
 			object.setMessageBusAddress(MessageBusAddress.PACKET_VALIDATOR_BUS_IN);
 			object.setIsValid(Boolean.FALSE);
 			object.setInternalError(Boolean.TRUE);
@@ -195,10 +192,10 @@ public class PacketValidateProcessor {
 			packetValidationDto.setTransactionSuccessful(false);
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(
 					registrationId, object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
-			setPacketCreatedDateTime(registrationStatusDto);
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.VALIDATE_PACKET.toString());
 			registrationStatusDto.setRegistrationStageName(stageName);
+			setPacketCreatedDateTime(registrationStatusDto);
 			boolean isValidSupervisorStatus = isValidSupervisorStatus(object);
 			if (isValidSupervisorStatus) {
 				Boolean isValid = compositePacketValidator.validate(object.getRid(),
