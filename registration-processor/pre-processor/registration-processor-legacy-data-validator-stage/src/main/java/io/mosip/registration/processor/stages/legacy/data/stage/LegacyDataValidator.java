@@ -238,6 +238,7 @@ public class LegacyDataValidator {
 							updatePacketStatus(registrationId, registrationStatusDto, description,
 									null);
 							object.setIsValid(true);
+							object.setInternalError(true);
 
 						}else {
 						regProcLogger.info("Ondemand creation is failed packet going for reprocess : {} ",
