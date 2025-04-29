@@ -13,14 +13,19 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import io.mosip.registration.processor.core.constant.RegistrationType;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +33,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
@@ -46,6 +52,7 @@ import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
+import io.mosip.registration.processor.core.constant.RegistrationType;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationException;
 import io.mosip.registration.processor.core.exception.LegacyDataBiomtericException;
@@ -195,31 +202,29 @@ public class LegacyDataValidator {
 					if (packetDto != null) {
 						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
 								registrationStatusDto.getRegistrationStageName());
-						
-						//validation check for get first id & cop
-						if (tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
-							Map<String, String> notificationAttributes = new HashMap<>();
-							notificationAttributes.put("FAILURE_REASON", description.getMessage());
-							object.setNotificationAttributes(notificationAttributes);
-							regProcLogger.error("Validation Failed for : {}, {}", registrationId, description.getMessage());
-							throw new ValidationFailedException(description.getMessage(),description.getCode());
-						}
-						
+								
 						if (syncRegistrationEntityForOndemand != null) {
-							registrationStatusDto.setLatestTransactionStatusCode(
-									RegistrationTransactionStatusCode.MERGED.toString());
-							registrationStatusDto
-									.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage()
-											+ " and rid is " + syncRegistrationEntityForOndemand.getRegistrationId());
-							registrationStatusDto
-									.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
-							registrationStatusDto.setStatusCode(RegistrationStatusCode.MERGED.toString());
+							if (tags.get("META_INFO-META_DATA-registrationType")
+									.equalsIgnoreCase(notAvailableTagValue)) {
+								updatePacketStatus(registrationId, registrationStatusDto, description,
+										syncRegistrationEntityForOndemand);
+							} else {
+								registrationStatusDto.setLatestTransactionStatusCode(
+										RegistrationTransactionStatusCode.MERGED.toString());
+								registrationStatusDto.setStatusComment(
+										StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is "
+												+ syncRegistrationEntityForOndemand.getRegistrationId());
+								registrationStatusDto
+										.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
+								registrationStatusDto.setStatusCode(RegistrationStatusCode.MERGED.toString());
 
-							description.setMessage(
-									PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
-											+ " -- " + registrationId);
-							description.setCode(
-									PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+								description.setMessage(
+										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
+												+ " -- " + registrationId);
+								description.setCode(
+										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+							}
+
 							object.setIsValid(true);
 							object.setReg_type(syncRegistrationEntityForOndemand.getRegistrationType());
 							object.setRid(syncRegistrationEntityForOndemand.getRegistrationId());
@@ -228,6 +233,13 @@ public class LegacyDataValidator {
 									registrationId);
 						}
 					} else {
+						if (tags.get("META_INFO-META_DATA-registrationType")
+								.equalsIgnoreCase(notAvailableTagValue)) {
+							updatePacketStatus(registrationId, registrationStatusDto, description,
+									null);
+							object.setIsValid(true);
+
+						}else {
 						regProcLogger.info("Ondemand creation is failed packet going for reprocess : {} ",
 								registrationId);
 						registrationStatusDto
@@ -242,10 +254,11 @@ public class LegacyDataValidator {
 										+ registrationId);
 						description.setCode(
 								PlatformErrorMessages.RPR_LEGACY_DATA_VAL_ON_DEMAND_PACKET_CREATION_FAILED.getCode());
-						description.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getMessage());
+						description.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getMessage());}
 						object.setIsValid(true);
 						object.setInternalError(true);
 					}
+					
 			} else {
 				Map<String, String> notificationAttributes = new HashMap<>();
 				notificationAttributes.put("FAILURE_REASON", "NIN not available in legacy system");
@@ -268,6 +281,25 @@ public class LegacyDataValidator {
 
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
+	}
+
+	private void updatePacketStatus(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
+			LogDescription description, SyncRegistrationEntity syncRegistrationEntityForOndemand) {
+		regProcLogger.error("Validation Failed for : {}, {}", registrationId,
+				description.getMessage());
+		registrationStatusDto.setLatestTransactionStatusCode(
+				RegistrationTransactionStatusCode.REJECTED.toString());
+		if (syncRegistrationEntityForOndemand != null) {
+			registrationStatusDto.setStatusComment(
+					description.getMessage() + "  " + StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage()
+							+ " and rid is " + syncRegistrationEntityForOndemand.getRegistrationId());
+		} else {
+			registrationStatusDto.setStatusComment(description.getMessage());
+		}
+
+		registrationStatusDto
+				.setSubStatusCode(description.getCode());
+		registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 	}
 
 	private SyncRegistrationEntity createSyncAndRegistration(PacketDto packetDto, String stageName) {

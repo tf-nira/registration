@@ -22,6 +22,7 @@ import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.DateUtils;
+import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.abstractverticle.MessageBusAddress;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
@@ -139,6 +140,9 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 	@Autowired
 	private Environment env;
+
+	@Value("${mosip.regproc.packet.classifier.tagging.not-available-tag-value}")
+	private String notAvailableTagValue;
 
 	/**
 	 * Deploy verticle.
@@ -404,6 +408,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 			workflowActionService.processWorkflowAction(internalRegistrationStatusDtos,
 					WorkflowActionCode.RESUME_PROCESSING.toString());
 		} else {
+
 			sendWorkflowCompletedWebSubEvent(registrationStatusDto, workflowInternalActionDTO);
 		}
 
@@ -466,8 +471,12 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		return STAGE_PROPERTY_PREFIX;
 	}
 
-	private void sendWorkflowCompletedWebSubEvent(InternalRegistrationStatusDto registrationStatusDto, WorkflowInternalActionDTO workflowInternalActionDTO) {
-		if (!registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.MIGRATOR.toString())) {
+	private void sendWorkflowCompletedWebSubEvent(InternalRegistrationStatusDto registrationStatusDto,
+			WorkflowInternalActionDTO workflowInternalActionDTO)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+		if (registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.MIGRATOR.toString())) {
+			sendWorkflowCompletedWebSubEventForOnDemand(registrationStatusDto, workflowInternalActionDTO);
+		} else {
 
 		WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
 		workflowCompletedEventDTO.setInstanceId(registrationStatusDto.getRegistrationId());
@@ -477,31 +486,64 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.REJECTED.toString())) {
 			if (registrationStatusDto.getRegistrationStageName().contains(ProviderStageName.MVS.getValue())) {
 				workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.MVS_PACKET_REJECTED.name());
-			} else if (registrationStatusDto.getRegistrationStageName()
-					.contains("LegacyDataValidatorStage")
-					|| registrationStatusDto.getRegistrationStageName()
-							.contains("LegacyDataStage")) {
-				workflowCompletedEventDTO
-						.setErrorCode(RegistrationExceptionTypeCode.ON_DEMAND_MIGRATION_REJECTED.name());
 			}else {
 				workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_REJECTED.name());
 			}
 		}
 		if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.FAILED.toString())) {
-			if (registrationStatusDto.getRegistrationStageName()
-					.contains("LegacyDataValidatorStage")
-					|| registrationStatusDto.getRegistrationStageName()
-							.contains("LegacyDataStage")) {
-				workflowCompletedEventDTO
-						.setErrorCode(RegistrationExceptionTypeCode.ON_DEMAND_MIGRATION_FAILED.name());
-			} else {
+
 				workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
-			}
 
 		}
 
 		webSubUtil.publishEvent(workflowCompletedEventDTO);
 	}
+	}
+
+	private void sendWorkflowCompletedWebSubEventForOnDemand(InternalRegistrationStatusDto registrationStatusDto,
+			WorkflowInternalActionDTO workflowInternalActionDTO)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+		List<String> tags = new ArrayList<String>();
+		tags.add("META_INFO-META_DATA-registrationType");
+		tags.add("META_INFO-META_DATA-registrationId");
+		Map<String, String> tagsPresent = packetManagerService.getTags(registrationStatusDto.getRegistrationId(), tags);
+		String registrationType = tagsPresent.get("META_INFO-META_DATA-registrationType");
+		String registrationId = tagsPresent.get("META_INFO-META_DATA-registrationId");
+		if (!registrationType.equalsIgnoreCase(RegistrationType.MIGRATOR.toString())
+				&& !registrationType.equalsIgnoreCase(notAvailableTagValue)) {
+			if (StringUtils.isNotEmpty(registrationId) && StringUtils.isNotEmpty(registrationType)) {
+				UpdateStatusForOndemand(workflowInternalActionDTO, registrationStatusDto, registrationType,
+						registrationId);
+				WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
+				workflowCompletedEventDTO.setInstanceId(registrationId);
+				workflowCompletedEventDTO.setResultCode(registrationStatusDto.getStatusCode());
+				workflowCompletedEventDTO.setWorkflowType(registrationType);
+				if (registrationStatusDto.getStatusCode()
+						.equalsIgnoreCase(RegistrationStatusCode.REJECTED.toString())) {
+					workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_REJECTED.name());
+				}
+				if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.FAILED.toString())) {
+					workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
+				}
+				webSubUtil.publishEvent(workflowCompletedEventDTO);
+			}
+		}
+	}
+
+	private void UpdateStatusForOndemand(WorkflowInternalActionDTO workflowInternalActionDTO,
+			InternalRegistrationStatusDto registrationStatusDto, String registrationType,
+			String registrationId) {
+		InternalRegistrationStatusDto originalRegistrationStatusDto = registrationStatusService
+				.getRegistrationStatus(registrationId, registrationType, 1,
+						null);
+		originalRegistrationStatusDto.setStatusComment(workflowInternalActionDTO.getActionMessage());
+		originalRegistrationStatusDto.setStatusCode(registrationStatusDto.getStatusCode());
+		originalRegistrationStatusDto
+				.setLatestTransactionTypeCode(
+				RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
+		originalRegistrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		registrationStatusService.updateRegistrationStatusForWorkflowEngine(originalRegistrationStatusDto,
+				MODULE_ID, MODULE_NAME);
 	}
 
 	private void processRestartParentFlow(WorkflowInternalActionDTO workflowInternalActionDTO)
