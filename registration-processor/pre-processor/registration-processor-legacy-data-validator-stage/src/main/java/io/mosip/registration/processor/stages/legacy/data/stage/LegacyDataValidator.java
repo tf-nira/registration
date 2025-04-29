@@ -237,8 +237,7 @@ public class LegacyDataValidator {
 								.equalsIgnoreCase(notAvailableTagValue)) {
 							updatePacketStatus(registrationId, registrationStatusDto, description,
 									null);
-							object.setIsValid(true);
-							object.setInternalError(true);
+							object.setIsValid(false);
 
 						}else {
 						regProcLogger.info("Ondemand creation is failed packet going for reprocess : {} ",
