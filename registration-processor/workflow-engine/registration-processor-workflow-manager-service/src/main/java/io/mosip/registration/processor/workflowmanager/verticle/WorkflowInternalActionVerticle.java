@@ -509,9 +509,11 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		Map<String, String> tagsPresent = packetManagerService.getTags(registrationStatusDto.getRegistrationId(), tags);
 		String registrationType = tagsPresent.get("META_INFO-META_DATA-registrationType");
 		String registrationId = tagsPresent.get("META_INFO-META_DATA-registrationId");
-		if (!registrationType.equalsIgnoreCase(RegistrationType.MIGRATOR.toString())
-				&& !registrationType.equalsIgnoreCase(notAvailableTagValue)) {
-			if (StringUtils.isNotEmpty(registrationId) && StringUtils.isNotEmpty(registrationType)) {
+		if (StringUtils.isNotEmpty(registrationId) && StringUtils.isNotEmpty(registrationType)) {
+
+				if (!registrationType.equalsIgnoreCase(RegistrationType.MIGRATOR.toString())
+						&& !registrationType.equalsIgnoreCase(notAvailableTagValue)) {
+
 				UpdateStatusForOndemand(workflowInternalActionDTO, registrationStatusDto, registrationType,
 						registrationId);
 				WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
