@@ -544,6 +544,8 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				.setLatestTransactionTypeCode(
 				RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		originalRegistrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		originalRegistrationStatusDto
+				.setLatestTransactionStatusCode(registrationStatusDto.getLatestTransactionStatusCode());
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(originalRegistrationStatusDto,
 				MODULE_ID, MODULE_NAME);
 	}
