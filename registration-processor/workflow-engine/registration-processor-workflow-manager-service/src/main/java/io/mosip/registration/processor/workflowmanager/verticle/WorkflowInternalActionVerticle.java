@@ -187,6 +187,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		WorkflowInternalActionDTO workflowInternalActionDTO = (WorkflowInternalActionDTO) object;
 		String registrationId = workflowInternalActionDTO.getRid();
 		regProcLogger.debug("WorkflowInternalActionVerticle called for registration id {}", registrationId);
+		regProcLogger.info("WorkflowInternalActionVerticle :: Process :: Started :: registrationId :: " + registrationId);
 		WorkflowInternalActionCode workflowInternalActionCode = null;
 		try {
 			workflowInternalActionCode = WorkflowInternalActionCode.valueOf(workflowInternalActionDTO.getActionCode());
@@ -195,7 +196,9 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				processPacketForPaused(workflowInternalActionDTO);
 				break;
 			case COMPLETE_AS_PROCESSED:
+				regProcLogger.info("WorkflowInternalActionVerticle :: COMPLETE_AS_PROCESSED :: Started :: registrationId :: " + registrationId);
 				processCompleteAsProcessed(workflowInternalActionDTO);
+				regProcLogger.info("WorkflowInternalActionVerticle :: COMPLETE_AS_PROCESSED :: Completed :: registrationId :: " + registrationId);
 				break;
 			case COMPLETE_AS_REJECTED:
 				processCompleteAsRejected(workflowInternalActionDTO);
@@ -227,6 +230,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 			isTransactionSuccessful = true;
 			description.setMessage(PlatformSuccessMessages.RPR_WORKFLOW_INTERNAL_ACTION_SUCCESS.getMessage());
 			description.setCode(PlatformSuccessMessages.RPR_WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+			regProcLogger.info("WorkflowInternalActionVerticle :: Process :: Completed :: registrationId :: " + registrationId);
 			regProcLogger.debug("WorkflowInternalActionVerticle call ended for registration id {}", registrationId);
 
 		} catch (DateTimeParseException e) {
@@ -383,33 +387,52 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 	private void processCompleteAsProcessed(WorkflowInternalActionDTO workflowInternalActionDTO)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
 			WorkflowActionException {
+		regProcLogger.info("WorkflowInternalActionVerticle :: getAdditionalInfoRequestByRegIdAndProcessAndIteration :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 		AdditionalInfoRequestDto additionalInfoRequestDto = additionalInfoRequestService
 				.getAdditionalInfoRequestByRegIdAndProcessAndIteration(workflowInternalActionDTO.getRid(),
 						workflowInternalActionDTO.getReg_type(), workflowInternalActionDTO.getIteration());
+		regProcLogger.info("WorkflowInternalActionVerticle :: getAdditionalInfoRequestByRegIdAndProcessAndIteration :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
+		regProcLogger.info("WorkflowInternalActionVerticle :: getRegistrationStatus :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService
 			.getRegistrationStatus(workflowInternalActionDTO.getRid(), workflowInternalActionDTO.getReg_type(),
 				workflowInternalActionDTO.getIteration(), workflowInternalActionDTO.getWorkflowInstanceId());
+		regProcLogger.info("WorkflowInternalActionVerticle :: getRegistrationStatus :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
+		
 		registrationStatusDto.setStatusComment(workflowInternalActionDTO.getActionMessage());
 		registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		
+		regProcLogger.info("WorkflowInternalActionVerticle :: updateRegistrationStatusForWorkflowEngine :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
+		regProcLogger.info("WorkflowInternalActionVerticle :: updateRegistrationStatusForWorkflowEngine :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
+
 		if (additionalInfoRequestDto != null) {
+			regProcLogger.info("WorkflowInternalActionVerticle :: additionalInfoRequestDto :: NOT NULL :: registrationId :: " + workflowInternalActionDTO.getRid());
 			Map<String, String> tags = new HashMap<String, String>();
 			tags.put(workflowInternalActionDTO.getReg_type() + "_FLOW_STATUS",
 					RegistrationStatusCode.PROCESSED.toString());
+			regProcLogger.info("WorkflowInternalActionVerticle :: addOrUpdateTags :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 			packetManagerService.addOrUpdateTags(workflowInternalActionDTO.getRid(), tags);
+			regProcLogger.info("WorkflowInternalActionVerticle :: addOrUpdateTags :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
+			
+			regProcLogger.info("WorkflowInternalActionVerticle :: getRegistrationStatus :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 			InternalRegistrationStatusDto mainFlowregistrationStatusDto = registrationStatusService
 					.getRegistrationStatus(null, null, null, additionalInfoRequestDto.getWorkflowInstanceId());
+			regProcLogger.info("WorkflowInternalActionVerticle :: getRegistrationStatus :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
+			regProcLogger.info("WorkflowInternalActionVerticle :: setLatestTransactionStatusCode :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 			mainFlowregistrationStatusDto
 					.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+			regProcLogger.info("WorkflowInternalActionVerticle :: setLatestTransactionStatusCode :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
 			List<InternalRegistrationStatusDto> internalRegistrationStatusDtos = new ArrayList<InternalRegistrationStatusDto>();
 			internalRegistrationStatusDtos.add(mainFlowregistrationStatusDto);
 			workflowActionService.processWorkflowAction(internalRegistrationStatusDtos,
 					WorkflowActionCode.RESUME_PROCESSING.toString());
+			regProcLogger.info("WorkflowInternalActionVerticle :: processWorkflowAction :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
 		} else {
-
+			regProcLogger.info("WorkflowInternalActionVerticle :: sendWorkflowCompletedWebSubEvent :: Started :: registrationId :: " + workflowInternalActionDTO.getRid());
 			sendWorkflowCompletedWebSubEvent(registrationStatusDto, workflowInternalActionDTO);
+			regProcLogger.info("WorkflowInternalActionVerticle :: sendWorkflowCompletedWebSubEvent :: Completed :: registrationId :: " + workflowInternalActionDTO.getRid());
 		}
 
 	}
