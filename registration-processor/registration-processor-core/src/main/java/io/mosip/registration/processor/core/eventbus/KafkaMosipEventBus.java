@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.slf4j.MDC;
@@ -97,6 +98,8 @@ public class KafkaMosipEventBus implements MosipEventBus {
 		consumerConfig.put("group.id", groupId);
 		consumerConfig.put("auto.offset.reset", "latest");
 		consumerConfig.put("max.poll.records", maxPollRecords);
+		consumerConfig.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "540000");
+		consumerConfig.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,"180000");
 		if (commitType.equals("auto"))
 			consumerConfig.put("enable.auto.commit", "true");
 		else
