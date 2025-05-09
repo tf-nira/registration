@@ -473,18 +473,18 @@ public class PacketValidatorImpl implements PacketValidator {
 			// Validate service type change
 			switch (serviceType) {
 				case "By Birth /Descent":
-					return citizenshipType.equalsIgnoreCase("Birth to Registration") ||
-							citizenshipType.equalsIgnoreCase("Birth to Dual Citizenship") ||
-							citizenshipType.equalsIgnoreCase("Birth to Naturalization");
+					return citizenshipType.equalsIgnoreCase("Citizenship by Naturalization") ||
+							citizenshipType.equalsIgnoreCase("Citizenship by Registration") ||
+							citizenshipType.equalsIgnoreCase("Dual citizenship");
 
 				case "By Registration":
-					return citizenshipType.equalsIgnoreCase("Registration to Dual Citizenship");
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
 
 				case "By Naturalization":
-					return citizenshipType.equalsIgnoreCase("Naturalisation to Dual Citizenship");
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
 
 				case "Citizenship under the Article 9":
-					return citizenshipType.equalsIgnoreCase("Citizenship Under Article 9 to Dual Citizenship");
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
 
 				default:
 					System.out.println("Unknown/Invalid service type: " + serviceType);
