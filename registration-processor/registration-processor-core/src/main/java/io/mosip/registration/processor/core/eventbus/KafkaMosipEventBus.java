@@ -98,6 +98,8 @@ public class KafkaMosipEventBus implements MosipEventBus {
 		consumerConfig.put("group.id", groupId);
 		consumerConfig.put("auto.offset.reset", "latest");
 		consumerConfig.put("max.poll.records", maxPollRecords);
+		consumerConfig.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, "500000");
+		consumerConfig.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, "560000");
 		consumerConfig.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "540000");
 		consumerConfig.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,"180000");
 		if (commitType.equals("auto"))
