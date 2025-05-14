@@ -722,7 +722,7 @@ public class MVSServiceImpl implements MVSService {
 			}
 		}
 		
-		if ("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName())) {
+		if (registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty()) {
 			req.setStatusComment(registrationStatusDto.getStatusComment());
 		}
 		
