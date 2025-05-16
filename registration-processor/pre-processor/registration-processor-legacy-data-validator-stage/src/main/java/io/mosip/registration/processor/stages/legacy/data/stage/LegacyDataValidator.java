@@ -174,7 +174,7 @@ public class LegacyDataValidator {
 		
 		if (jSONObject == null) {
 			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			boolean isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap);
+			boolean isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap, object);
 			if (isPresentInlegacySystem) {
 				regProcLogger.info("NIN is present in legacy system and call for ondemand migration : {}",
 						registrationId);
@@ -331,7 +331,7 @@ public class LegacyDataValidator {
 			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags, LogDescription description)
 			throws ApisResourceAccessException,
 			PacketManagerException,
-			JsonProcessingException, IOException, NumberFormatException, JSONException {
+			JsonProcessingException, IOException, NumberFormatException, JSONException, DataMigrationException {
 
 		boolean getFirstIdAgeValidFlag = true;
 		boolean isValidCOP = true;
@@ -354,6 +354,14 @@ public class LegacyDataValidator {
 		SyncRegistrationEntity regEntity = syncRegistrationService
 				.findByWorkflowInstanceId(registrationStatusDto.getWorkflowInstanceId());
 		Map<String, String> demographics = new HashMap<String, String>();
+		if (migrationResponse.getDemographics() == null || migrationResponse.getDemographics().isEmpty()) {
+			throw new DataMigrationException(StatusUtil.DATA_MIGRATION_DATA_ISSUE.getCode(),
+					StatusUtil.DATA_MIGRATION_DATA_ISSUE.getMessage());
+		}
+		if (migrationResponse.getDocuments() == null || migrationResponse.getDocuments().isEmpty()) {
+			throw new DataMigrationException(StatusUtil.DATA_MIGRATION_DATA_ISSUE.getCode(),
+					StatusUtil.DATA_MIGRATION_DATA_ISSUE.getMessage());
+		}
 		if (migrationResponse.getDemographics() != null) {
 			demographics.putAll(migrationResponse.getDemographics());
 		}
@@ -494,8 +502,9 @@ public class LegacyDataValidator {
 		return wsqFormatBiometrics;
 	}
 
-	private boolean checkNINAVailableInLegacy(String registrationId, String NIN, Map<String, String> positionAndWsqMap)
-			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException {
+	private boolean checkNINAVailableInLegacy(String registrationId, String NIN, Map<String, String> positionAndWsqMap,
+			MessageDTO object)
+			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException, ValidationFailedException {
 		boolean isValid = false;
 		Envelope requestEnvelope = createGetPersonRequest(NIN, positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
@@ -521,6 +530,12 @@ public class LegacyDataValidator {
 					registrationId,
 					RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", transactionStatus.getError().getMessage());
+			object.setNotificationAttributes(notificationAttributes);
+			regProcLogger.error("Error from  legacy system : {}", registrationId);
+			throw new ValidationFailedException(transactionStatus.getError().getCode(),
+					transactionStatus.getError().getMessage());
 		}
 		return isValid;
 	}

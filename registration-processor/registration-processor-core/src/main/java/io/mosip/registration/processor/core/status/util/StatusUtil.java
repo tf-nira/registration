@@ -446,6 +446,8 @@ public enum StatusUtil {
 			"Data Migration failed"),
 	LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "006",
 			"Applicant is not eligible to GetFirstId service"),
+	DATA_MIGRATION_DATA_ISSUE(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "007",
+			"Migration data is null"),
 	LEGACY_DATA_SUCCESS(StatusConstants.LEGACY_DATA_SUCCESS + "001",
 			"Unique biometrics - Person not found in legacy"),
 	LEGACY_DATA_FAILED(StatusConstants.LEGACY_DATA_FAILED + "002",
