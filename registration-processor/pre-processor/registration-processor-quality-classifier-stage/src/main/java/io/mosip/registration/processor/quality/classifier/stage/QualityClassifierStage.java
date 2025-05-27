@@ -424,7 +424,6 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		HashMap<String, Float> bioTypeMinScoreMap = new HashMap<String, Float>();
 
 		// get individual biometrics file name from id.json
-		regProcLogger.info("Bir starts");
 		for (BIR bir : birs) {
 
 			if (bir.getOthers() != null) {
@@ -445,20 +444,13 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			}
 
 			BiometricType biometricType = bir.getBdbInfo().getType().get(0);
-			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "biometricType",
-					biometricType);
 			BIR[] birArray = new BIR[1];
 			birArray[0] = bir;
 			if(!biometricType.name().equalsIgnoreCase(BiometricType.EXCEPTION_PHOTO.name())) {
 			float[] qualityScoreresponse = getBioSdkInstance(biometricType).getSegmentQuality(birArray, null);
-			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "qualityScoreresponse",
-					qualityScoreresponse);
 
 			float score = qualityScoreresponse[0];
-			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "score",
-					score);
 			String bioType = bir.getBdbInfo().getType().get(0).value();
-			regProcLogger.info(bioType);
 
 			// Check for entry
 			Float storedMinScore = bioTypeMinScoreMap.get(bioType);
@@ -467,8 +459,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 					storedMinScore == null ? score : storedMinScore > score ? score : storedMinScore);
 			}
 		}
-		regProcLogger.info("bioTypeMinScoreMap",
-				bioTypeMinScoreMap);
+
 		for (Entry<String, Float> bioTypeMinEntry : bioTypeMinScoreMap.entrySet()) {
 
 			for (Entry<String, int[]> qualityRangeEntry : parsedQualityRangeMap.entrySet()) {
