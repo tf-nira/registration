@@ -26,6 +26,7 @@ import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationException;
 import io.mosip.registration.processor.core.exception.LegacyDataBiomtericException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
@@ -82,7 +83,7 @@ public class LegacyDataValidateProcessor {
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
-
+		Map<String, String> attributes = new HashMap<>();
 		regProcLogger.debug("LegacyDataValidateProcessor called for registrationId {}", registrationId);
 		registrationId = object.getRid();
 
@@ -105,10 +106,17 @@ public class LegacyDataValidateProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.DATA_MIGRATION_API_FAILED, RegistrationExceptionTypeCode.DATA_MIGRATION_EXCEPTION,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_MIGRATION_API_FAILED, e);
+		} catch (LegacyDataValidationException e) {
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.LEGACYERROR,
+					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
+					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (LegacyDataBiomtericException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getCode());
+			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage());
+			object.setNotificationAttributes(attributes);
 		} catch (PacketManagerException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
@@ -139,6 +147,9 @@ public class LegacyDataValidateProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REJECTED,
 					StatusUtil.LEGACY_DATA_VALIDATION_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_VALIDATION_FAILED, e);
+			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());
+			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage());
+			object.setNotificationAttributes(attributes);
 		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.BASE_UNCHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION,
@@ -169,10 +180,7 @@ public class LegacyDataValidateProcessor {
 			} else {
 				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
 			}
-			Map<String, String> attributes = new HashMap<>();
-			attributes.put("FAILURE_CODE", registrationStatusDto.getStatusCode());
-			attributes.put("FAILURE_COMMENT", description.getStatusComment());
-			object.setNotificationAttributes(attributes);
+
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
 

@@ -56,6 +56,7 @@ import io.mosip.registration.processor.core.constant.RegistrationType;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationException;
 import io.mosip.registration.processor.core.exception.LegacyDataBiomtericException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
@@ -162,7 +163,8 @@ public class LegacyDataValidator {
 			LogDescription description, MessageDTO object)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
 			ValidationFailedException, JAXBException, NoSuchAlgorithmException,
-			NumberFormatException, JSONException, DataMigrationException, LegacyDataBiomtericException {
+			NumberFormatException, JSONException, DataMigrationException, LegacyDataBiomtericException,
+			LegacyDataValidationException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
@@ -260,9 +262,6 @@ public class LegacyDataValidator {
 					}
 					
 			} else {
-				Map<String, String> notificationAttributes = new HashMap<>();
-				notificationAttributes.put("FAILURE_REASON", "NIN not available in legacy system");
-				object.setNotificationAttributes(notificationAttributes);
 				regProcLogger.error("NIN is not  present in legacy system : {}", registrationId);
 				throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage(),
 						StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());
@@ -504,7 +503,8 @@ public class LegacyDataValidator {
 
 	private boolean checkNINAVailableInLegacy(String registrationId, String NIN, Map<String, String> positionAndWsqMap,
 			MessageDTO object)
-			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException, ValidationFailedException {
+			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
+			ValidationFailedException, LegacyDataValidationException {
 		boolean isValid = false;
 		Envelope requestEnvelope = createGetPersonRequest(NIN, positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
@@ -530,11 +530,8 @@ public class LegacyDataValidator {
 					registrationId,
 					RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
-			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", transactionStatus.getError().getMessage());
-			object.setNotificationAttributes(notificationAttributes);
 			regProcLogger.error("Error from  legacy system : {}", registrationId);
-			throw new ValidationFailedException(transactionStatus.getError().getCode(),
+			throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
 					transactionStatus.getError().getMessage());
 		}
 		return isValid;
