@@ -62,7 +62,7 @@ import io.mosip.registration.processor.status.service.RegistrationStatusService;
 
 /**
  * The Class QualityCheckerStage.
- * 
+ *
  * @author M1048358 Alok Ranjan
  */
 @Component
@@ -136,7 +136,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 	 * result in a random behaviour of tagging. In range, upper and lower values are
 	 * inclusive.
 	 */
-	
+
 	@Value("#{${mosip.regproc.quality.classifier.tagging.quality.ranges:{'level-1':'0-10','level-2':'10-20','level-3':'20-30','level-4':'30-40','level-5':'40-50','level-6':'50-60','level-7':'60-70','level-8':'70-80','level-9':'80-90','level-10':'90-101',}}}")
 	private Map<String, String> qualityClassificationRangeMap;
 
@@ -144,13 +144,13 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 	@Value("${mosip.regproc.quality.classifier.tagging.quality.prefix:Biometric_Quality-}")
 	private String qualityTagPrefix;
 
-    /** The tag value that will be used by default when the packet does not have value for the biometric tag field */
-    @Value("${mosip.regproc.quality.classifier.tagging.quality.biometric-not-available-tag-value}")
-    private String biometricNotAvailableTagValue;
+	/** The tag value that will be used by default when the packet does not have value for the biometric tag field */
+	@Value("${mosip.regproc.quality.classifier.tagging.quality.biometric-not-available-tag-value}")
+	private String biometricNotAvailableTagValue;
 
-    /** modality arrays that needs to be tagged */
-    @Value("#{'${mosip.regproc.quality.classifier.tagging.quality.modalities}'.split(',')}")
-    private List<String> modalities;
+	/** modality arrays that needs to be tagged */
+	@Value("#{'${mosip.regproc.quality.classifier.tagging.quality.modalities}'.split(',')}")
+	private List<String> modalities;
 
 	private static String RANGE_DELIMITER = "-";
 
@@ -208,7 +208,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see
 	 * io.mosip.registration.processor.core.spi.eventbus.EventBusManager#process(
 	 * java.lang.Object)
@@ -265,11 +265,11 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 					Map<String, String> notificationAttributes = new HashMap<>();
 					notificationAttributes.put("FAILURE_REASON", PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
 					object.setNotificationAttributes(notificationAttributes);
-					
+
 					throw new FileMissingException(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getCode(),
 							PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
 				}
-				
+
 
 				packetManagerService.addOrUpdateTags(regId, getQualityTags(biometricRecord.getSegments()));
 
@@ -408,9 +408,9 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		iBioProviderApi bioProvider = bioApiFactory.getBioProvider(biometricType, BiometricFunction.QUALITY_CHECK);
 		return bioProvider;
 	}
-	
+
 	private Map<String, String> getQualityTags(List<BIR> birs) throws BiometricException{
-		
+
 		Map<String, String> tags = new HashMap<String, String>();
 
 		// setting biometricNotAvailableTagValue for each modality in case biometrics are not available
@@ -424,6 +424,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		HashMap<String, Float> bioTypeMinScoreMap = new HashMap<String, Float>();
 
 		// get individual biometrics file name from id.json
+		regProcLogger.info("BIR STARTS");
 		for (BIR bir : birs) {
 
 			if (bir.getOthers() != null) {
@@ -444,19 +445,25 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			}
 
 			BiometricType biometricType = bir.getBdbInfo().getType().get(0);
+			String subtype = bir.getBdbInfo().getSubtype().get(0);
+			regProcLogger.info(biometricType.toString());
+			regProcLogger.info(subtype);
 			BIR[] birArray = new BIR[1];
 			birArray[0] = bir;
 			if(!biometricType.name().equalsIgnoreCase(BiometricType.EXCEPTION_PHOTO.name())) {
-			float[] qualityScoreresponse = getBioSdkInstance(biometricType).getSegmentQuality(birArray, null);
+				float[] qualityScoreresponse = getBioSdkInstance(biometricType).getSegmentQuality(birArray, null);
 
-			float score = qualityScoreresponse[0];
-			String bioType = bir.getBdbInfo().getType().get(0).value();
+				float score = qualityScoreresponse[0];
+				String bioType = bir.getBdbInfo().getType().get(0).value();
+				regProcLogger.info("score");
+				regProcLogger.info(String.valueOf(score));
+				regProcLogger.info(bioType);
 
-			// Check for entry
-			Float storedMinScore = bioTypeMinScoreMap.get(bioType);
+				// Check for entry
+				Float storedMinScore = bioTypeMinScoreMap.get(bioType);
 
-			bioTypeMinScoreMap.put(bioType,
-					storedMinScore == null ? score : storedMinScore > score ? score : storedMinScore);
+				bioTypeMinScoreMap.put(bioType,
+						storedMinScore == null ? score : storedMinScore > score ? score : storedMinScore);
 			}
 		}
 
@@ -473,14 +480,14 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 
 			}
 		}
-		
+
 		// setting biometricNotAvailableTagValue for modalities those are not available in BIRs
 		modalities.forEach(modality -> {
 			if (!tags.containsKey(qualityTagPrefix.concat(modality))) {
 				tags.put(qualityTagPrefix.concat(modality), biometricNotAvailableTagValue);
 			}
 		});
-
+		regProcLogger.info(tags.toString());
 		return tags;
 	}
 
