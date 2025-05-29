@@ -424,6 +424,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		HashMap<String, Float> bioTypeMinScoreMap = new HashMap<String, Float>();
 
 		// get individual biometrics file name from id.json
+		regProcLogger.info("BIR STARTS");
 		for (BIR bir : birs) {
 
 			if (bir.getOthers() != null) {
@@ -444,6 +445,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			}
 
 			BiometricType biometricType = bir.getBdbInfo().getType().get(0);
+			regProcLogger.info("BiometricType "+biometricType.toString());
 			BIR[] birArray = new BIR[1];
 			birArray[0] = bir;
 			if(!biometricType.name().equalsIgnoreCase(BiometricType.EXCEPTION_PHOTO.name())) {
@@ -451,6 +453,8 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 
 			float score = qualityScoreresponse[0];
 			String bioType = bir.getBdbInfo().getType().get(0).value();
+			regProcLogger.info("SCORE "+String.valueOf(score));
+			regProcLogger.info("biotype "+bioType);
 
 			// Check for entry
 			Float storedMinScore = bioTypeMinScoreMap.get(bioType);
@@ -480,7 +484,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 				tags.put(qualityTagPrefix.concat(modality), biometricNotAvailableTagValue);
 			}
 		});
-
+		regProcLogger.info(tags.toString());
 		return tags;
 	}
 
