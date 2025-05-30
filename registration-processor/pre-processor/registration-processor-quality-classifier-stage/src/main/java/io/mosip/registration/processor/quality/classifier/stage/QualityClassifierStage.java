@@ -2,6 +2,8 @@ package io.mosip.registration.processor.quality.classifier.stage;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -422,6 +424,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		}
 
 		HashMap<String, Float> bioTypeMinScoreMap = new HashMap<String, Float>();
+		List<Float> fingerScoreList = new ArrayList<Float>();
 
 		// get individual biometrics file name from id.json
 		regProcLogger.info("BIR STARTS");
@@ -455,15 +458,19 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			String bioType = bir.getBdbInfo().getType().get(0).value();
 			regProcLogger.info("SCORE "+String.valueOf(score));
 			regProcLogger.info("biotype "+bioType);
+			if (bioType.equalsIgnoreCase("Face") || bioType.equalsIgnoreCase("Iris")) {
+				// Check for entry
+				Float storedMinScore = bioTypeMinScoreMap.get(bioType);
 
-			// Check for entry
-			Float storedMinScore = bioTypeMinScoreMap.get(bioType);
+				bioTypeMinScoreMap.put(bioType,
+						storedMinScore == null ? score : storedMinScore > score ? storedMinScore : score);
+			}else {
+				fingerScoreList.add(score);
+			}
 
-			bioTypeMinScoreMap.put(bioType,
-					storedMinScore == null ? score : storedMinScore > score ? score : storedMinScore);
 			}
 		}
-
+		bioTypeMinScoreMap.put(BiometricType.FINGER.value(), getFingerMedianScore(fingerScoreList));
 		for (Entry<String, Float> bioTypeMinEntry : bioTypeMinScoreMap.entrySet()) {
 
 			for (Entry<String, int[]> qualityRangeEntry : parsedQualityRangeMap.entrySet()) {
@@ -486,6 +493,22 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		});
 		regProcLogger.info(tags.toString());
 		return tags;
+	}
+
+	private Float getFingerMedianScore(List<Float> fingerScoreList) {
+		Collections.sort(fingerScoreList);
+
+		// Compute the median
+		Float median;
+		int size = fingerScoreList.size();
+		if (size % 2 == 0) {
+			// Even number of elements: average the two middle values
+			median = (fingerScoreList.get(size / 2 - 1) + fingerScoreList.get(size / 2)) / 2.0f;
+		} else {
+			// Odd number of elements: take the middle value
+			median = fingerScoreList.get(size / 2);
+		}
+		return median;
 	}
 
 	private void updateErrorFlags(InternalRegistrationStatusDto registrationStatusDto, MessageDTO object) {
