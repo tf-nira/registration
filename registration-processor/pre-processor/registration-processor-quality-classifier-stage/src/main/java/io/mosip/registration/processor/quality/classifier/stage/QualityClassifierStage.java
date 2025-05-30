@@ -470,7 +470,9 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 
 			}
 		}
-		bioTypeMinScoreMap.put(BiometricType.FINGER.value(), getFingerMedianScore(fingerScoreList));
+		if (fingerScoreList != null && !fingerScoreList.isEmpty())
+			bioTypeMinScoreMap.put(BiometricType.FINGER.value(), getFingerMedianScore(fingerScoreList));
+
 		for (Entry<String, Float> bioTypeMinEntry : bioTypeMinScoreMap.entrySet()) {
 
 			for (Entry<String, int[]> qualityRangeEntry : parsedQualityRangeMap.entrySet()) {
