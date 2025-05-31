@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -227,6 +228,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ReprocessorVerticle::process()::entry");
 		StringBuffer ridSb=new StringBuffer();
+		int  totalNumberOfReprocessRecords = 0;
 		try {
 			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
 			reprocessorDtoList = registrationStatusService.getResumablePackets(fetchSize);
@@ -244,7 +246,12 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			}
 
 			
+			totalNumberOfReprocessRecords = (!CollectionUtils.isEmpty(reprocessorDtoList)?reprocessorDtoList.size():0);
+			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);			
+			
+			
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
+				AtomicInteger processedCount = new AtomicInteger(0);
 				reprocessorDtoList.forEach(dto -> {
 					String registrationId = dto.getRegistrationId();
 					ridSb.append(registrationId);
@@ -302,6 +309,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 					}
 					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), registrationId, description.getMessage());
+					regProcLogger.info("Total records processed :: " + processedCount.incrementAndGet());
 
 					/** Module-Id can be Both Success/Error code */
 					String moduleId = PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getCode();
@@ -351,7 +359,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 					: description.getCode();
 			String moduleName = ModuleName.RE_PROCESSOR.toString();
 			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
-					moduleId, moduleName, (ridSb.toString().length()>1?ridSb.substring(0,ridSb.length()-1):""));
+					moduleId, moduleName, (ridSb.toString().length()>1?ridSb.substring(0,ridSb.length()-1):""));			
 		}
 
 		return object;
