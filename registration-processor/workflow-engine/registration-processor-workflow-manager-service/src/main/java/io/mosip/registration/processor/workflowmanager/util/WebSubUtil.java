@@ -54,24 +54,24 @@ public class WebSubUtil {
 	}
 
 	public void publishEvent(WorkflowCompletedEventDTO workflowCompletedEventDTO) throws WebSubClientException {
-		String rid = workflowCompletedEventDTO.getInstanceId();
-		HttpHeaders httpHeaders = new HttpHeaders();
-		workflowCompletedPublisher.publishUpdate(workflowCompleteTopic, workflowCompletedEventDTO,
-				MediaType.APPLICATION_JSON_UTF8_VALUE,
-				httpHeaders, webSubPublishUrl);
-		regProcLogger.info("Publish the update successfully  for registration id {}", rid);
+//		String rid = workflowCompletedEventDTO.getInstanceId();
+//		HttpHeaders httpHeaders = new HttpHeaders();
+//		workflowCompletedPublisher.publishUpdate(workflowCompleteTopic, workflowCompletedEventDTO,
+//				MediaType.APPLICATION_JSON_UTF8_VALUE,
+//				httpHeaders, webSubPublishUrl);
+//		regProcLogger.info("Publish the update successfully  for registration id {}", rid);
 
 	}
 
 	public void publishEvent(WorkflowPausedForAdditionalInfoEventDTO workflowPausedForAdditionalInfoEventDTO)
 			throws WebSubClientException {
-		String rid = workflowPausedForAdditionalInfoEventDTO.getInstanceId();
-		HttpHeaders httpHeaders = new HttpHeaders();
-		workflowPausedForAdditionalInfoPublisher.publishUpdate(workflowPausedforadditionalinfoTopic,
-				workflowPausedForAdditionalInfoEventDTO,
-				MediaType.APPLICATION_JSON_UTF8_VALUE,
-				httpHeaders, webSubPublishUrl);
-		regProcLogger.info("Publish the update successfully  for registration id {}", rid);
+//		String rid = workflowPausedForAdditionalInfoEventDTO.getInstanceId();
+//		HttpHeaders httpHeaders = new HttpHeaders();
+//		workflowPausedForAdditionalInfoPublisher.publishUpdate(workflowPausedforadditionalinfoTopic,
+//				workflowPausedForAdditionalInfoEventDTO,
+//				MediaType.APPLICATION_JSON_UTF8_VALUE,
+//				httpHeaders, webSubPublishUrl);
+//		regProcLogger.info("Publish the update successfully  for registration id {}", rid);
 
 	}
 	
