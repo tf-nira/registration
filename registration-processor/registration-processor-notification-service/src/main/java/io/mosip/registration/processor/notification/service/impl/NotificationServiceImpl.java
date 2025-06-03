@@ -203,7 +203,10 @@ public class NotificationServiceImpl implements NotificationService {
 					type = NotificationTemplateType.TECHNICAL_ISSUE_WITH_ERROR;
 				}
 			}
-			if (NotificationTemplateType.DUPLICATE_UIN.equals(type)
+
+			if (!NotificationTemplateType.TECHNICAL_ISSUE.equals(type)) {
+
+				if (NotificationTemplateType.DUPLICATE_UIN.equals(type)
 					&& workflowType.equalsIgnoreCase(RegistrationType.LOST.toString())) {
 				isTransactionSuccessful = false;
 				description.setStatusComment(StatusUtil.NOTIFICATION_FAILED_FOR_LOST.getMessage());
@@ -244,6 +247,7 @@ public class NotificationServiceImpl implements NotificationService {
 						attributes, ccEMailList, allNotificationTypes, workflowType, messageSenderDto, description);
 
 			}
+		}
 			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					id, "MessageSenderStage::success");
 		} catch (EmailIdNotFoundException | PhoneNumberNotFoundException | TemplateGenerationFailedException |

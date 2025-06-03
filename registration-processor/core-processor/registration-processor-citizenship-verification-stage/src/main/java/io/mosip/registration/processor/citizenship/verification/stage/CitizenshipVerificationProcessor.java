@@ -44,6 +44,7 @@ import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.PacketOnHoldException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
@@ -155,6 +156,10 @@ public class CitizenshipVerificationProcessor {
 					StatusUtil.DATA_MIGRATION_API_FAILED,
 					RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION, description,
 					PlatformErrorMessages.RPR_CITIZENSHIP_VERIFICATION_FAILED, e);
+		} catch (LegacyDataValidationException e) {
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
+					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (PacketManagerException e) {
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
@@ -260,7 +265,8 @@ public class CitizenshipVerificationProcessor {
 	private boolean validatePacketCitizenship(String registrationId, MessageDTO object,
 			InternalRegistrationStatusDto registrationStatusDto, LogDescription description)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
-			NoSuchAlgorithmException, DataMigrationPacketCreationException, PacketOnHoldException, JAXBException {
+			NoSuchAlgorithmException, DataMigrationPacketCreationException, PacketOnHoldException, JAXBException,
+			IdRepoAppException, LegacyDataValidationException {
 		boolean ifCitizenshipValid = false;
 
 		objectMapper = new ObjectMapper();
@@ -343,7 +349,8 @@ public class CitizenshipVerificationProcessor {
 			InternalRegistrationStatusDto registrationStatusDto, LogDescription description, MessageDTO object)
 			throws JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException,
 			ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
-			JsonProcessingException, DataMigrationPacketCreationException, JAXBException, PacketOnHoldException {
+			JsonProcessingException, DataMigrationPacketCreationException, JAXBException, PacketOnHoldException,
+			LegacyDataValidationException {
 
 	    regProcLogger.info("Citizenship verification proceed: Handling validation with parents NIN found");
 	    
@@ -437,7 +444,8 @@ public class CitizenshipVerificationProcessor {
 	private boolean validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
 			String fatherNIN) throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException,
 			UnsupportedEncodingException, JsonProcessingException, JsonMappingException,
-			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException {
+			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException,
+			LegacyDataValidationException {
 		boolean isValid = false;
 		if (fatherNIN != null) {
 			regProcLogger.info("On demand migration of father NIN for rid {} {}", fatherNIN,
@@ -629,7 +637,7 @@ public class CitizenshipVerificationProcessor {
 			InternalRegistrationStatusDto registrationStatusDto, LogDescription description,MessageDTO object)
 			throws JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException, NoSuchAlgorithmException,
 			IdRepoAppException, ApisResourceAccessException, UnsupportedEncodingException, JsonProcessingException,
-			DataMigrationPacketCreationException, JAXBException, PacketOnHoldException {
+			DataMigrationPacketCreationException, JAXBException, PacketOnHoldException, LegacyDataValidationException {
 
 		String guardianNin = applicantFields.get(MappingJsonConstants.GUARDIAN_NIN);
 		if (guardianNin == null) {

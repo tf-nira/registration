@@ -27,6 +27,7 @@ import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
@@ -73,7 +74,7 @@ public class MigrationUtil {
 	public boolean validateAndCreateOnDemandPacket(String registrationId, String NIN)
 			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
 			JsonProcessingException, JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException,
-			DataMigrationPacketCreationException {
+			DataMigrationPacketCreationException, LegacyDataValidationException {
 		boolean isValid = false;
 		GetPersonEnvelope requestEnvelope = createGetPersonRequest(NIN);
 		String request = marshalToXml(requestEnvelope);
@@ -140,6 +141,8 @@ public class MigrationUtil {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					registrationId, RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
+			throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+					transactionStatus.getError().getMessage());
 		}
 		return isValid;
 	}

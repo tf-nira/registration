@@ -21,6 +21,7 @@ on:
       - 1.*
       - develop
       - tf_nira_dev
+      - tf_nira_prod
 
 jobs:
   build-maven-registration:
