@@ -104,6 +104,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 
@@ -142,6 +152,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 
@@ -156,6 +176,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 	
@@ -170,6 +200,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 
@@ -184,6 +224,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 
@@ -198,6 +248,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 
@@ -221,6 +281,16 @@ public class WorkflowCommandPredicate implements Predicate {
 		workflowInternalActionDTO.setIteration(json.getInteger(JsonConstant.ITERATION));
 		workflowInternalActionDTO.setSource(json.getString(JsonConstant.SOURCE));
 		workflowInternalActionDTO.setWorkflowInstanceId(json.getString(JsonConstant.WORKFLOW_INSTANCE_ID));
+		
+		JsonObject notificationAttributesJson = json.getJsonObject(JsonConstant.NOTIFICATION_ATTRIBUTES);
+        if (notificationAttributesJson != null && !notificationAttributesJson.isEmpty()) {
+        	Map<String, String> notificationAttributes = new HashMap<>();
+            notificationAttributesJson.forEach(entry -> {
+                notificationAttributes.put(entry.getKey(), entry.getValue().toString());
+            });
+            workflowInternalActionDTO.setNotificationAttributes(notificationAttributes);
+        }
+		
 		exchange.getMessage().setBody(objectMapper.writeValueAsString(workflowInternalActionDTO));
 	}
 }

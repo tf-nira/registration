@@ -3,7 +3,9 @@ package io.mosip.registration.processor.stages.demodedupe;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -549,6 +551,9 @@ public class DemodedupeProcessor {
 					object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
 					registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 				} else {
+					Map<String, String> notificationAttributes = new HashMap<>();
+					notificationAttributes.put("FAILURE_REASON", "Demographic dedeuplication failed");
+					object.setNotificationAttributes(notificationAttributes);
 					object.setIsValid(Boolean.FALSE);
 					registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 				}

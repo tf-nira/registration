@@ -88,6 +88,9 @@ public class IntroducerValidator {
 	@Value("#{T(java.util.Arrays).asList('${mosip.regproc.common.before-cbeff-others-attibute.reg-client-versions:}')}")
 	private List<String> regClientVersionsBeforeCbeffOthersAttritube;
 
+	@Value("#{'${mosip.regproc.mandatory.modalities.for.introducer.auth:Finger}'.split(',')}")
+	private List<String> mandatoryModalitiesForAuth;
+
 
 	/**
 	 * Checks if is valid introducer.
@@ -118,8 +121,7 @@ public class IntroducerValidator {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 			regProcLogger.debug("validate called for registrationId {} {}", registrationId,
 					StatusUtil.UIN_RID_NOT_FOUND.getMessage());
-			throw new BaseCheckedException(StatusUtil.UIN_RID_NOT_FOUND.getMessage(),
-					StatusUtil.UIN_RID_NOT_FOUND.getCode());
+			throw new BaseCheckedException(StatusUtil.UIN_RID_NOT_FOUND.getCode(),StatusUtil.UIN_RID_NOT_FOUND.getMessage());
 		}
 
 		if ((introducerNIN == null || introducerNIN.isEmpty())
@@ -133,8 +135,7 @@ public class IntroducerValidator {
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 				regProcLogger.debug("validate called for registrationId {} {}", registrationId,
 						StatusUtil.INTRODUCER_UIN_NOT_FOUND.getMessage());
-				throw new BaseCheckedException(StatusUtil.INTRODUCER_UIN_NOT_FOUND.getMessage(),
-						StatusUtil.INTRODUCER_UIN_NOT_FOUND.getCode());
+				throw new BaseCheckedException(StatusUtil.INTRODUCER_UIN_NOT_FOUND.getCode(),StatusUtil.INTRODUCER_UIN_NOT_FOUND.getMessage());
 			}
 
 		}
@@ -162,16 +163,14 @@ public class IntroducerValidator {
 					registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 					regProcLogger.debug("validate called for registrationId {} {}", registrationId,
 							StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getMessage());
-					throw new BaseCheckedException(StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getMessage(),
-							StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getCode());
+					throw new BaseCheckedException(StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getCode(),StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getMessage());
 				}
 
 			}
 			introducerUIN = JsonUtil.getJSONValue(parentInfoJson, "UIN");
 			validateIntroducerBiometric(registrationId, registrationStatusDto, introducerUIN);
 		} else {
-			throw new ValidationFailedException(StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getMessage(),
-					StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getCode());
+			throw new ValidationFailedException(StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getCode(),StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getMessage());
 		}
 
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
@@ -223,8 +222,7 @@ public class IntroducerValidator {
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 				regProcLogger.debug("isValidIntroducerRid call ended for registrationId {} {}", registrationId,
 						StatusUtil.CHILD_PACKET_REJECTED.getMessage());
-				throw new BaseCheckedException(StatusUtil.CHILD_PACKET_REJECTED.getMessage(),
-						StatusUtil.CHILD_PACKET_REJECTED.getCode());
+				throw new BaseCheckedException(StatusUtil.CHILD_PACKET_REJECTED.getCode(),StatusUtil.CHILD_PACKET_REJECTED.getMessage());
 			} else {
 				return true;
 			}
@@ -246,9 +244,8 @@ public class IntroducerValidator {
 	private void validateIntroducerBiometric(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			String introducerUIN)
 			throws Exception {
-		BiometricRecord biometricRecord = packetManagerService.getBiometricsByMappingJsonKey(registrationId,
-				MappingJsonConstants.INTRODUCER_BIO, registrationStatusDto.getRegistrationType(),
-				ProviderStageName.INTRODUCER_VALIDATOR);
+			String biometricFileName = JsonUtil.getJSONValue(JsonUtil.getJSONObject(utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY), MappingJsonConstants.INTRODUCER_BIO), MappingJsonConstants.VALUE);
+			BiometricRecord biometricRecord = packetManagerService.getBiometrics(registrationId,biometricFileName, mandatoryModalitiesForAuth, registrationStatusDto.getRegistrationType(), ProviderStageName.INTRODUCER_VALIDATOR);
 		if (biometricRecord != null && biometricRecord.getSegments() != null) {
 			biometricRecord = filterExceptionBiometrics(biometricRecord, registrationId,
 					registrationStatusDto.getRegistrationType());
@@ -261,8 +258,7 @@ public class IntroducerValidator {
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 				regProcLogger.debug("validateIntroducerBiometric call ended for registrationId {} {}", registrationId,
 						StatusUtil.INTRODUCER_BIOMETRIC_ALL_EXCEPTION_IN_PACKET.getMessage());
-				throw new BaseCheckedException(StatusUtil.INTRODUCER_BIOMETRIC_ALL_EXCEPTION_IN_PACKET.getMessage(),
-						StatusUtil.INTRODUCER_BIOMETRIC_ALL_EXCEPTION_IN_PACKET.getCode());
+				throw new BaseCheckedException(StatusUtil.INTRODUCER_BIOMETRIC_ALL_EXCEPTION_IN_PACKET.getCode(),StatusUtil.INTRODUCER_BIOMETRIC_ALL_EXCEPTION_IN_PACKET.getMessage());
 			}
 
 		} else {
@@ -271,8 +267,7 @@ public class IntroducerValidator {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 			regProcLogger.debug("validateIntroducerBiometric call ended for registrationId {} {}", registrationId,
 					StatusUtil.INTRODUCER_BIOMETRIC_FILE_NAME_NOT_FOUND.getMessage());
-			throw new BaseCheckedException(StatusUtil.INTRODUCER_BIOMETRIC_FILE_NAME_NOT_FOUND.getMessage(),
-					StatusUtil.INTRODUCER_BIOMETRIC_FILE_NAME_NOT_FOUND.getCode());
+			throw new BaseCheckedException(StatusUtil.INTRODUCER_BIOMETRIC_FILE_NAME_NOT_FOUND.getCode(),StatusUtil.INTRODUCER_BIOMETRIC_FILE_NAME_NOT_FOUND.getMessage());
 		}
 	}
 	

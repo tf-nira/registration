@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ import io.mosip.registration.processor.core.code.EventType;
 import io.mosip.registration.processor.core.code.ModuleName;
 import io.mosip.registration.processor.core.constant.IdType;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
+import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
@@ -64,6 +66,7 @@ import io.mosip.registration.processor.notification.constants.ResultCode;
 import io.mosip.registration.processor.notification.dto.MessageSenderDto;
 import io.mosip.registration.processor.notification.service.NotificationService;
 import io.mosip.registration.processor.notification.util.StatusNotificationTypeMapUtil;
+import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationType;
 
@@ -90,6 +93,7 @@ public class NotificationServiceImpl implements NotificationService {
 	private static final String UIN_UPDATE=NOTIFICATION_TEMPLATE_CODE+"uin.update.";
 	private static final String DUPLICATE_UIN=NOTIFICATION_TEMPLATE_CODE+"duplicate.uin.";
 	private static final String TECHNICAL_ISSUE=NOTIFICATION_TEMPLATE_CODE+"technical.issue.";
+	private static final String TECHNICAL_ISSUE_WITH_ERROR=NOTIFICATION_TEMPLATE_CODE+"technical.issue.with.error.";
 	private static final String MVS_PACKET_REJECTED=NOTIFICATION_TEMPLATE_CODE+"mvs.packet.rejected.";
 	private static final String PAUSED_FOR_ADDITIONAL_INFO=NOTIFICATION_TEMPLATE_CODE+"paused.for.additional.info.";
 	private static final String UIN_RENEWAL = NOTIFICATION_TEMPLATE_CODE + "uin.renewal.";
@@ -103,6 +107,9 @@ public class NotificationServiceImpl implements NotificationService {
 
 	@Autowired
 	private ObjectMapper mapper;
+	
+	@Autowired
+	private PriorityBasedPacketManagerService packetManagerService;
 
 	/** The notification emails. */
 	@Value("${registration.processor.notification.emails}")
@@ -190,8 +197,16 @@ public class NotificationServiceImpl implements NotificationService {
 				type = setNotificationTemplateType(workflowType);
 			} else {
 				type = map.getTemplateType(object.getErrorCode());
+				
+				if (NotificationTemplateType.TECHNICAL_ISSUE.equals(type) && 
+						object.getNotificationAttributes() != null && !object.getNotificationAttributes().isEmpty()) {
+					type = NotificationTemplateType.TECHNICAL_ISSUE_WITH_ERROR;
+				}
 			}
-			if (NotificationTemplateType.DUPLICATE_UIN.equals(type)
+
+			if (!NotificationTemplateType.TECHNICAL_ISSUE.equals(type)) {
+
+				if (NotificationTemplateType.DUPLICATE_UIN.equals(type)
 					&& workflowType.equalsIgnoreCase(RegistrationType.LOST.toString())) {
 				isTransactionSuccessful = false;
 				description.setStatusComment(StatusUtil.NOTIFICATION_FAILED_FOR_LOST.getMessage());
@@ -232,6 +247,7 @@ public class NotificationServiceImpl implements NotificationService {
 						attributes, ccEMailList, allNotificationTypes, workflowType, messageSenderDto, description);
 
 			}
+		}
 			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					id, "MessageSenderStage::success");
 		} catch (EmailIdNotFoundException | PhoneNumberNotFoundException | TemplateGenerationFailedException |
@@ -343,22 +359,40 @@ public class NotificationServiceImpl implements NotificationService {
 			for (String notificationType : allNotificationTypes) {
 				if (notificationType.equalsIgnoreCase(NotificationTypeEnum.SMS.name())
 						&& isTemplateAvailable(messageSenderDto)) {
-					isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
+					String countryCodeVal = packetManagerService.getField(id, "CountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
+					
+					String countryCode = null;
+					if (countryCodeVal != null) {
+						JSONArray countryCodeArray = new JSONArray(countryCodeVal);
+						countryCode = countryCodeArray.getJSONObject(0).getString("value");
+					}
+					
+					if (countryCode != null && countryCodeVal.equals("UGANDA (+256)")) {
+						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
+					}
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
 						&& isTemplateAvailable(messageSenderDto)) {
-					if (process.equals("UPDATE") || enableEmailForOtherProcess) {
+					String residenceStatusPacketVal = packetManagerService.getField(id, "residenceStatus", process, ProviderStageName.NOTIFICATION_SENDER);
+					
+					String residenceStatus = null;
+					if (residenceStatusPacketVal != null) {
+						JSONArray residenceStatusArray = new JSONArray(residenceStatusPacketVal);
+						residenceStatus = residenceStatusArray.getJSONObject(0).getString("value");
+					}
+					
+					if (process.equals("UPDATE") || (residenceStatus != null && residenceStatus.equals("Outside Uganda"))
+							|| enableEmailForOtherProcess) {
 						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 								LoggerFileConstant.REGISTRATIONID.toString(), id,
 								"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
-					isEmailSuccess = sendEmail(id, process, attributes, ccEMailList, regType, messageSenderDto,
-							description);
-				} else {
-					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(), id,
-							"enter else case" + enableEmailForOtherProcess);
-					isEmailSuccess = true;
-				}
-						
+						isEmailSuccess = sendEmail(id, process, attributes, ccEMailList, regType, messageSenderDto,
+								description);
+					} else {
+						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), id,
+								"enter else case" + enableEmailForOtherProcess);
+						isEmailSuccess = true;
+					}
 				} else {
 					throw new TemplateNotFoundException(MessageSenderStatusMessage.TEMPLATE_NOT_FOUND);
 				}
@@ -534,6 +568,12 @@ public class NotificationServiceImpl implements NotificationService {
 			messageSenderDto.setEmailTemplateCode(env.getProperty(TECHNICAL_ISSUE+EMAIL));
 			messageSenderDto.setIdType(IdType.RID);
 			messageSenderDto.setSubjectCode(env.getProperty(TECHNICAL_ISSUE+SUB));
+			break;
+		case TECHNICAL_ISSUE_WITH_ERROR:
+			messageSenderDto.setSmsTemplateCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR + SMS));
+			messageSenderDto.setEmailTemplateCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR+EMAIL));
+			messageSenderDto.setIdType(IdType.RID);
+			messageSenderDto.setSubjectCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR+SUB));
 			break;
 		case MVS_PACKET_REJECTED:
 			messageSenderDto.setSmsTemplateCode(env.getProperty(MVS_PACKET_REJECTED+SMS));

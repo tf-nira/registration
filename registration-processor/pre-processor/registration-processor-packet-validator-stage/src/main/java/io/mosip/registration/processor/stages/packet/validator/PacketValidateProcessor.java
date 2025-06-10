@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -182,9 +183,6 @@ public class PacketValidateProcessor {
 		String registrationId = null;
 		InternalRegistrationStatusDto registrationStatusDto = new InternalRegistrationStatusDto();
 		try {
-			registrationStatusDto
-					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PRINT_SERVICE.toString());
-			registrationStatusDto.setRegistrationStageName(stageName);
 			object.setMessageBusAddress(MessageBusAddress.PACKET_VALIDATOR_BUS_IN);
 			object.setIsValid(Boolean.FALSE);
 			object.setInternalError(Boolean.TRUE);
@@ -194,10 +192,10 @@ public class PacketValidateProcessor {
 			packetValidationDto.setTransactionSuccessful(false);
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(
 					registrationId, object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
-			setPacketCreatedDateTime(registrationStatusDto);
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.VALIDATE_PACKET.toString());
 			registrationStatusDto.setRegistrationStageName(stageName);
+			setPacketCreatedDateTime(registrationStatusDto);
 			boolean isValidSupervisorStatus = isValidSupervisorStatus(object);
 			if (isValidSupervisorStatus) {
 				Boolean isValid = compositePacketValidator.validate(object.getRid(),
@@ -207,20 +205,16 @@ public class PacketValidateProcessor {
 					// save audit details
 					InternalRegistrationStatusDto finalRegistrationStatusDto = registrationStatusDto;
 					String finalRegistrationId = registrationId;
-					Runnable r = () -> {
-						try {
-							auditUtility.saveAuditDetails(finalRegistrationId,
-									finalRegistrationStatusDto.getRegistrationType());
-						} catch (Exception e) {
-							regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-									LoggerFileConstant.REGISTRATIONID.toString(),
-									description.getCode() + " Inside Runnable ", "");
+					try {
+						auditUtility.saveAuditDetails(finalRegistrationId,
+								finalRegistrationStatusDto.getRegistrationType());
+					} catch (Exception e) {
+						regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(),
+								description.getCode() + " Inside Runnable ", "");
 
-						}
-					};
-					ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-					es.submit(r);
-					es.shutdown();
+					}				
+					
 					registrationStatusDto
 							.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 					object.setIsValid(Boolean.TRUE);
@@ -242,6 +236,10 @@ public class PacketValidateProcessor {
 							description.getCode() + description.getMessage());
 
 				} else {
+					Map<String, String> notificationAttributes = new HashMap<>();
+	            	notificationAttributes.put("FAILURE_REASON", packetValidationDto.getPacketValidaionFailureMessage());
+	            	object.setNotificationAttributes(notificationAttributes);
+	            	
 					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
 							.getStatusCode(RegistrationExceptionTypeCode.PACKET_STRUCTURAL_VALIDATION_FAILED));
 					int retryCount = registrationStatusDto.getRetryCount() != null
@@ -264,6 +262,10 @@ public class PacketValidateProcessor {
 
 				}
 			} else {
+				Map<String, String> notificationAttributes = new HashMap<>();
+            	notificationAttributes.put("FAILURE_REASON", "application rejected by supervisor");
+            	object.setNotificationAttributes(notificationAttributes);
+            	
 				registrationStatusDto.setLatestTransactionStatusCode(
 						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.PACKET_REJECTED));
 				int retryCount = registrationStatusDto.getRetryCount() != null
@@ -285,7 +287,10 @@ public class PacketValidateProcessor {
 			object.setInternalError(Boolean.FALSE);
 			registrationStatusDto.setUpdatedBy(USER);
 			SyncRegistrationEntity regEntity = syncRegistrationService.findByWorkflowInstanceId(object.getWorkflowInstanceId());
-			sendNotification(regEntity, registrationStatusDto, packetValidationDto.isTransactionSuccessful(),isValidSupervisorStatus);
+			//Only send success notification here because failure notifications are sent via internal workflow
+			if (packetValidationDto.isTransactionSuccessful()) {
+				sendNotification(regEntity, registrationStatusDto, packetValidationDto.isTransactionSuccessful(),isValidSupervisorStatus);	
+			}
 		} catch (PacketManagerException e) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					registrationId,

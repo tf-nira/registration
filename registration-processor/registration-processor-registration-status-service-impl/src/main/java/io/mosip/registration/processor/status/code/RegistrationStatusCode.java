@@ -30,6 +30,8 @@ public enum RegistrationStatusCode {
 
 	PAUSED_FOR_ADDITIONAL_INFO,
 
-	MERGED
+	MERGED,
+
+	LEGACYERROR
 
 }

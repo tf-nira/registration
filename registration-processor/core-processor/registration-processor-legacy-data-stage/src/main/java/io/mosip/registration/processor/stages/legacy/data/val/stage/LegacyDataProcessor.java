@@ -83,7 +83,7 @@ public class LegacyDataProcessor {
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
-
+		Map<String, String> attributes = new HashMap<>();
 		regProcLogger.debug("LegacyDataProcessor called for registrationId {}", registrationId);
 		registrationId = object.getRid();
 
@@ -108,7 +108,7 @@ public class LegacyDataProcessor {
 					RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (LegacyDataValidationException e) {
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.LEGACYERROR,
 					StatusUtil.LEGACY_DATA_SYSTEM_FAILED,
 					RegistrationExceptionTypeCode.LEGACY_FAILED, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
@@ -118,6 +118,9 @@ public class LegacyDataProcessor {
 					StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED,
 					RegistrationExceptionTypeCode.LEGACY_FAILED, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getCode());
+			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage());
+			object.setNotificationAttributes(attributes);
 		} catch (PacketManagerException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
@@ -148,6 +151,9 @@ public class LegacyDataProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REJECTED,
 					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_FAILED.getCode());
+			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_FAILED.getMessage());
+			object.setNotificationAttributes(attributes);
 		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.BASE_UNCHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION,
@@ -173,10 +179,6 @@ public class LegacyDataProcessor {
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.LEGACY_DATA.toString();
 			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
-			Map<String, String> attributes = new HashMap<>();
-			attributes.put("FAILURE_CODE", registrationStatusDto.getStatusCode());
-			attributes.put("FAILURE_COMMENT", description.getStatusComment());
-			object.setNotificationAttributes(attributes);
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
 

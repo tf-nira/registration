@@ -44,6 +44,7 @@ import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.PacketOnHoldException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
@@ -94,6 +95,9 @@ public class CitizenshipVerificationProcessor {
 	@Value("${registration.processor.applicant.dob.format}")
 	private String dobFormat;
 
+	@Value("${registration.processor.applicant.age.check.cvs}")
+	private int ageCheckCVS;
+	
 	public MessageDTO process(MessageDTO object) {
 
 		LogDescription description = new LogDescription();
@@ -152,12 +156,19 @@ public class CitizenshipVerificationProcessor {
 					StatusUtil.DATA_MIGRATION_API_FAILED,
 					RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION, description,
 					PlatformErrorMessages.RPR_CITIZENSHIP_VERIFICATION_FAILED, e);
+		} catch (LegacyDataValidationException e) {
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
+					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} catch (PacketManagerException e) {
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (PacketOnHoldException e) {
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", e.getErrorText());
+			object.setNotificationAttributes(notificationAttributes);
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING, StatusUtil.PACKET_ON_HOLD,
 					RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET, description,
@@ -254,7 +265,8 @@ public class CitizenshipVerificationProcessor {
 	private boolean validatePacketCitizenship(String registrationId, MessageDTO object,
 			InternalRegistrationStatusDto registrationStatusDto, LogDescription description)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
-			NoSuchAlgorithmException, DataMigrationPacketCreationException, PacketOnHoldException, JAXBException {
+			NoSuchAlgorithmException, DataMigrationPacketCreationException, PacketOnHoldException, JAXBException,
+			IdRepoAppException, LegacyDataValidationException {
 		boolean ifCitizenshipValid = false;
 
 		objectMapper = new ObjectMapper();
@@ -320,7 +332,7 @@ public class CitizenshipVerificationProcessor {
 				} else {
 					regProcLogger.info("Citizenship verification proceed: Atleast one parent has NIN");
 					ifCitizenshipValid = handleValidationWithParentNinFound(applicantFields, registrationStatusDto,
-							description);
+							description, object);
 				}
 			}
 
@@ -334,10 +346,11 @@ public class CitizenshipVerificationProcessor {
 	}
 
 	private boolean handleValidationWithParentNinFound(Map<String, String> applicantFields,
-			InternalRegistrationStatusDto registrationStatusDto, LogDescription description)
+			InternalRegistrationStatusDto registrationStatusDto, LogDescription description, MessageDTO object)
 			throws JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException,
 			ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
-			JsonProcessingException, DataMigrationPacketCreationException, JAXBException, PacketOnHoldException {
+			JsonProcessingException, DataMigrationPacketCreationException, JAXBException, PacketOnHoldException,
+			LegacyDataValidationException {
 
 	    regProcLogger.info("Citizenship verification proceed: Handling validation with parents NIN found");
 	    
@@ -400,7 +413,27 @@ public class CitizenshipVerificationProcessor {
 				isParentInfoValid = false;
 			}
 		}
-
+		
+		//moving the packet directly to mvs if age >= 25.
+		else {
+			regProcLogger.info("ParentNIN found but validation status is {}. Checking age criteria for MVS redirection.", 
+			        isParentInfoValid ? "valid" : "invalid");
+			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			regProcLogger.info("Applicant age: {} years (threshold: {}) for registrationId: {}", 
+			        age, ageCheckCVS, registrationStatusDto.getRegistrationId());
+			if(age >= ageCheckCVS) { 
+				regProcLogger.info("Applicant age {} meets MVS redirection threshold of {}. Redirecting packet to MVS.", 
+		            age, ageCheckCVS);
+				object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+				regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}", 
+			            registrationStatusDto.getRegistrationId());
+			} else {
+		        regProcLogger.debug("Applicant age {} is below MVS threshold {}. Keeping original message bus address.", 
+		                age, ageCheckCVS);
+		        }
+		}
+		
+		
 	 // Log error only if both NINs are missing or invalid
 	    if (!isParentInfoValid && (fatherNIN == null && motherNIN == null)) {
 	        regProcLogger.error("Neither parent's NIN is provided.");
@@ -411,7 +444,8 @@ public class CitizenshipVerificationProcessor {
 	private boolean validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
 			String fatherNIN) throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException,
 			UnsupportedEncodingException, JsonProcessingException, JsonMappingException,
-			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException {
+			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException,
+			LegacyDataValidationException {
 		boolean isValid = false;
 		if (fatherNIN != null) {
 			regProcLogger.info("On demand migration of father NIN for rid {} {}", fatherNIN,
@@ -603,7 +637,7 @@ public class CitizenshipVerificationProcessor {
 			InternalRegistrationStatusDto registrationStatusDto, LogDescription description,MessageDTO object)
 			throws JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException, NoSuchAlgorithmException,
 			IdRepoAppException, ApisResourceAccessException, UnsupportedEncodingException, JsonProcessingException,
-			DataMigrationPacketCreationException, JAXBException, PacketOnHoldException {
+			DataMigrationPacketCreationException, JAXBException, PacketOnHoldException, LegacyDataValidationException {
 
 		String guardianNin = applicantFields.get(MappingJsonConstants.GUARDIAN_NIN);
 		if (guardianNin == null) {
@@ -683,7 +717,21 @@ public class CitizenshipVerificationProcessor {
 				isValidGuardian = validateSiblingRelationship(applicantFields, guardianInfoJson, registrationStatusDto,
 						description);
 				}
-
+			
+			//moving the packet directly to mvs if age >= 25.
+			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			regProcLogger.info("Applicant age: {} years for registrationId: {}", 
+				    age, applicantFields.get("registrationId"));
+			if(age >= ageCheckCVS) {
+				regProcLogger.info("Applicant age {} is >= configured threshold {}. Redirecting to MVS for registrationId: {}", 
+				        age, ageCheckCVS, applicantFields.get("registrationId"));
+				object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+				regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}", 
+				        applicantFields.get("registrationId"));
+			}else {
+			    regProcLogger.info("Applicant age {} is below configured threshold {}. Continuing normal flow for registrationId: {}", 
+			            age, ageCheckCVS, applicantFields.get("registrationId"));
+			    }
 		}
 			else {
 				regProcLogger.info("On demand migration of guardian NIN for rid {} {}", guardianNin,
@@ -975,44 +1023,45 @@ public class CitizenshipVerificationProcessor {
 		return isValidTribeAndClan;
 	}
 
+private boolean ValidateguardianTribeAndClan(Map<String, String> guardian1, Map<String, String> guardian2,
+											 InternalRegistrationStatusDto registrationStatusDto, LogDescription description,
+											 Map<String, String> applicantFields, String guardianRelationValue) {
 
-	private boolean ValidateguardianTribeAndClan(Map<String, String> guardian1, Map<String, String> guardian2,
-			InternalRegistrationStatusDto registrationStatusDto, LogDescription description,
-			Map<String, String> applicantFields, String guardianRelationValue) {
-		Boolean isValid = false;
-		if (guardian1.get(MappingJsonConstants.TRIBE).equalsIgnoreCase(guardian2.get(MappingJsonConstants.TRIBE))) {
+	Boolean isValid = false;
 
-			if (guardian1.get(MappingJsonConstants.CLAN).equalsIgnoreCase(guardian2.get(MappingJsonConstants.CLAN))) {
+	String guardian1Tribe = guardian1.get(MappingJsonConstants.TRIBE);
+	String guardian2Tribe = guardian2.get(MappingJsonConstants.TRIBE);
+	String guardian1Clan = guardian1.get(MappingJsonConstants.CLAN);
+	String guardian2Clan = guardian2.get(MappingJsonConstants.CLAN);
+	String guardian1Person = guardian1.get(MappingJsonConstants.PERSON);
+	String guardian2Person = guardian2.get(MappingJsonConstants.PERSON);
 
-				{
-					isValid = true;
-
-				}
-			} else {
-
-				logAndSetStatusError(registrationStatusDto,
-						"Mismatch in " + guardian1.get(MappingJsonConstants.PERSON) + ", "
-								+ guardian2.get(MappingJsonConstants.PERSON) + "'s " + MappingJsonConstants.CLAN
-								+ " information.",
-						StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getMessage() + guardianRelationValue
-								+ " information",
-						RegistrationStatusCode.FAILED.toString(), description,
-						applicantFields.get("registrationId"));
-			}
+	if (guardian1Tribe != null && guardian2Tribe != null && guardian1Tribe.equalsIgnoreCase(guardian2Tribe)) {
+		if (guardian1Clan != null && guardian2Clan != null && guardian1Clan.equalsIgnoreCase(guardian2Clan)) {
+			isValid = true;
 		} else {
-
 			logAndSetStatusError(registrationStatusDto,
-					"Mismatch in " + guardian1.get(MappingJsonConstants.PERSON) + ", "
-							+ guardian2.get(MappingJsonConstants.PERSON) + "'s " + MappingJsonConstants.TRIBE
-							+ " information.",
-					StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getCode(),
-					StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getMessage() + guardianRelationValue
-							+ " information",
-					RegistrationStatusCode.FAILED.toString(), description, applicantFields.get("registrationId"));
+					"Mismatch in " + (guardian1Person != null ? guardian1Person : "Unknown") + ", "
+							+ (guardian2Person != null ? guardian2Person : "Unknown") + "'s "
+							+ MappingJsonConstants.CLAN + " information.",
+					StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getCode(),
+					StatusUtil.CITIZENSHIP_VERIFICATION_CLAN_MISMATCH.getMessage() + guardianRelationValue + " information",
+					RegistrationStatusCode.FAILED.toString(), description,
+					applicantFields.get("registrationId"));
 		}
-
-		return isValid;
+	} else {
+		logAndSetStatusError(registrationStatusDto,
+				"Mismatch in " + (guardian1Person != null ? guardian1Person : "Unknown") + ", "
+						+ (guardian2Person != null ? guardian2Person : "Unknown") + "'s "
+						+ MappingJsonConstants.TRIBE + " information.",
+				StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getCode(),
+				StatusUtil.CITIZENSHIP_VERIFICATION_TRIBE_MISMATCH.getMessage() + guardianRelationValue + " information",
+				RegistrationStatusCode.FAILED.toString(), description,
+				applicantFields.get("registrationId"));
 	}
+
+	return isValid;
+}
+
 
 }

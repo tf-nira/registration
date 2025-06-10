@@ -2,6 +2,7 @@ package io.mosip.registration.processor.biodedupe.stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -530,6 +531,9 @@ public class BioDedupeProcessor {
 		if (matchedRegIds.isEmpty()) {
 			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
 			object.setIsValid(Boolean.FALSE);
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage());
+			object.setNotificationAttributes(notificationAttributes);
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.name());
 			registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage());
 			registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getCode());
@@ -559,8 +563,9 @@ public class BioDedupeProcessor {
 			for (String matchedRegId : matchedRegIds) {
 				JSONObject matchedDemographicIdentity = idRepoService.getIdJsonFromIDRepo(matchedRegId,
 						utilities.getGetRegProcessorDemographicIdentity());
-				matchCount = addMactchedRefId(registrationStatusDto.getRegistrationId(),
-						registrationStatusDto.getRegistrationType(), matchedDemographicIdentity, matchCount, demoMatchedIds, matchedRegId);
+				if(matchedDemographicIdentity != null){
+					matchCount = matchCount + 1;
+				}
 				if (matchCount > 1)
 					break;
 			}
@@ -580,7 +585,9 @@ public class BioDedupeProcessor {
 						LoggerFileConstant.REGISTRATIONID.toString(), registrationStatusDto.getRegistrationId(),
 						BioDedupeConstants.FOUND_UIN_IN_DEMO_CHECK + registrationId);
 			} else {
-
+				Map<String, String> notificationAttributes = new HashMap<>();
+				notificationAttributes.put("FAILURE_REASON", StatusUtil.LOST_PACKET_MULTIPLE_MATCH_FOUND.getMessage());
+				object.setNotificationAttributes(notificationAttributes);
 				registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_MULTIPLE_MATCH_FOUND.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_MULTIPLE_MATCH_FOUND.getCode());
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());

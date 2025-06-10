@@ -1,20 +1,13 @@
 package io.mosip.registration.processor.paymentvalidator.stage;
 
-import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
-import java.util.Objects;
-
-import org.json.simple.JSONObject;
-
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.core.env.Environment;
-import org.springframework.http.MediaType;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -23,6 +16,7 @@ import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
 import io.mosip.registration.processor.core.abstractverticle.MosipEventBus;
 import io.mosip.registration.processor.core.abstractverticle.MosipRouter;
 import io.mosip.registration.processor.core.abstractverticle.MosipVerticleAPIManager;
+import io.mosip.registration.processor.core.code.ApiName;
 import io.mosip.registration.processor.core.code.EventId;
 import io.mosip.registration.processor.core.code.EventName;
 import io.mosip.registration.processor.core.code.EventType;
@@ -38,19 +32,17 @@ import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessag
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
+import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.status.util.TrimExceptionMessage;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.paymentvalidator.constants.PrnStatusCode;
-import io.mosip.registration.processor.paymentvalidator.constants.RegType;
-import io.mosip.registration.processor.paymentvalidator.constants.TaxHeadCode;
 import io.mosip.registration.processor.paymentvalidator.dto.ConsumePrnRequestDTO;
 import io.mosip.registration.processor.paymentvalidator.dto.IsPrnRegInLogsRequestDTO;
+import io.mosip.registration.processor.paymentvalidator.dto.PrnStatusRequestDTO;
 import io.mosip.registration.processor.paymentvalidator.dto.PrnStatusResponseDTO;
 import io.mosip.registration.processor.paymentvalidator.dto.PrnStatusResponseDataDTO;
-import io.mosip.registration.processor.paymentvalidator.dto.PrnStatusRequestDTO;
-import io.mosip.registration.processor.paymentvalidator.util.CustomizedRestApiClient;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
@@ -76,18 +68,6 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.paymentvalidator.";
 	private static Logger regProcLogger = RegProcessorLogger.getLogger(PaymentValidatorStage.class);
 
-	@Value("${gateway.payment.service.api.get-prn-status}")
-	private String getPrnStatusApiUrl;
-
-	@Value("${gateway.payment.service.api.check-if-prn-consumed}")
-	private String checkPrnConsumptionApiUrl;
-
-	@Value("${gateway.payment.service.api.consume-prn}")
-	private String consumePrnApiUrl;
-
-	@Value("${gateway.payment.service.api.check-logs}")
-	private String checkLogsApiUrl;
-
 	/** The mosip event bus. */
 	private MosipEventBus mosipEventBus;
 
@@ -98,8 +78,6 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	@Value("${mosip.regproc.paymentvalidator.message.expiry-time-limit}")
 	private Long messageExpiryTimeLimit;
 
-	private static final String DATETIME_PATTERN = "mosip.registration.processor.datetime.pattern";
-
 	/** The cluster manager url. */
 	@Value("${vertx.cluster.configuration}")
 	private String clusterManagerUrl;
@@ -108,22 +86,15 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	@Value("${worker.pool.size}")
 	private Integer workerPoolSize;
 
+	@Value("${nira.payment.gateway.statusCode}")
+	private String statusCode;
+
 	/** Mosip router for APIs */
 	@Autowired
 	MosipRouter router;
 
 	@Autowired
-	CustomizedRestApiClient restApiClient;
-
-	private ObjectMapper objectMapper = new ObjectMapper();
-
-	@Autowired
-	private Utilities utilities;
-
-	@Autowired
-	private Environment env;
-	
-	private static final String SEPERATOR = "::";
+    private RegistrationProcessorRestClientService<Object> restApi;
 
 	/** The registration status service. */
 	@Autowired
@@ -162,8 +133,10 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	
 	@Autowired
 	RegistrationExceptionMapperUtil registrationStatusMapperUtil;
+	
+	@Autowired
+	private Utilities utilities;
 
-	@SuppressWarnings("null")
 	@Override
 	public MessageDTO process(MessageDTO object) {
 		TrimExceptionMessage trimeExpMessage = new TrimExceptionMessage();
@@ -178,7 +151,6 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		String regType = object.getReg_type();
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		
-		regProcLogger.info("In Registration Processor - Payment Validator - Entering payment validator stage");
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 				regId, "PaymentValidatorStage::process()::entry");
 
@@ -189,39 +161,84 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
 			registrationStatusDto.setRegistrationStageName(getStageName());
 
-			regProcLogger.info("In Registration Processor - Payment Validator - Extracting PRN from packet");
-			String prnNum = utilities.getPacketManagerService().getField(regId, "PRN", object.getReg_type(),
+			String prnNum = utilities.getPacketManagerService().getField(regId, "PRNId", object.getReg_type(),
 					ProviderStageName.PAYMENT_VALIDATOR);
 
-			/* Will change to NIN in new env version */
-			regProcLogger.info("In Registration Processor - Payment Validator - Extracting NIN from packet");
-			String nin = utilities.getPacketManagerService().getField(regId, "NIN", object.getReg_type(),
-					ProviderStageName.PAYMENT_VALIDATOR);
-
-			if (regType.equalsIgnoreCase(RegType.LOST_USECASE) || regType.equalsIgnoreCase(RegType.UPDATE_USECASE)) {
-
-					PrnStatusResponseDTO prnStatusResponseMap = checkPrnStatus(prnNum);
-					PrnStatusResponseDataDTO dataResponse = prnStatusResponseMap.getData();
+			PrnStatusResponseDataDTO dataResponse = checkPrnStatus(prnNum);
+			//PrnStatusResponseDataDTO dataResponse = prnStatusResponseMap.getData();
+			
+			if (dataResponse != null) {
+				if (!statusCode.equalsIgnoreCase(dataResponse.getStatusCode())) {
+					Map<String, String> notificationAttributes = new HashMap<>();
+					notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
+							PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.getMessage());
+					object.setNotificationAttributes(notificationAttributes);
 					
-					if (dataResponse != null) {
-						try {
-							/* will change to allow handles method using NIN */
-							//JSONObject uinJson = utilities.retrieveIdrepoJson(uin);
-							JSONObject uinJson = utilities.retrieveIdrepoJsonWithNIN(nin);
-							//regProcLogger.info("Retreived NIN idrepo {}: " + uinJson.toString());
-						
-							if (Objects.isNull(uinJson)) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), null,
+							PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.name());
+					object.setIsValid(Boolean.FALSE);
+					isTransactionSuccessful = false;
+					description.setMessage(PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.getMessage());
+					description.setCode(PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.getCode());
 
-								/* Send notification to applicant here */
-								
+					registrationStatusDto.setStatusComment(
+							StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
+					registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
+					registrationStatusDto
+							.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+					registrationStatusDto
+							.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
+					
+				} else {
+					regProcLogger.info("In Registration Processor - Payment Validator - Payment status check - passed");
+					if (!validateTaxHeadAndRegType(dataResponse, regType)) {
+						object.setIsValid(Boolean.FALSE);
+						
+						Map<String, String> notificationAttributes = new HashMap<>();
+						notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
+								PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.getMessage());
+						object.setNotificationAttributes(notificationAttributes);
+						
+						regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), null,
+								PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.name());
+						object.setIsValid(Boolean.FALSE);
+						isTransactionSuccessful = false;
+						description.setMessage(PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.getMessage());
+						description.setCode(PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.getCode());
+
+						registrationStatusDto.setStatusComment(
+								StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
+						registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
+						registrationStatusDto
+								.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
+						registrationStatusDto
+								.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
+					} else {
+						regProcLogger.info("In Registration Processor - Payment Validator - PRN valid for the usecase");
+						
+						if(checkTranscLogs(prnNum, regId)) {
+							/* Check for re-processing of packet */
+							if(!registrationStatusDto.getStatusCode().equals("PROCESSED")
+									&& !registrationStatusDto.getStatusCode().equals("PROCESSING")) {
+								object.setIsValid(Boolean.TRUE);
+								regProcLogger.info(
+										"In Registration Processor - Payment Validator - PRN consumption success. Send to next stage.");
+							}
+							else {
+								Map<String, String> notificationAttributes = new HashMap<>();
+								notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
+										PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.getMessage());
+								object.setNotificationAttributes(notificationAttributes);
 								
 								regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 										LoggerFileConstant.REGISTRATIONID.toString(), null,
-										PlatformErrorMessages.RPR_PYVS_UIN_DOESNT_EXIST.name());
+										PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.name());
 								object.setIsValid(Boolean.FALSE);
 								isTransactionSuccessful = false;
-								description.setMessage(PlatformErrorMessages.RPR_PYVS_UIN_DOESNT_EXIST.getMessage());
-								description.setCode(PlatformErrorMessages.RPR_PYVS_UIN_DOESNT_EXIST.getCode());
+								description.setMessage(PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.getMessage());
+								description.setCode(PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.getCode());
 
 								registrationStatusDto.setStatusComment(
 										StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
@@ -231,234 +248,91 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 								registrationStatusDto
 										.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
 								
-								
-							} else {
-								regProcLogger.info("In Registration Processor - Payment Validator - UIN/NIN check - passed");
-								/* can we wait for payment if the PRN isn't paid yet? */
-								if (!dataResponse.getStatusCode()
-										.equalsIgnoreCase(PrnStatusCode.PRN_STATUS_RECEIVED_CREDITED.getStatusCode())) {
-									/* Send notification to applicant here */
-									/* how to route packet to try for more time for update of status from payment gateway service */
-									
-									
-									regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-											LoggerFileConstant.REGISTRATIONID.toString(), null,
-											PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.name());
-									object.setIsValid(Boolean.FALSE);
-									isTransactionSuccessful = false;
-									description.setMessage(PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.getMessage());
-									description.setCode(PlatformErrorMessages.RPR_PYVS_PRN_NOT_PAID.getCode());
-
-									registrationStatusDto.setStatusComment(
-											StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
-									registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
-									registrationStatusDto
-											.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
-									registrationStatusDto
-											.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-									
-								} else {
-									regProcLogger.info("In Registration Processor - Payment Validator - Payment status check - passed");
-									if (!validateTaxHeadAndRegType(dataResponse, regType)) {
-										regProcLogger.info("In Registration Processor - Payment Validator - PRN not valid for the usecase");
-										object.setIsValid(Boolean.FALSE);
-										/* Send notification to applicant here */
-										
-										regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-												LoggerFileConstant.REGISTRATIONID.toString(), null,
-												PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.name());
-										object.setIsValid(Boolean.FALSE);
-										isTransactionSuccessful = false;
-										description.setMessage(PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.getMessage());
-										description.setCode(PlatformErrorMessages.RPR_PYVS_PRN_NOT_VALID_FOR_USECASE.getCode());
-
-										registrationStatusDto.setStatusComment(
-												StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
-										registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
-										registrationStatusDto
-												.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
-										registrationStatusDto
-												.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-										
-										
-										
-									} else {
-										regProcLogger.info("In Registration Processor - Payment Validator - PRN valid for the usecase");
-										
-										if(checkTranscLogs(prnNum, regId)) {
-											/* Check for re-processing of packet */
-											if(!registrationStatusDto.getStatusCode().equals("PROCESSED")
-													&& !registrationStatusDto.getStatusCode().equals("PROCESSING")) {
-												
-												object.setIsValid(Boolean.TRUE);
-												regProcLogger.info(
-														"In Registration Processor - Payment Validator - PRN consumption success. Send to next stage.");
-											}
-											else {
-
-												/* Send notification to applicant here */
-												
-												regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-														LoggerFileConstant.REGISTRATIONID.toString(), null,
-														PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.name());
-												object.setIsValid(Boolean.FALSE);
-												isTransactionSuccessful = false;
-												description.setMessage(PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.getMessage());
-												description.setCode(PlatformErrorMessages.RPR_PYVS_PRN_ALREADY_USED.getCode());
-
-												registrationStatusDto.setStatusComment(
-														StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
-												registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
-												registrationStatusDto
-														.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
-												registrationStatusDto
-														.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-												
-											}
-										}else {
-											
-											regProcLogger.info(
-													"In Registration Processor - Payment Validator - PRN consumption check - false");
-											/* Add regId and PRN to consumption */ 
-											ConsumePrnRequestDTO consumePrnRequestDTO = new ConsumePrnRequestDTO();
-											consumePrnRequestDTO.setPrn(prnNum);
-											consumePrnRequestDTO.setRegId(regId);
-
-											regProcLogger.info(
-													"In Registration Processor - Payment Validator - Proceeding to consume PRN");
-											
-											
-											try {
-												if (consumePrn(consumePrnRequestDTO)) {
-													//object.setIsValid(Boolean.TRUE);
-													regProcLogger.info(
-															"In Registration Processor - Payment Validator - PRN consumption success. Send to next stage.");
-													isTransactionSuccessful = true;
-													
-												} else {
-													regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-															LoggerFileConstant.REGISTRATIONID.toString(), null,
-															PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.name());
-													object.setIsValid(Boolean.FALSE);
-													isTransactionSuccessful = false;
-													description.setMessage(PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getMessage());
-													description.setCode(PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getCode());
-
-													registrationStatusDto.setStatusComment(
-															StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
-													registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
-													registrationStatusDto
-															.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
-													registrationStatusDto
-															.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-												}
-												
-											}
-											catch (Exception e) {
-												regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-														LoggerFileConstant.REGISTRATIONID.toString(), null,
-														PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.name());
-												object.setIsValid(Boolean.FALSE);
-												isTransactionSuccessful = false;
-												description.setMessage(PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getMessage());
-												description.setCode(PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getCode());
-
-												registrationStatusDto.setStatusComment(
-														StatusUtil.API_RESOUCE_ACCESS_FAILED.getMessage());
-												registrationStatusDto.setSubStatusCode(StatusUtil.API_RESOUCE_ACCESS_FAILED.getCode());
-												registrationStatusDto
-														.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
-												registrationStatusDto
-														.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-												object.setInternalError(Boolean.TRUE);
-											}
-	
-										}
-										
-										
-									}
-
-								}
-
 							}
+						}else {
+							
+							regProcLogger.info(
+									"In Registration Processor - Payment Validator - PRN consumption check - false");
+							/* Add regId and PRN to consumption */ 
+							ConsumePrnRequestDTO consumePrnRequestDTO = new ConsumePrnRequestDTO();
+							consumePrnRequestDTO.setPrn(prnNum);
+							consumePrnRequestDTO.setRegId(regId);
 
-						} catch (Exception e) {							
-							regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-									LoggerFileConstant.REGISTRATIONID.toString(), null,
-									PlatformErrorMessages.RPR_PYVS_IDREPO_UIN_RETRIEVAL_FAILED.name());
-							object.setIsValid(Boolean.FALSE);
-							isTransactionSuccessful = false;
-							description.setMessage(PlatformErrorMessages.RPR_PYVS_IDREPO_UIN_RETRIEVAL_FAILED.getMessage());
-							description.setCode(PlatformErrorMessages.RPR_PYVS_IDREPO_UIN_RETRIEVAL_FAILED.getCode());
+							if (consumePrn(consumePrnRequestDTO)) {
+								regProcLogger.info(
+										"In Registration Processor - Payment Validator - PRN consumption success. Send to next stage.");
+								isTransactionSuccessful = true;
+							} else {
+								Map<String, String> notificationAttributes = new HashMap<>();
+								notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
+										PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getMessage());
+								object.setNotificationAttributes(notificationAttributes);
+								
+								regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+										LoggerFileConstant.REGISTRATIONID.toString(), null,
+										PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.name());
+								object.setIsValid(Boolean.FALSE);
+								isTransactionSuccessful = false;
+								description.setMessage(PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getMessage());
+								description.setCode(PlatformErrorMessages.RPR_PYVS_CONSUMPTION_FAILED.getCode());
 
-							registrationStatusDto.setStatusComment(
-									StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
-							registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
-							registrationStatusDto
-									.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
-							registrationStatusDto
-									.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-							object.setInternalError(Boolean.TRUE);
+								registrationStatusDto.setStatusComment(
+										StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
+								registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
+								registrationStatusDto
+										.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
+								registrationStatusDto
+										.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
+							}
 						}
 					}
-					else {
-						/* Send notification to applicant here */
-						
-						
-						regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-								LoggerFileConstant.REGISTRATIONID.toString(), null,
-								PlatformErrorMessages.RPR_PYVS_INVALID_PRN.name());
-						object.setIsValid(Boolean.FALSE);
-						isTransactionSuccessful = false;
-						description.setMessage(PlatformErrorMessages.RPR_PYVS_INVALID_PRN.getMessage());
-						description.setCode(PlatformErrorMessages.RPR_PYVS_INVALID_PRN.getCode());
-
-						registrationStatusDto.setStatusComment(
-								StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
-						registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
-						registrationStatusDto
-								.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
-						registrationStatusDto
-								.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-					}
-					
-					
-					if (isTransactionSuccessful) {
-						//registrationStatusDto.setRefId(refIds);
-						object.setIsValid(Boolean.TRUE);
-						description.setMessage(PlatformSuccessMessages.RPR_PAYMENT_VALIDATOR_STAGE_SUCCESS.getMessage());
-						description.setCode(PlatformSuccessMessages.RPR_PAYMENT_VALIDATOR_STAGE_SUCCESS.getCode());
-						registrationStatusDto.setStatusComment(
-								trimeExpMessage.trimExceptionMessage(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getMessage()));
-						registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getCode());
-						registrationStatusDto
-								.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
-						registrationStatusDto
-								.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
-
-						regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(),
-								LoggerFileConstant.REGISTRATIONID.toString(), regId, "PaymentValidationStage::process()::exit");
-					}
-			
-
+				}
 			}
 			else {
+				Map<String, String> notificationAttributes = new HashMap<>();
+				notificationAttributes.put("FAILURE_REASON", StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage() + "-" + 
+						PlatformErrorMessages.RPR_PYVS_INVALID_PRN.getMessage());
+				object.setNotificationAttributes(notificationAttributes);
+				
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 						LoggerFileConstant.REGISTRATIONID.toString(), null,
-						PlatformErrorMessages.RPR_PYVS_WRONG_PROCESS.name());
+						PlatformErrorMessages.RPR_PYVS_INVALID_PRN.name());
 				object.setIsValid(Boolean.FALSE);
 				isTransactionSuccessful = false;
-				description.setMessage(PlatformErrorMessages.RPR_PYVS_WRONG_PROCESS.getMessage());
-				description.setCode(PlatformErrorMessages.RPR_PYVS_WRONG_PROCESS.getCode());
+				description.setMessage(PlatformErrorMessages.RPR_PYVS_INVALID_PRN.getMessage());
+				description.setCode(PlatformErrorMessages.RPR_PYVS_INVALID_PRN.getCode());
 
 				registrationStatusDto.setStatusComment(
 						StatusUtil.PAYMENT_VALIDATION_FAILED.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_FAILED.getCode());
 				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
+						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REJECTED.toString());
 				registrationStatusDto
 						.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
 			}
+			
+			if (isTransactionSuccessful) {
+				object.setIsValid(Boolean.TRUE);
+				description.setMessage(PlatformSuccessMessages.RPR_PAYMENT_VALIDATOR_STAGE_SUCCESS.getMessage());
+				description.setCode(PlatformSuccessMessages.RPR_PAYMENT_VALIDATOR_STAGE_SUCCESS.getCode());
+				registrationStatusDto.setStatusComment(
+						trimeExpMessage.trimExceptionMessage(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getMessage()));
+				registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getCode());
+				registrationStatusDto
+						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
+				registrationStatusDto
+						.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
+
+				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(),
+						LoggerFileConstant.REGISTRATIONID.toString(), regId, "PaymentValidationStage::process()::exit");
+			}
+		} catch (ApisResourceAccessException e) {
+			object.setIsValid(Boolean.FALSE);
+			object.setInternalError(Boolean.TRUE);
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					regId, PlatformErrorMessages.RPR_PYVS_FAILED + e.getMessage()
+							+ ExceptionUtils.getStackTrace(e));
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REPROCESS, StatusUtil.API_RESOUCE_ACCESS_FAILED, RegistrationExceptionTypeCode.APIS_RESOURCE_ACCESS_EXCEPTION, description, PlatformErrorMessages.RPR_PYVS_FAILED, e);
 		} catch (Exception e) {
 			object.setIsValid(Boolean.FALSE);
 			object.setInternalError(Boolean.TRUE);
@@ -515,6 +389,8 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
 		this.consumeAndSend(mosipEventBus, MessageBusAddress.PAYMENT_VALIDATOR_BUS_IN,
 				MessageBusAddress.PAYMENT_VALIDATOR_BUS_OUT, messageExpiryTimeLimit);
+
+		//process(new MessageDTO());
 	}
 
 	@Override
@@ -535,12 +411,10 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * @param prn
 	 * @param regId
 	 * @return status
+	 * @throws ApisResourceAccessException 
 	 */
 	@SuppressWarnings("unchecked")
-	private boolean checkTranscLogs(String prn, String regId) {
-		regProcLogger.info(
-				"In Registration Processor - Payment Validator - Checking payment gateway service if PRN and Reg Id are present in transaction logs");
-
+	private boolean checkTranscLogs(String prn, String regId) throws ApisResourceAccessException {
 		boolean isPresentInLogs = false;
 
 		IsPrnRegInLogsRequestDTO isPrnRegInLogsRequestDTO = new IsPrnRegInLogsRequestDTO();
@@ -548,25 +422,19 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		isPrnRegInLogsRequestDTO.setRegId(regId);
 
 		HashMap<String, Boolean> responseMap = null;
-		ResponseWrapper<?> response = null;
+		ResponseWrapper<?> response = (ResponseWrapper<?>) restApi.postApi(ApiName.CHECKTRANSLOGS, "", "", isPrnRegInLogsRequestDTO,
+				ResponseWrapper.class);
 
-		try {
-			response = restApiClient.postApi(checkLogsApiUrl, MediaType.APPLICATION_JSON, isPrnRegInLogsRequestDTO,
-					ResponseWrapper.class);
-			
-			if(response.getErrors()!=null) {
+		if (response.getErrors() != null) {
+			isPresentInLogs = true;
+		}
+		else {
+			responseMap = (HashMap<String, Boolean>) response.getResponse();
+			if (responseMap != null && responseMap.get("presentInLogs") == true) {
 				isPresentInLogs = true;
 			}
-			else {
-				responseMap = (HashMap<String, Boolean>) response.getResponse();
-				if (responseMap != null && responseMap.get("presentInLogs")==true) {
-					isPresentInLogs = true;
-				}
-			}	
-		} catch (Exception e) {
-			regProcLogger.error("Internal Error occured while contacting gateway service for PRN status. "
-					+ ExceptionUtils.getStackTrace(e));
 		}
+		
 		return isPresentInLogs;
 
 	}
@@ -576,32 +444,20 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * 
 	 * @param consumePrnRequestDTO
 	 * @return consumption status
+	 * @throws ApisResourceAccessException 
 	 */
 	@SuppressWarnings("unchecked")
-	private boolean consumePrn(ConsumePrnRequestDTO consumePrnRequestDTO) {
-		regProcLogger.info(
-				"In Registration Processor - Payment Validator - Consuming of PRN and addition into transaction logs");
+	private boolean consumePrn(ConsumePrnRequestDTO consumePrnRequestDTO) throws ApisResourceAccessException {
 		HashMap<String, Boolean> responseMap = null;
-		try {
-			regProcLogger.info("Request {} :" + consumePrnRequestDTO.toString());
-			ResponseWrapper<?> response = restApiClient.postApi(consumePrnApiUrl, MediaType.APPLICATION_JSON, consumePrnRequestDTO,
-					ResponseWrapper.class);
-			regProcLogger.info(
-					"In Registration Processor - Payment Validator - response for consumeprn: " + response.toString());
-
-			if (response != null && response.getResponse() != null) {
-				responseMap = (HashMap<String, Boolean>) response.getResponse();
-				
-				return responseMap.get("consumedSucess");
-			}
-
-		} catch (Exception e) {
-			regProcLogger.error("Internal Error occured contacting gateway service for PRN consumption. "
-					+ ExceptionUtils.getStackTrace(e));
+		ResponseWrapper<?> response = (ResponseWrapper<?>) restApi.postApi(ApiName.CONSUMEPRN, "", "", consumePrnRequestDTO,
+				ResponseWrapper.class);
+		
+		if (response != null && response.getResponse() != null) {
+			responseMap = (HashMap<String, Boolean>) response.getResponse();
+			return responseMap.get("consumedSucess");
 		}
 
 		return false;
-
 	}
 	
 	/**
@@ -610,25 +466,20 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * 
 	 * @param prn
 	 * @return PrnStatusResponseDTO
+	 * @throws ApisResourceAccessException 
 	 */
-	private PrnStatusResponseDTO checkPrnStatus(String prn) {
-		regProcLogger.info(
-				"In Registration Processor - Payment Validator - Checking payment gateway service for PRN status");
-
+	private PrnStatusResponseDataDTO checkPrnStatus(String prn) throws ApisResourceAccessException {
 		PrnStatusRequestDTO prnStatusRequestDTO = new PrnStatusRequestDTO();
 		prnStatusRequestDTO.setPRN(prn);
-		PrnStatusResponseDTO response = null;
-
-		try {
-			response = restApiClient.postApi(getPrnStatusApiUrl, MediaType.APPLICATION_JSON, prnStatusRequestDTO,
-					PrnStatusResponseDTO.class);
-		} catch (Exception e) {
-			regProcLogger.error("Internal Error occured while contacting gateway service for PRN status. "
-					+ ExceptionUtils.getStackTrace(e));
-		}
-		return response;
+		Object rawResponse = restApi.postApi(ApiName.GETPRNSTATUS, "", "", prnStatusRequestDTO, Object.class);
+		Map<String, Object> responseMap = (Map<String, Object>) rawResponse;
+		Map<String, Object> innerResponseMap = (Map<String, Object>) responseMap.get("response");
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // Ignore unknown fields
+		PrnStatusResponseDataDTO dataDTO = mapper.convertValue(innerResponseMap, PrnStatusResponseDataDTO.class);
+		return dataDTO;
 	}
-	
+
 	/**
 	 * This method validates the PRN taxhead against the registration type i.e. LOST, UPDATE
 	 * 
@@ -637,7 +488,6 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * @return status
 	 */
 	private boolean validateTaxHeadAndRegType(PrnStatusResponseDataDTO response, String regType) {
-		
 		if(regType.equalsIgnoreCase(response.getProcessFlow())) {
 			if(response.getTaxHeadCode().equalsIgnoreCase(taxheadChangeCode)){
 				if(response.getAmountPaid().equals(taxheadChangeAmount)) {
@@ -665,13 +515,6 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		}
 		
 		return false;
-	}
-	
-	/**
-	 * This method sends notification to applicant based on successful and failed processing of payment check
-	 */
-	private void sendNotification() {
-		
 	}
 
 }

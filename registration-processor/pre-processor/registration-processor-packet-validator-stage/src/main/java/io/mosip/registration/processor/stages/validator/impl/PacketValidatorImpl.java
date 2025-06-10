@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
@@ -15,6 +16,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
@@ -39,6 +41,7 @@ import io.mosip.registration.processor.core.packet.dto.FieldValue;
 import io.mosip.registration.processor.core.packet.dto.packetvalidator.PacketValidationDto;
 import io.mosip.registration.processor.core.spi.packet.validator.PacketValidator;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
+import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.packet.storage.dto.ValidatePacketResponse;
 import io.mosip.registration.processor.packet.storage.exception.IdRepoAppException;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
@@ -85,6 +88,13 @@ public class PacketValidatorImpl implements PacketValidator {
 	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
 	private String firstIdAgelimit;
 
+	@Value("${mosip.regproc.introducer-validator.renewal.age.limit:16}")
+	private String RenewalAgelimit;
+
+	@Value("${mosip.regproc.packet.validator.max.number.spouses:4}")
+	private Integer maxNumberOfSpouses;
+
+	@SuppressWarnings("unused")
 	@Override
 	public boolean validate(String id, String process, PacketValidationDto packetValidationDto)
 			throws ApisResourceAccessException, RegistrationProcessorCheckedException, IOException,
@@ -117,13 +127,16 @@ public class PacketValidatorImpl implements PacketValidator {
 				return false;
 			}
 			
-			if (isEnabled) {
+
 
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
-					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())
+					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
 				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
+				// In production we need to enable isEnabled property so added or condition
+				if (uin != null || isEnabled) {
 				if (uin == null) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), id,
@@ -137,6 +150,28 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())){
+					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
+						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
+						packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getCode());
+						return false;
+					}
+				}
+				if (!checkNumberOfSpouses(jsonObject, id, process)) {
+					packetValidationDto.setPacketValidaionFailureMessage(
+							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getMessage());
+					packetValidationDto
+							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getCode());
+					return false;
+				}
+				String ChangeIncitizenshipTypeCop = packetManagerService.getField(id,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, process, ProviderStageName.PACKET_VALIDATOR);
+				if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
+						if (!isValidServiceTypeChange(jsonObject, id, process)) {
+							packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+							packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+							return false;
+						}
+				}
 				String status = utility.retrieveIdrepoJsonStatus(uin);
 				if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 						&& status.equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
@@ -146,7 +181,7 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new RegistrationProcessorCheckedException(
 							PlatformErrorMessages.RPR_PVM_UPDATE_DEACTIVATED.getCode(), "UIN is Deactivated");
 				}
-			}
+
 			// check if uin is in idrepisitory
 			if (RegistrationType.UPDATE.name().equalsIgnoreCase(process)
 					|| RegistrationType.RES_UPDATE.name().equalsIgnoreCase(process)
@@ -162,6 +197,42 @@ public class PacketValidatorImpl implements PacketValidator {
 					return false;
 				}
 			}
+			if (process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+				try {
+					if (!validateAgeToGetCard(id, process, packetValidationDto)) {
+						packetValidationDto.setPacketValidaionFailureMessage(
+								StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getMessage());
+						packetValidationDto.setPacketValidatonStatusCode(
+								StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getCode());
+						return false;
+					}
+					ResponseDTO responseDTO = utility.getIdrepoResponseByHandle(id, process,
+							ProviderStageName.PACKET_VALIDATOR);
+					boolean isValidFirstID = true;
+					if (responseDTO != null) {
+						List<CardDetailDto> cardDetailsDtoList = responseDTO.getCardDetails();
+						for (CardDetailDto cardDetailDto : cardDetailsDtoList) {
+							if (cardDetailDto.getCardNumber() != null && !cardDetailDto.getCardNumber().isEmpty()) {
+								isValidFirstID = false;
+								break;
+							}
+						}
+						if (!isValidFirstID) {
+							packetValidationDto
+									.setPacketValidaionFailureMessage(StatusUtil.PVM_ALREADY_CARD_EXISTS.getMessage());
+							packetValidationDto
+									.setPacketValidatonStatusCode(StatusUtil.PVM_ALREADY_CARD_EXISTS.getCode());
+							return false;
+						}
+					}
+				} catch (Exception e) {
+					// TODO this catch block need to be removed after complete migration
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + StatusUtil.UIN_NOT_FOUND_IDREPO.getMessage());
+				}
+			}
+
 		}
 		if (process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
 			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
@@ -175,41 +246,10 @@ public class PacketValidatorImpl implements PacketValidator {
 					return false;
 				}
 			}
+		}
+		}
 	
-		}
-		if (process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
-			try {
-				if (!validateAgeToGetCard(id, process, packetValidationDto)) {
-					packetValidationDto.setPacketValidaionFailureMessage(
-							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getMessage());
-					packetValidationDto
-							.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_GETFIRSTID.getCode());
-					return false;
-				}
-			ResponseDTO responseDTO = utility.getIdrepoResponseByHandle(id, process,
-					ProviderStageName.PACKET_VALIDATOR);
-			boolean isValidFirstID=true;
-			if (responseDTO != null) {
-				List<CardDetailDto> cardDetailsDtoList = responseDTO.getCardDetails();
-				for (CardDetailDto cardDetailDto : cardDetailsDtoList) {
-					if (cardDetailDto.getCardNumber() != null && !cardDetailDto.getCardNumber().isEmpty()) {
-						isValidFirstID = false;
-						break;
-					}
-				}
-				if (!isValidFirstID) {
-					packetValidationDto
-							.setPacketValidaionFailureMessage(StatusUtil.PVM_ALREADY_CARD_EXISTS.getMessage());
-					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_ALREADY_CARD_EXISTS.getCode());
-					return false;
-				}
-			}
-		} catch (Exception e) {
-			// TODO this catch block need to be removed after complete migration
-			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					id, "ERROR =======>" + StatusUtil.UIN_NOT_FOUND_IDREPO.getMessage());
-			}
-		}
+
 			// document validation
 			if (!applicantDocumentValidation(id, process, packetValidationDto)) {
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -367,6 +407,93 @@ public class PacketValidatorImpl implements PacketValidator {
 			return true;
 
 	}
-	
 
+	private boolean validateAgeToRenewal(String id, String process, PacketValidationDto packetValidationDto)
+			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
+		int age = utility.getApplicantAge(id, process,
+				ProviderStageName.PACKET_VALIDATOR);
+		int ageThreshold = Integer.parseInt(RenewalAgelimit);
+		if (age < ageThreshold) {
+
+			return false;
+		}
+		return true;
+
+	}
+	
+	private boolean checkNumberOfSpouses(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+		boolean isValidNumberOfSpouse = true;
+		String numberOfOtherSpousesInDb = JsonUtil.getJSONValue(jsonObject, MappingJsonConstants.NUMBEROFOTHERSPOUSES);
+		if (numberOfOtherSpousesInDb != null) {
+			int numberOfOtherSpousesInDbValue = Integer.parseInt(numberOfOtherSpousesInDb);
+			String numberOfOtherSpousesInPacket = packetManagerService.getFieldByMappingJsonKey(
+					id, MappingJsonConstants.NUMBEROFOTHERSPOUSES,
+					process, ProviderStageName.PACKET_VALIDATOR);
+			if (numberOfOtherSpousesInPacket != null) {
+				int numberOfOtherSpousesInPacketValue = Integer.parseInt(numberOfOtherSpousesInPacket);
+				if (numberOfOtherSpousesInDbValue < maxNumberOfSpouses) {
+					int leftOutSpouses = maxNumberOfSpouses - numberOfOtherSpousesInDbValue;
+					if (numberOfOtherSpousesInPacketValue > leftOutSpouses) {
+						isValidNumberOfSpouse = false;
+					}
+				} else if (numberOfOtherSpousesInDbValue >= maxNumberOfSpouses) {
+					isValidNumberOfSpouse = false;
+				}
+			}
+		}
+		return isValidNumberOfSpouse;
+	}
+	private boolean isValidServiceTypeChange(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		Object userServiceTypeInDb = JsonUtil.getJSONValue(jsonObject, MappingJsonConstants.APPLICANT_CITIZENSHIPTYPE);
+		Object citizenshipTypeCop = packetManagerService.getField(id, MappingJsonConstants.CHANGE_IN_APPLICANT_CITIZENSHIPTYPE, process, ProviderStageName.PACKET_VALIDATOR);
+
+		try {
+			// Convert JSON objects to lists
+			List<Map<String, String>> userServiceList = objectMapper.readValue(
+					userServiceTypeInDb.toString(), new TypeReference<>() {});
+			List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
+					citizenshipTypeCop.toString(), new TypeReference<>() {});
+
+			// Extract values if lists are non-empty
+			Optional<String> serviceTypeOpt = userServiceList.stream().findFirst().map(map -> map.get("value"));
+			Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
+
+			if (serviceTypeOpt.isEmpty() || citizenshipTypeOpt.isEmpty()) {
+				return false;
+			}
+
+			String serviceType = serviceTypeOpt.get();
+			String citizenshipType = citizenshipTypeOpt.get();
+
+			// Validate service type change
+			switch (serviceType) {
+				case "By Birth /Descent":
+					return citizenshipType.equalsIgnoreCase("Citizenship by Naturalization") ||
+							citizenshipType.equalsIgnoreCase("Citizenship by Registration") ||
+							citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				case "By Registration":
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				case "By Naturalization":
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				case "Citizenship under the Article 9":
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				default:
+					System.out.println("Unknown/Invalid service type: " + serviceType);
+					return false;
+			}
+		} catch (Exception e) {
+			System.err.println("Error processing service type change validation: " + e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+	}
 }

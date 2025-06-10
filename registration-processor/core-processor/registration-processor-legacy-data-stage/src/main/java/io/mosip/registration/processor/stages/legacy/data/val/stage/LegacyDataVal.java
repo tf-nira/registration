@@ -269,8 +269,8 @@ public class LegacyDataVal {
 					registrationId,
 					RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
-			throw new LegacyDataValidationException(StatusUtil.LEGACY_DATA_SYSTEM_FAILED.getMessage(),
-					StatusUtil.LEGACY_DATA_SYSTEM_FAILED.getCode());
+			throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+					transactionStatus.getError().getMessage());
 		}
 		return NIN;
 	}

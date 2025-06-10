@@ -234,11 +234,11 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
 		try {
-			registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
 			VerificationRequestDTO mar = prepareVerificationRequest(messageDTO, registrationStatusDto, regEntity.getReferenceId());
+			registrationStatusDto.setRegistrationStageName(stageName);
 			//saveVerificationRecordUtility.saveVerificationRecord(messageDTO, mar.getRequestId(), description);
 			regProcLogger.debug("Request : " + JsonUtils.javaObjectToJsonString(mar));
 
@@ -722,8 +722,17 @@ public class MVSServiceImpl implements MVSService {
 			}
 		}
 		
-		if ("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName())) {
-			req.setStatusComment(registrationStatusDto.getStatusComment());
+		if (("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName()) ||
+				"BIO_DEDUPE".equals(registrationStatusDto.getRegistrationStageName())) && 
+				(registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty())) {
+			
+			//Format: STAGE_NAME::Status Comment
+			
+			String formattedComment = registrationStatusDto.getRegistrationStageName() +
+										"::" +
+										registrationStatusDto.getStatusComment();
+			
+			req.setStatusComment(formattedComment);
 		}
 		
 		try {

@@ -6,13 +6,20 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -26,6 +33,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
@@ -44,9 +53,11 @@ import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
+import io.mosip.registration.processor.core.constant.RegistrationType;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.DataMigrationException;
 import io.mosip.registration.processor.core.exception.LegacyDataBiomtericException;
+import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
@@ -55,6 +66,7 @@ import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
+import io.mosip.registration.processor.core.migration.dto.MigrationOnDemandResponse;
 import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
 import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import io.mosip.registration.processor.core.packet.dto.DocumentDto;
@@ -65,6 +77,7 @@ import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.storage.dto.Document;
 import io.mosip.registration.processor.packet.storage.dto.FieldResponseDto;
+import io.mosip.registration.processor.packet.storage.exception.ParsingException;
 import io.mosip.registration.processor.packet.storage.utils.FingrePrintConvertor;
 import io.mosip.registration.processor.packet.storage.utils.IdSchemaUtil;
 import io.mosip.registration.processor.packet.storage.utils.LegacyDataApiUtility;
@@ -137,12 +150,23 @@ public class LegacyDataValidator {
 
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
-
+	
+	@Value("${mosip.regproc.introducer-validator.firstid.age.limit:16}")
+	private String firstIdAgelimit;
+	
+	@Value("${mosip.regproc.packet.classifier.tagging.not-available-tag-value}")
+	private String notAvailableTagValue;
+	
+	/** The dob format. */
+	@Value("${registration.processor.applicant.dob.format}")
+	private String dobFormat;
+	
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
 			ValidationFailedException, JAXBException, NoSuchAlgorithmException,
-			NumberFormatException, JSONException, DataMigrationException, LegacyDataBiomtericException {
+			NumberFormatException, JSONException, DataMigrationException, LegacyDataBiomtericException,
+			LegacyDataValidationException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
@@ -154,7 +178,7 @@ public class LegacyDataValidator {
 		
 		if (jSONObject == null) {
 			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			boolean isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap);
+			boolean isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap, object);
 			if (isPresentInlegacySystem) {
 				regProcLogger.info("NIN is present in legacy system and call for ondemand migration : {}",
 						registrationId);
@@ -174,26 +198,37 @@ public class LegacyDataValidator {
 					MigrationResponse migrationResponse = objectMapper.readValue(
 							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
 							MigrationResponse.class);
+					Map<String, String> tags = new HashMap<>();
+					tags = object.getTags();
 					PacketDto packetDto = createOnDemandPacket(
-							migrationResponse, registrationStatusDto, object.getTags());
+							migrationResponse, registrationStatusDto, tags, description);
+				
 					if (packetDto != null) {
 						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
 								registrationStatusDto.getRegistrationStageName());
+								
 						if (syncRegistrationEntityForOndemand != null) {
-							registrationStatusDto.setLatestTransactionStatusCode(
-									RegistrationTransactionStatusCode.MERGED.toString());
-							registrationStatusDto
-									.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage()
-											+ " and rid is " + syncRegistrationEntityForOndemand.getRegistrationId());
-							registrationStatusDto
-									.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
-							registrationStatusDto.setStatusCode(RegistrationStatusCode.MERGED.toString());
+							if (tags.get("META_INFO-META_DATA-registrationType")
+									.equalsIgnoreCase(notAvailableTagValue)) {
+								updatePacketStatus(registrationId, registrationStatusDto, description,
+										syncRegistrationEntityForOndemand);
+							} else {
+								registrationStatusDto.setLatestTransactionStatusCode(
+										RegistrationTransactionStatusCode.MERGED.toString());
+								registrationStatusDto.setStatusComment(
+										StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is "
+												+ syncRegistrationEntityForOndemand.getRegistrationId());
+								registrationStatusDto
+										.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
+								registrationStatusDto.setStatusCode(RegistrationStatusCode.MERGED.toString());
 
-							description.setMessage(
-									PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
-											+ " -- " + registrationId);
-							description.setCode(
-									PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+								description.setMessage(
+										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
+												+ " -- " + registrationId);
+								description.setCode(
+										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+							}
+
 							object.setIsValid(true);
 							object.setReg_type(syncRegistrationEntityForOndemand.getRegistrationType());
 							object.setRid(syncRegistrationEntityForOndemand.getRegistrationId());
@@ -202,6 +237,13 @@ public class LegacyDataValidator {
 									registrationId);
 						}
 					} else {
+						if (tags.get("META_INFO-META_DATA-registrationType")
+								.equalsIgnoreCase(notAvailableTagValue)) {
+							updatePacketStatus(registrationId, registrationStatusDto, description,
+									null);
+							object.setIsValid(false);
+
+						}else {
 						regProcLogger.info("Ondemand creation is failed packet going for reprocess : {} ",
 								registrationId);
 						registrationStatusDto
@@ -216,11 +258,11 @@ public class LegacyDataValidator {
 										+ registrationId);
 						description.setCode(
 								PlatformErrorMessages.RPR_LEGACY_DATA_VAL_ON_DEMAND_PACKET_CREATION_FAILED.getCode());
-						description.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getMessage());
+						description.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getMessage());}
 						object.setIsValid(true);
 						object.setInternalError(true);
 					}
-
+					
 			} else {
 				regProcLogger.error("NIN is not  present in legacy system : {}", registrationId);
 				throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage(),
@@ -240,6 +282,25 @@ public class LegacyDataValidator {
 
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
+	}
+
+	private void updatePacketStatus(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
+			LogDescription description, SyncRegistrationEntity syncRegistrationEntityForOndemand) {
+		regProcLogger.error("Validation Failed for : {}, {}", registrationId,
+				description.getMessage());
+		registrationStatusDto.setLatestTransactionStatusCode(
+				RegistrationTransactionStatusCode.REJECTED.toString());
+		if (syncRegistrationEntityForOndemand != null) {
+			registrationStatusDto.setStatusComment(
+					description.getMessage() + "  " + StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage()
+							+ " and rid is " + syncRegistrationEntityForOndemand.getRegistrationId());
+		} else {
+			registrationStatusDto.setStatusComment(description.getMessage());
+		}
+
+		registrationStatusDto
+				.setSubStatusCode(description.getCode());
+		registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 	}
 
 	private SyncRegistrationEntity createSyncAndRegistration(PacketDto packetDto, String stageName) {
@@ -268,11 +329,13 @@ public class LegacyDataValidator {
 	}
 
 	private PacketDto createOnDemandPacket(MigrationResponse migrationResponse,
-			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags)
+			InternalRegistrationStatusDto registrationStatusDto, Map<String, String> tags, LogDescription description)
 			throws ApisResourceAccessException,
 			PacketManagerException,
-			JsonProcessingException, IOException, NumberFormatException, JSONException {
+			JsonProcessingException, IOException, NumberFormatException, JSONException, DataMigrationException {
 
+		boolean getFirstIdAgeValidFlag = true;
+		boolean isValidCOP = true;
 		String registrationId = registrationStatusDto.getRegistrationId();
 		String registrationType = registrationStatusDto.getRegistrationType();
 		regProcLogger.info("Getting details to create ondemand packet : {}", registrationId);
@@ -292,6 +355,14 @@ public class LegacyDataValidator {
 		SyncRegistrationEntity regEntity = syncRegistrationService
 				.findByWorkflowInstanceId(registrationStatusDto.getWorkflowInstanceId());
 		Map<String, String> demographics = new HashMap<String, String>();
+		if (migrationResponse.getDemographics() == null || migrationResponse.getDemographics().isEmpty()) {
+			throw new DataMigrationException(StatusUtil.DATA_MIGRATION_DATA_ISSUE.getCode(),
+					StatusUtil.DATA_MIGRATION_DATA_ISSUE.getMessage());
+		}
+		if (migrationResponse.getDocuments() == null || migrationResponse.getDocuments().isEmpty()) {
+			throw new DataMigrationException(StatusUtil.DATA_MIGRATION_DATA_ISSUE.getCode(),
+					StatusUtil.DATA_MIGRATION_DATA_ISSUE.getMessage());
+		}
 		if (migrationResponse.getDemographics() != null) {
 			demographics.putAll(migrationResponse.getDemographics());
 		}
@@ -299,6 +370,43 @@ public class LegacyDataValidator {
 		if (migrationResponse.getDocuments() != null) {
 			documents.putAll(migrationResponse.getDocuments());
 		}
+		
+		//age check validation for get first id 
+		if(registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
+			String dateOfBirth = demographics.get("dateOfBirth");
+			if (dateOfBirth != null) {
+				int age = calculateAge(dateOfBirth);
+				int ageThreshold = Integer.parseInt(firstIdAgelimit);
+				if (age < ageThreshold)
+					getFirstIdAgeValidFlag = false;
+				else
+					getFirstIdAgeValidFlag = true;
+			}else {
+				getFirstIdAgeValidFlag = false;
+			}
+		}
+		if(registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString())){
+			String ChangeIncitizenshipTypeCop = packetManagerService.getField(registrationId,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, registrationType, ProviderStageName.LEGACY_DATA_VALIDATOR);
+			if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
+				JSONObject demographicsJson = new JSONObject(demographics);
+				isValidCOP = isValidServiceTypeChange(demographicsJson, registrationId, registrationType);
+			}
+		}
+		if(!getFirstIdAgeValidFlag){
+			tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
+			description.setMessage(
+					StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getMessage());
+			description.setCode(
+					StatusUtil.LEGACY_DATA_VALIDATION_FAILED_GETFIRSTID.getCode());
+		}
+		if(!isValidCOP) {
+			tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
+			description.setMessage(
+					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+			description.setCode(
+					StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+		}
+		if((registrationType.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) || (registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString()) && isValidCOP) || ((registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) && getFirstIdAgeValidFlag)) {
 			Map<String, String> packetDemographics = priorityBasedPacketManagerService.getFields(registrationId,
 					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
 					ProviderStageName.LEGACY_DATA_VALIDATOR);
@@ -312,7 +420,7 @@ public class LegacyDataValidator {
 			if (packetDocuments != null) {
 				documents.putAll(packetDocuments);
 			}
-
+		}
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(migrationResponse.getRid());
 		packetDto.setSource("DATAMIGRATOR");
@@ -395,8 +503,11 @@ public class LegacyDataValidator {
 		return wsqFormatBiometrics;
 	}
 
-	private boolean checkNINAVailableInLegacy(String registrationId, String NIN, Map<String, String> positionAndWsqMap)
-			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException {
+	private boolean checkNINAVailableInLegacy(String registrationId, String NIN, Map<String, String> positionAndWsqMap,
+			MessageDTO object)
+			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
+			ValidationFailedException, LegacyDataValidationException, JsonProcessingException, JsonMappingException,
+			com.fasterxml.jackson.core.JsonProcessingException {
 		boolean isValid = false;
 		Envelope requestEnvelope = createGetPersonRequest(NIN, positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
@@ -422,6 +533,42 @@ public class LegacyDataValidator {
 					registrationId,
 					RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
+			regProcLogger.error("Error from  legacy system : {}", registrationId);
+			if (transactionStatus.getError().getMessage().contains("Verification of the person is unclear")) {
+				MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
+				migrationRequestDto.setNin(NIN.toUpperCase());
+				RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
+				requestWrapper.setRequest(migrationRequestDto);
+				ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi.postApi(
+						ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper, ResponseWrapper.class, null);
+				regProcLogger.info("Response from migration api : {}{}", registrationId,
+						JsonUtils.javaObjectToJsonString(responseWrapper));
+				if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
+					ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
+					throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+							transactionStatus.getError().getMessage() + "Migration triggered error"
+									+ error.getMessage());
+				}
+				MigrationOnDemandResponse migrationOnDemandResponse = objectMapper.readValue(
+						JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+						MigrationOnDemandResponse.class);
+				if (migrationOnDemandResponse != null) {
+					regProcLogger.info(
+							"ondemand migration happended  migration rid is  :  {}",
+							migrationOnDemandResponse.getRid());
+					throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+							transactionStatus.getError().getMessage() + "Migration triggered rid "
+									+ migrationOnDemandResponse.getRid());
+				} else {
+					regProcLogger.info("ondemand migration api response is null  for NIN");
+					throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+							transactionStatus.getError().getMessage() + "Migration triggered response null");
+				}
+			} else {
+				throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+						transactionStatus.getError().getMessage());
+			}
+
 		}
 		return isValid;
 	}
@@ -573,5 +720,81 @@ public class LegacyDataValidator {
 			}
 			return null;
 		}
+		
+		private int calculateAge(String applicantDob) {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"Utilities::calculateAge():: entry");
 
+			DateFormat sdf = new SimpleDateFormat(dobFormat);
+			Date birthDate = null;
+			try {
+				birthDate = sdf.parse(applicantDob);
+
+			} catch (ParseException e) {
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", "Utilities::calculateAge():: error with error message "
+								+ PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getMessage());
+				throw new ParsingException(PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getCode(), e);
+			}
+			LocalDate ld = new java.sql.Date(birthDate.getTime()).toLocalDate();
+			Period p = Period.between(ld, LocalDate.now());
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"Utilities::calculateAge():: exit");
+
+			return p.getYears();
+
+		}
+
+	private boolean isValidServiceTypeChange(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		Object userServiceTypeInDb = JsonUtil.getJSONValue(jsonObject, MappingJsonConstants.APPLICANT_CITIZENSHIPTYPE);
+		Object citizenshipTypeCop = packetManagerService.getField(id, MappingJsonConstants.CHANGE_IN_APPLICANT_CITIZENSHIPTYPE, process, ProviderStageName.LEGACY_DATA_VALIDATOR);
+
+		try {
+			// Convert JSON objects to lists
+			List<Map<String, String>> userServiceList = objectMapper.readValue(
+					userServiceTypeInDb.toString(), new TypeReference<>() {});
+			List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
+					citizenshipTypeCop.toString(), new TypeReference<>() {});
+
+			// Extract values if lists are non-empty
+			Optional<String> serviceTypeOpt = userServiceList.stream().findFirst().map(map -> map.get("value"));
+			Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
+
+			if (serviceTypeOpt.isEmpty() || citizenshipTypeOpt.isEmpty()) {
+				return false;
+			}
+
+			String serviceType = serviceTypeOpt.get();
+			String citizenshipType = citizenshipTypeOpt.get();
+
+			// Validate service type change
+			switch (serviceType) {
+				case "By Birth /Descent":
+					return citizenshipType.equalsIgnoreCase("Citizenship by Naturalization") ||
+							citizenshipType.equalsIgnoreCase("Citizenship by Registration") ||
+							citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				case "By Registration":
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				case "By Naturalization":
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				case "Citizenship under the Article 9":
+					return citizenshipType.equalsIgnoreCase("Dual citizenship");
+
+				default:
+					System.out.println("Unknown/Invalid service type: " + serviceType);
+					return false;
+			}
+		} catch (Exception e) {
+			System.err.println("Error processing service type change validation: " + e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+	}
 }

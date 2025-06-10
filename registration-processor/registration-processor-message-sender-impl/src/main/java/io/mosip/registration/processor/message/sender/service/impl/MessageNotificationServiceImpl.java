@@ -489,6 +489,10 @@ public class MessageNotificationServiceImpl
 		} else {
 			setAttributesFromIdJson(id, process, attributes, regType,lang, phoneNumber, emailId);
 		}
+		
+		if (attributes.get("surname_" + lang) == null && attributes.get("givenName_" + lang) == null) {
+			attributes.put("surname_" + lang, "applicant");
+		}
 
 		return attributes;
 	}

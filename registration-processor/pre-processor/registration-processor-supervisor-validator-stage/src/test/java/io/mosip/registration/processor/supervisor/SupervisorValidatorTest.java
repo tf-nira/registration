@@ -559,7 +559,7 @@ public class SupervisorValidatorTest {
 		individualIdDto.setIndividualId("6531762");
 
 		Mockito.when(registrationStatusService.checkUinAvailabilityForRid(any())).thenReturn(true);
-		when(packetManagerService.getBiometricsByMappingJsonKey(anyString(), any(), any(), any()))
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(),any()))
 				.thenReturn(biometricRecord);
 		supervisorValidator.validate("reg1234", registrationStatusDto, regOsiDto);
 	}

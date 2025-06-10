@@ -13,6 +13,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.xml.sax.SAXException;
 
@@ -81,6 +82,9 @@ public class OperatorValidator {
 
 	@Autowired
 	private BioSdkUtil bioUtil;
+
+	@Value("#{'${mosip.regproc.mandatory.modalities.for.introducer.auth:Finger}'.split(',')}")
+	private List<String> mandatoryModalitiesForAuth;
 
 	/**
 	 * Checks if is valid Operator.
@@ -200,9 +204,7 @@ public class OperatorValidator {
 						StatusUtil.OPERATOR_PASSWORD_OTP_FAILURE.getCode());
 			}
 		} else {
-			BiometricRecord biometricRecord = packetManagerService.getBiometricsByMappingJsonKey(registrationId,
-					MappingJsonConstants.OFFICERBIOMETRICFILENAME, registrationStatusDto.getRegistrationType(),
-					ProviderStageName.OPERATOR_VALIDATOR);
+			BiometricRecord biometricRecord = packetManagerService.getBiometrics(registrationId,officerBiometricFileName, mandatoryModalitiesForAuth, registrationStatusDto.getRegistrationType(), ProviderStageName.OPERATOR_VALIDATOR);
 
 			if (biometricRecord == null || biometricRecord.getSegments() == null
 					|| biometricRecord.getSegments().isEmpty()) {
