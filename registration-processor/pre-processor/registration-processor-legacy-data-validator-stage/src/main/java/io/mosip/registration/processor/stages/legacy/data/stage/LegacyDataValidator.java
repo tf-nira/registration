@@ -34,6 +34,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
@@ -65,6 +66,7 @@ import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
+import io.mosip.registration.processor.core.migration.dto.MigrationOnDemandResponse;
 import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
 import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import io.mosip.registration.processor.core.packet.dto.DocumentDto;
@@ -504,7 +506,8 @@ public class LegacyDataValidator {
 	private boolean checkNINAVailableInLegacy(String registrationId, String NIN, Map<String, String> positionAndWsqMap,
 			MessageDTO object)
 			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
-			ValidationFailedException, LegacyDataValidationException {
+			ValidationFailedException, LegacyDataValidationException, JsonProcessingException, JsonMappingException,
+			com.fasterxml.jackson.core.JsonProcessingException {
 		boolean isValid = false;
 		Envelope requestEnvelope = createGetPersonRequest(NIN, positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
@@ -531,8 +534,41 @@ public class LegacyDataValidator {
 					RegistrationStatusCode.FAILED.toString() + transactionStatus.getError().getCode()
 							+ transactionStatus.getError().getMessage());
 			regProcLogger.error("Error from  legacy system : {}", registrationId);
-			throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
-					transactionStatus.getError().getMessage());
+			if (transactionStatus.getError().getMessage().contains("Verification of the person is unclear")) {
+				MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
+				migrationRequestDto.setNin(NIN.toUpperCase());
+				RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
+				requestWrapper.setRequest(migrationRequestDto);
+				ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi.postApi(
+						ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper, ResponseWrapper.class, null);
+				regProcLogger.info("Response from migration api : {}{}", registrationId,
+						JsonUtils.javaObjectToJsonString(responseWrapper));
+				if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
+					ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
+					throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+							transactionStatus.getError().getMessage() + "Migration triggered error"
+									+ error.getMessage());
+				}
+				MigrationOnDemandResponse migrationOnDemandResponse = objectMapper.readValue(
+						JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+						MigrationOnDemandResponse.class);
+				if (migrationOnDemandResponse != null) {
+					regProcLogger.info(
+							"ondemand migration happended  migration rid is  :  {}",
+							migrationOnDemandResponse.getRid());
+					throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+							transactionStatus.getError().getMessage() + "Migration triggered rid "
+									+ migrationOnDemandResponse.getRid());
+				} else {
+					regProcLogger.info("ondemand migration api response is null  for NIN");
+					throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+							transactionStatus.getError().getMessage() + "Migration triggered response null");
+				}
+			} else {
+				throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
+						transactionStatus.getError().getMessage());
+			}
+
 		}
 		return isValid;
 	}
