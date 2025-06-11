@@ -3,7 +3,10 @@ package io.mosip.registration.processor.stages.utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -175,7 +178,32 @@ public class NotificationUtility {
 //		}
 		
 		attributes.put(nameArray[0] + "_" + preferredLanguage, "applicant");
-		
+
+		String userService = "";
+		if ("NEW".equals(regType)) {
+			userService = "New Registration";
+		} else if ("LOST".equals(regType)) {
+			userService = "Replacement Of Card";
+		} else if ("UPDATE".equals(regType)) {
+			userService = "Change Of Particulars";
+		} else if ("RENEWAL".equals(regType)) {
+			userService = "Renewal Of Card";
+		}else if ("FIRSTID".equals(regType)) {
+			userService = "Get First ID";
+		}
+		attributes.put("SERVICE", userService);
+
+		DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
+		DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mma");
+
+		LocalDateTime now = LocalDateTime.now();
+		Instant nowUtc = Instant.now();
+		ZoneId countryZoneId = ZoneId.of("GMT+05:30");
+		ZonedDateTime nowCountryTime = ZonedDateTime.ofInstant(nowUtc, countryZoneId);
+
+		attributes.put("DATE", dateFormatter.format(now));
+		attributes.put("TIME", timeFormatter.format(nowCountryTime));
+
 		if (isProcessingSuccess) {
 			type = setNotificationTemplateType(registrationStatusDto, type);
 		} else if (!isValidSupervisorStatus) {
