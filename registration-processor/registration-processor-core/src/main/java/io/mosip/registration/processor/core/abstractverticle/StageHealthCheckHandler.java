@@ -123,6 +123,7 @@ public class StageHealthCheckHandler implements HealthCheckHandler {
 		this.url = environment.getProperty(HealthConstant.URL);
 		this.host = environment.getProperty(HealthConstant.HOSTS);
 		this.username = environment.getProperty(HealthConstant.USER);
+		this.database = "mosip_regprc";
 		this.password = environment.getProperty(HealthConstant.PASSWORD);
 		this.queueUsername = environment.getProperty(HealthConstant.QUEUE_USERNAME);
 		this.queuePassword = environment.getProperty(HealthConstant.QUEUE_PASSWORD);
