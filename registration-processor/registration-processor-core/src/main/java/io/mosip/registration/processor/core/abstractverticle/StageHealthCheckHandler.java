@@ -14,6 +14,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -63,6 +64,9 @@ import io.vertx.ext.healthchecks.HealthChecks;
 import io.vertx.ext.healthchecks.Status;
 import io.vertx.ext.healthchecks.impl.HealthChecksImpl;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.PoolOptions;
 
 /**
  * @author Mukul Puspam
@@ -79,30 +83,22 @@ public class StageHealthCheckHandler implements HealthCheckHandler {
 	private String url;
 	private String username;
 	private String password;
-	private String virusScannerHost;
-	private String nameNodeUrl;
-	private String kdcDomain;
-	private String keytabPath;
+	private String host;
+	private String database;
 	private String queueUsername;
 	private String queuePassword;
 	private String queueBrokerUrl;
 	private List<String> queueTrustedPackages;
-	private Boolean isAuthEnable;
-	private int virusScannerPort;
 	private File currentWorkingDirPath;
 	private VirusScanner<Boolean, InputStream> virusScanner;
-	private FileSystem configuredFileSystem;
 	private Path hadoopLibPath;
-	private static final String HADOOP_HOME = "hadoop-lib";
-	private static final String WIN_UTIL = "winutils.exe";
-	private static final String CLASSPATH_PREFIX = "classpath:";
 	private static final int THRESHOLD = 10485760;
 	javax.jms.Connection connection = null;
-	private Session session = null;
 	MessageConsumer messageConsumer;
 	MessageProducer messageProducer;
 
 	private static final String DEFAULT_QUERY = "SELECT 1";
+	private final PgPool pgPool;
 
 	private StageHealthCheckHandler.JSONResultBuilder resultBuilder;
 	/**
@@ -125,6 +121,7 @@ public class StageHealthCheckHandler implements HealthCheckHandler {
 		this.objectMapper = objectMapper;
 		this.driver = environment.getProperty(HealthConstant.DRIVER);
 		this.url = environment.getProperty(HealthConstant.URL);
+		this.host = environment.getProperty(HealthConstant.HOSTS);
 		this.username = environment.getProperty(HealthConstant.USER);
 		this.password = environment.getProperty(HealthConstant.PASSWORD);
 		this.queueUsername = environment.getProperty(HealthConstant.QUEUE_USERNAME);
@@ -138,7 +135,24 @@ public class StageHealthCheckHandler implements HealthCheckHandler {
 				.asList(queueTrustedPackage.split(","));
 		this.currentWorkingDirPath = new File(System.getProperty(HealthConstant.CURRENT_WORKING_DIRECTORY));
 		this.resultBuilder = new StageHealthCheckHandler.JSONResultBuilder();
-		this.virusScanner = virusScanner;
+		this.virusScanner = virusScanner;	
+		this.pgPool = PgPool.pool(vertx, getPgConnectOptions(), new PoolOptions().setMaxSize(5));
+	}
+	
+	private List<PgConnectOptions> getPgConnectOptions(){
+		List<PgConnectOptions> servers = new ArrayList<>();
+		String[] hostPortStrings = this.host.split(",");
+		for (String hostPortString : hostPortStrings) {
+			String[] parts = hostPortString.split(":"); 
+            servers.add(new PgConnectOptions()
+    	            .setHost(parts[0])
+    	            .setPort(Integer.parseInt(parts[1]))
+    	            .setDatabase(this.database)
+    	            .setUser(this.username)
+    	            .setPassword(this.password)
+    	            .setConnectTimeout(10000));			
+		}		
+		return servers;
 	}
 
 	@Override
@@ -263,31 +277,48 @@ public class StageHealthCheckHandler implements HealthCheckHandler {
 	 * @param promise {@link Promise} instance from handler
 	 */
 	public void databaseHealthChecker(Promise<Status> promise) {
-
-		try {
-			Class.forName(driver);
-		} catch (ClassNotFoundException exception) {
-			final JsonObject result = resultBuilder.create().add(HealthConstant.ERROR, exception.getMessage()).build();
-			promise.complete(Status.KO(result));
-		}
-		try (Connection conn = DriverManager.getConnection(url, username, password)) {
-			try (final Statement statement = conn.createStatement()) {
-
-				try (final ResultSet rs = statement.executeQuery(DEFAULT_QUERY)) {
-
-					if (rs.next()) {
-						final JsonObject result = resultBuilder.create()
-								.add(HealthConstant.DATABASE, conn.getMetaData().getDatabaseProductName())
-								.add(HealthConstant.HELLO, JdbcUtils.getResultSetValue(rs, 1)).build();
-						promise.complete(Status.OK(result));
-
-					}
-				}
-			}
-		} catch (SQLException exception) {
-			final JsonObject result = resultBuilder.create().add(HealthConstant.ERROR, exception.getMessage()).build();
-			promise.complete(Status.KO(result));
-		}
+        pgPool.query(DEFAULT_QUERY)
+        .execute()
+        .onSuccess(ar -> {
+            // If query succeeds, DB is healthy
+            JsonObject result = resultBuilder.create()
+                    .add(HealthConstant.DATABASE, this.database) 
+                    .add(HealthConstant.HELLO, "1") 
+                    .build();
+            promise.complete(Status.OK(result));
+        })
+        .onFailure(cause -> {
+            // If query fails, DB is not healthy
+            JsonObject result = resultBuilder.create()
+                    .add(HealthConstant.ERROR, "PostgreSQL Error: " + cause.getMessage())
+                    .build();
+            promise.complete(Status.KO(result));
+        });
+		
+//		try {
+//			Class.forName(driver);
+//		} catch (ClassNotFoundException exception) {
+//			final JsonObject result = resultBuilder.create().add(HealthConstant.ERROR, exception.getMessage()).build();
+//			promise.complete(Status.KO(result));
+//		}
+//		try (Connection conn = DriverManager.getConnection(url, username, password)) {
+//			try (final Statement statement = conn.createStatement()) {
+//
+//				try (final ResultSet rs = statement.executeQuery(DEFAULT_QUERY)) {
+//
+//					if (rs.next()) {
+//						final JsonObject result = resultBuilder.create()
+//								.add(HealthConstant.DATABASE, conn.getMetaData().getDatabaseProductName())
+//								.add(HealthConstant.HELLO, JdbcUtils.getResultSetValue(rs, 1)).build();
+//						promise.complete(Status.OK(result));
+//
+//					}
+//				}
+//			}
+//		} catch (SQLException exception) {
+//			final JsonObject result = resultBuilder.create().add(HealthConstant.ERROR, exception.getMessage()).build();
+//			promise.complete(Status.KO(result));
+//		}
 	}
 
 	/**

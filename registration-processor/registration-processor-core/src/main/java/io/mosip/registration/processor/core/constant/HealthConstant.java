@@ -4,6 +4,7 @@ public class HealthConstant {
 	public static final String ERROR = "error";
 	public static final String DRIVER = "javax.persistence.jdbc.driver";
 	public static final String URL = "javax.persistence.jdbc.url";
+	public static final String HOSTS = "javax.persistence.jdbc.hosts";
 	public static final String USER = "javax.persistence.jdbc.user";
 	public static final String PASSWORD = "javax.persistence.jdbc.password";
 	public static final String DATABASE = "database";
