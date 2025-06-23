@@ -60,7 +60,7 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	@Query(value ="SELECT * FROM registration r WHERE r.status_code IN :statusCodes AND r.resume_timestamp < now() AND r.default_resume_action is NOT NULL order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getActionablePausedPackets(@Param("statusCodes") List<String> statusCodes,@Param("fetchSize") Integer fetchSize);
 
-	@Query(value ="SELECT * FROM registration r WHERE r.status_code =:statusCode  order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
+	@Query(value ="SELECT * FROM registration r WHERE r.status_code =:statusCode order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getResumablePackets(@Param("statusCode") String statusCode,@Param("fetchSize") Integer fetchSize);
 }
 
