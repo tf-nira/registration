@@ -32,6 +32,8 @@ public enum RegistrationStatusCode {
 
 	MERGED,
 
-	LEGACYERROR
+	LEGACYERROR,
+
+	ON_HOLD
 
 }

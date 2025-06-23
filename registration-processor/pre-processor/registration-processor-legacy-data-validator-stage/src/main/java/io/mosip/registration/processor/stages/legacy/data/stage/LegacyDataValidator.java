@@ -178,12 +178,15 @@ public class LegacyDataValidator {
 		
 		if (jSONObject == null) {
 			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			boolean isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap, object);
+			boolean isPresentInlegacySystem = true;
+					//checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap, object);
+
 			if (isPresentInlegacySystem) {
 				regProcLogger.info("NIN is present in legacy system and call for ondemand migration : {}",
 						registrationId);
 					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
 					migrationRequestDto.setNin(NIN.toUpperCase());
+					migrationRequestDto.setDependentRid(registrationId);
 					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
 					requestWrapper.setRequest(migrationRequestDto);
 					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
@@ -214,13 +217,13 @@ public class LegacyDataValidator {
 										syncRegistrationEntityForOndemand);
 							} else {
 								registrationStatusDto.setLatestTransactionStatusCode(
-										RegistrationTransactionStatusCode.MERGED.toString());
+										RegistrationTransactionStatusCode.ON_HOLD.toString());
 								registrationStatusDto.setStatusComment(
 										StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is "
 												+ syncRegistrationEntityForOndemand.getRegistrationId());
 								registrationStatusDto
 										.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
-								registrationStatusDto.setStatusCode(RegistrationStatusCode.MERGED.toString());
+								registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
 
 								description.setMessage(
 										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
