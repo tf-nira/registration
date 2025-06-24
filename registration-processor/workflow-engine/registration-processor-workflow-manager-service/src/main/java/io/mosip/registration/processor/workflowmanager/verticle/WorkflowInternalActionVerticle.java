@@ -401,7 +401,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 						.getRegistrationStatus(dependentRid, RegistrationType.RENEWAL.toString(),
 								1,null);
 				dependentRidregistrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
-				dependentRidregistrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+				dependentRidregistrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
 				registrationStatusService.updateRegistrationStatusForWorkflowEngine(dependentRidregistrationStatusDto, MODULE_ID, MODULE_NAME);
 			}
 		}
