@@ -62,5 +62,8 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 
 	@Query(value ="SELECT * FROM registration r WHERE r.status_code =:statusCode order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getResumablePackets(@Param("statusCode") String statusCode,@Param("fetchSize") Integer fetchSize);
+	
+	@Query(value ="SELECT * FROM registration r WHERE r.status_code IN :statusCodes AND r.upd_dtimes < CURRENT_DATE and r.needs_notification=true and r.notification_sent=false order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
+	public List<RegistrationStatusEntity> getUnNotifiedPackets(@Param("statusCodes") List<String> statusCodes,@Param("fetchSize") Integer fetchSize);
 }
 
