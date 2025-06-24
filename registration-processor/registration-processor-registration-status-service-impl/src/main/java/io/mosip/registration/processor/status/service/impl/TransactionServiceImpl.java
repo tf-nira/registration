@@ -103,6 +103,22 @@ public class TransactionServiceImpl implements TransactionService<TransactionDto
 				"TransactionServiceImpl::addRegistrationTransaction()::exit");
 		return dto;
 	}
+	
+	@Override
+	public TransactionDto getTransactionByRegIdAndStatusComment(String regId, String statusComment) {
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), regId,
+				"TransactionServiceImpl::getTransactionByRegIdAndStatusComment()::entry");
+		TransactionDto dto = null;
+		List<TransactionEntity> transactionEntityList = transactionRepositary.getTransactionByRegIdAndStatusComment(regId,
+				statusComment);
+		if (!CollectionUtils.isEmpty(transactionEntityList)) {
+			dto = convertEntityToDto(transactionEntityList.get(0));
+		}
+
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), regId,
+				"TransactionServiceImpl::getTransactionByRegIdAndStatusComment()::exit");
+		return dto;
+	}
 
 	@Override
 	public List<RegistrationTransactionDto> getTransactionByRegId(String regId)

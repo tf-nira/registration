@@ -244,4 +244,8 @@ public class RegistrationStatusDao {
 
 		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), fetchSize);
 	}
+	
+	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {
+		return registrationStatusRepositary.getUnNotifiedPackets(statusCodes, fetchSize);
+	}
 }

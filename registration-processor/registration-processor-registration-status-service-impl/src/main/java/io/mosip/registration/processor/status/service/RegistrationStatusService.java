@@ -164,4 +164,5 @@ public interface RegistrationStatusService<T, U, D> {
 
 	public List<InternalRegistrationStatusDto> getResumablePackets(Integer fetchSize);
 
+	public List<InternalRegistrationStatusDto> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes);
 }
