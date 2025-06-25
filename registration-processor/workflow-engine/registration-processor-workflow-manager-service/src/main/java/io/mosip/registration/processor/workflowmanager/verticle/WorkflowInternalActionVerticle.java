@@ -394,6 +394,17 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
+		if(RegistrationType.MIGRATOR.toString().equalsIgnoreCase(registrationStatusDto.getRegistrationType())){
+			String dependentRid = packetManagerService.getField(workflowInternalActionDTO.getRid(),MappingJsonConstants.DEPENDENT_RID, RegistrationType.MIGRATOR.toString(), ProviderStageName.WORKFLOW_MANAGER);
+			if(dependentRid != null){
+				InternalRegistrationStatusDto dependentRidregistrationStatusDto = registrationStatusService
+						.getRegistrationStatus(dependentRid, RegistrationType.RENEWAL.toString(),
+								1,null);
+				dependentRidregistrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
+				dependentRidregistrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(dependentRidregistrationStatusDto, MODULE_ID, MODULE_NAME);
+			}
+		}
 		if (additionalInfoRequestDto != null) {
 			Map<String, String> tags = new HashMap<String, String>();
 			tags.put(workflowInternalActionDTO.getReg_type() + "_FLOW_STATUS",
