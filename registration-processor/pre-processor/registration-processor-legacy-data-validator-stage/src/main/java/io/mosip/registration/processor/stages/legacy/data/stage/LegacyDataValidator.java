@@ -194,108 +194,24 @@ public class LegacyDataValidator {
 				throw new DataMigrationException(error.getErrorCode(), error.getMessage());
 			}
 			else{
-				registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.ON_HOLD.toString());
-				registrationStatusDto.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
-				description.setMessage(PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage() + " -- " + registrationId);
-				description.setCode(PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+				MigrationResponse migrationResponse = objectMapper.readValue(
+							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+							MigrationResponse.class);
+				registrationStatusDto.setLatestTransactionStatusCode(
+										RegistrationTransactionStatusCode.ON_HOLD.toString());
+								registrationStatusDto.setStatusComment(
+										StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is "
+												+ migrationResponse.getRid());
+								registrationStatusDto
+										.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
+								registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
+
+								description.setMessage(
+										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
+												+ " -- " + registrationId);
+								description.setCode(
+										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
 			}
-
-
-//			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-//			boolean isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap, object);
-
-//			if (isPresentInlegacySystem) {
-//				regProcLogger.info("NIN is present in legacy system and call for ondemand migration : {}",
-//						registrationId);
-//					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-//					migrationRequestDto.setNin(NIN.toUpperCase());
-//					migrationRequestDto.setDependentRid(registrationId);
-//					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-//					requestWrapper.setRequest(migrationRequestDto);
-//					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-//							.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class,
-//									null);
-//					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
-//						regProcLogger.error("Error from migration api : {}{}", registrationId,
-//								JsonUtils.javaObjectToJsonString(responseWrapper));
-//						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-//						throw new DataMigrationException(error.getErrorCode(), error.getMessage());
-//					}
-//					MigrationResponse migrationResponse = objectMapper.readValue(
-//							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-//							MigrationResponse.class);
-//					Map<String, String> tags = new HashMap<>();
-//					tags = object.getTags();
-//					PacketDto packetDto = createOnDemandPacket(
-//							migrationResponse, registrationStatusDto, tags, description);
-//
-//					if (packetDto != null) {
-//						SyncRegistrationEntity syncRegistrationEntityForOndemand = createSyncAndRegistration(packetDto,
-//								registrationStatusDto.getRegistrationStageName());
-//
-//						if (syncRegistrationEntityForOndemand != null) {
-//							if (tags.get("META_INFO-META_DATA-registrationType")
-//									.equalsIgnoreCase(notAvailableTagValue)) {
-//								updatePacketStatus(registrationId, registrationStatusDto, description,
-//										syncRegistrationEntityForOndemand);
-//							} else {
-//								registrationStatusDto.setLatestTransactionStatusCode(
-//										RegistrationTransactionStatusCode.ON_HOLD.toString());
-//								registrationStatusDto.setStatusComment(
-//										StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is "
-//												+ syncRegistrationEntityForOndemand.getRegistrationId());
-//								registrationStatusDto
-//										.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
-//								registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
-//
-//								description.setMessage(
-//										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
-//												+ " -- " + registrationId);
-//								description.setCode(
-//										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
-//							}
-//
-//							object.setIsValid(true);
-//							object.setReg_type(syncRegistrationEntityForOndemand.getRegistrationType());
-//							object.setRid(syncRegistrationEntityForOndemand.getRegistrationId());
-//							object.setWorkflowInstanceId(syncRegistrationEntityForOndemand.getWorkflowInstanceId());
-//							regProcLogger.info("Ondemand Packet will move forward further stages : {} ",
-//									registrationId);
-//						}
-//					} else {
-//						if (tags.get("META_INFO-META_DATA-registrationType")
-//								.equalsIgnoreCase(notAvailableTagValue)) {
-//							updatePacketStatus(registrationId, registrationStatusDto, description,
-//									null);
-//							object.setIsValid(false);
-//
-//						}else {
-//						regProcLogger.info("Ondemand creation is failed packet going for reprocess : {} ",
-//								registrationId);
-//						registrationStatusDto
-//								.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
-//						registrationStatusDto
-//								.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getMessage());
-//						registrationStatusDto.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getCode());
-//						registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-//						description.setMessage(
-//								PlatformErrorMessages.RPR_LEGACY_DATA_VAL_ON_DEMAND_PACKET_CREATION_FAILED.getMessage()
-//										+ " -- "
-//										+ registrationId);
-//						description.setCode(
-//								PlatformErrorMessages.RPR_LEGACY_DATA_VAL_ON_DEMAND_PACKET_CREATION_FAILED.getCode());
-//						description.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_FAILED.getMessage());}
-//						object.setIsValid(true);
-//						object.setInternalError(true);
-//					}
-					
-//			} else {
-//				regProcLogger.error("NIN is not  present in legacy system : {}", registrationId);
-//				throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage(),
-//						StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());
-//			}
 		} else {
 			regProcLogger.info("NIN is present in mosip system : {}", registrationId);
 
@@ -303,7 +219,6 @@ public class LegacyDataValidator {
 			tags = object.getTags();
 			boolean getFirstIdAgeValidFlag = true;
 			boolean isValidCOP = true;
-			//String registrationId = registrationStatusDto.getRegistrationId();
 			String registrationType = registrationStatusDto.getRegistrationType();
 			//age check validation for get first id
 			if(registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
@@ -322,7 +237,6 @@ public class LegacyDataValidator {
 			if(registrationType.equalsIgnoreCase(RegistrationType.UPDATE.toString())){
 				String ChangeIncitizenshipTypeCop = packetManagerService.getField(registrationId,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, registrationType, ProviderStageName.LEGACY_DATA_VALIDATOR);
 				if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
-					//JSONObject demographicsJson = new JSONObject(demographics);
 					isValidCOP = isValidServiceTypeChange(jSONObject, registrationId, registrationType);
 				}
 			}
