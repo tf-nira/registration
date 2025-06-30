@@ -161,10 +161,7 @@ public abstract class MosipVerticleAPIManager extends MosipVerticleManager {
 							consumeAddress));
 		}
 
-		healthCheckHandler.register("diskSpace", healthCheckTimeOut, healthCheckHandler::dispSpaceHealthChecker);
-		if (!servletPath.contains("camel")) {
-		healthCheckHandler.register("db", healthCheckTimeOut, healthCheckHandler::databaseHealthChecker);
-		}
+		healthCheckHandler.register("diskSpace", healthCheckTimeOut, healthCheckHandler::dispSpaceHealthChecker);		
 	}
 
 	private boolean checkServletPath(String servletPath) {
