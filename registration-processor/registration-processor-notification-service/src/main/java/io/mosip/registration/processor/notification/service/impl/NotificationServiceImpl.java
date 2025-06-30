@@ -367,7 +367,7 @@ public class NotificationServiceImpl implements NotificationService {
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
 					}
 					
-					if (countryCode != null && countryCodeVal.equals("Uganda (256)")) {
+					if (countryCode != null && "Uganda (256)".equals(countryCode)) {
 						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
 					}
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
