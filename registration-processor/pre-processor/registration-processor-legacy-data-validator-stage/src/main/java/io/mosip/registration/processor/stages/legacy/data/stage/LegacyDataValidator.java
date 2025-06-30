@@ -183,8 +183,10 @@ public class LegacyDataValidator {
 				NIN = "CM44065102ADMJ";
 			} else {
 
-			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			isPresentInlegacySystem = checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap, object);
+				// Map<String, String> positionAndWsqMap =
+				// getBiometricsWSQFormat(registrationId, registrationStatusDto);
+				isPresentInlegacySystem = false;// checkNINAVailableInLegacy(registrationId, NIN, positionAndWsqMap,
+												// object);
 		}
 			if (isPresentInlegacySystem) {
 				regProcLogger.info("NIN is present in legacy system and call for ondemand migration : {}",
@@ -272,7 +274,7 @@ public class LegacyDataValidator {
 					
 			} else {
 				regProcLogger.error("NIN is not  present in legacy system : {}", registrationId);
-				throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage(),
+				throw new ValidationFailedException(StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage() + " temp",
 						StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());
 			}
 		} else {
