@@ -60,8 +60,8 @@ public class NotificationScheduler {
 		regProcLogger.info("Batch job for notifications started");
 		List<String> statusCodes = new ArrayList<String>();
 		statusCodes.add(RegistrationStatusCode.PROCESSED.toString());
-//		statusCodes.add(RegistrationStatusCode.FAILED.toString());
-//		statusCodes.add(RegistrationStatusCode.REJECTED.toString());
+		statusCodes.add(RegistrationStatusCode.FAILED.toString());
+		statusCodes.add(RegistrationStatusCode.REJECTED.toString());
 		List<InternalRegistrationStatusDto> packets = registrationStatusService.getUnNotifiedPackets(fetchSize, statusCodes);
 		
 		regProcLogger.info("Records picked for sending notifications: " + packets.size());
