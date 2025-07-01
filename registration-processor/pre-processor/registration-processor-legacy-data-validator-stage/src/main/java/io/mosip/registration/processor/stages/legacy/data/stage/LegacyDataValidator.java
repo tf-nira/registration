@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
+import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
@@ -148,6 +149,9 @@ public class LegacyDataValidator {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@Autowired
+	private LegacyValidationUtility legacyValidationUtility;
+
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
 	
@@ -163,10 +167,8 @@ public class LegacyDataValidator {
 	
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
-			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
-			ValidationFailedException, JAXBException, NoSuchAlgorithmException,
-			NumberFormatException, JSONException, DataMigrationException, LegacyDataBiomtericException,
-			LegacyDataValidationException {
+			throws IOException, JAXBException, NoSuchAlgorithmException, NumberFormatException, JSONException,
+			BaseCheckedException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
@@ -214,12 +216,19 @@ public class LegacyDataValidator {
 			}
 		} else {
 			regProcLogger.info("NIN is present in mosip system : {}", registrationId);
-
 			Map<String, String> tags = new HashMap<>();
 			tags = object.getTags();
 			boolean getFirstIdAgeValidFlag = true;
 			boolean isValidCOP = true;
+			boolean isValidRenewal = true;
 			String registrationType = registrationStatusDto.getRegistrationType();
+
+			if (tags.get("AGE_GROUP") == null
+					|| tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
+				Map<String, String> ageTags = legacyValidationUtility.generateAgeTags(registrationId,
+						registrationType);
+				tags.putAll(ageTags);
+			}
 			//age check validation for get first id
 			if(registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
 				String dateOfBirth = jSONObject.get("dateOfBirth").toString();
@@ -238,8 +247,21 @@ public class LegacyDataValidator {
 				String ChangeIncitizenshipTypeCop = packetManagerService.getField(registrationId,MappingJsonConstants.CHANGE_APPLICANT_CITIZENSHIPTYPECOP, registrationType, ProviderStageName.LEGACY_DATA_VALIDATOR);
 				if (ChangeIncitizenshipTypeCop!=null && "Y".equalsIgnoreCase(ChangeIncitizenshipTypeCop)){
 					isValidCOP = isValidServiceTypeChange(jSONObject, registrationId, registrationType);
+					if (!isValidCOP) {
+						description.setMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+						description.setCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+					}
+				}
+				isValidCOP = legacyValidationUtility.checkNumberOfSpouses(jSONObject, registrationId, registrationType);
+				if (!isValidCOP) {
+					description.setMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
+					description.setCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
 				}
 			}
+			if (registrationType.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) {
+				isValidRenewal = legacyValidationUtility.validateAgeToRenewal(registrationId, registrationType);
+			}
+					
 			if(!getFirstIdAgeValidFlag){
 				tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
 				description.setMessage(
@@ -249,10 +271,11 @@ public class LegacyDataValidator {
 			}
 			if(!isValidCOP) {
 				tags.put("META_INFO-META_DATA-registrationType",notAvailableTagValue);
-				description.setMessage(
-						StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getMessage());
-				description.setCode(
-						StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_USERSERVICETYPE.getCode());
+			}
+			if (!isValidRenewal) {
+				tags.put("META_INFO-META_DATA-registrationType", notAvailableTagValue);
+				description.setMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
+				description.setCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getCode());
 			}
 
 			if(tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
