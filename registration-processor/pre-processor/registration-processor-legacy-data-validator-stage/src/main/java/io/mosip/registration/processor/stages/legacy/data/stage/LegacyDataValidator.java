@@ -224,7 +224,7 @@ public class LegacyDataValidator {
 			String registrationType = registrationStatusDto.getRegistrationType();
 
 			if (tags.get("AGE_GROUP") == null
-					|| tags.get("META_INFO-META_DATA-registrationType").equalsIgnoreCase(notAvailableTagValue)) {
+					|| tags.get("AGE_GROUP").equalsIgnoreCase(notAvailableTagValue)) {
 				Map<String, String> ageTags = legacyValidationUtility.generateAgeTags(registrationId,
 						registrationType);
 				tags.putAll(ageTags);
