@@ -437,7 +437,7 @@ public enum StatusUtil {
 	LEGACY_DATA_VALIDATION_SUCCESS(StatusConstants.LEGACY_DATA_VALIDATION_SUCCESS + "001",
 			"Person found in mosip"),
 	LEGACY_DATA_VALIDATION_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "002",
-			"Biometrics - Person not found in legacy"),
+			"Data Validation failed"),
 	ON_DEMAND_PACKET_CREATION_SUCCESS(StatusConstants.LEGACY_DATA_VALIDATION_SUCCESS + "003",
 			"OnDemand Packet created"),
 	ON_DEMAND_PACKET_CREATION_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "004",
