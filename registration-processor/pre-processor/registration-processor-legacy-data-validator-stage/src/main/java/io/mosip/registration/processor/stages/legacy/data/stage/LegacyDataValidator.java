@@ -39,7 +39,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
-import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
@@ -167,8 +166,9 @@ public class LegacyDataValidator {
 	
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
-			throws IOException, JAXBException, NoSuchAlgorithmException, NumberFormatException, JSONException,
-			BaseCheckedException {
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
+			ValidationFailedException, JAXBException, NoSuchAlgorithmException, NumberFormatException, JSONException,
+			DataMigrationException, LegacyDataBiomtericException, LegacyDataValidationException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 

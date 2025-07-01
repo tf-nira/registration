@@ -11,13 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
+import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.util.JsonUtil;
@@ -80,11 +80,18 @@ public class LegacyValidationUtility {
 
 	/**
 	 * {@inheritDoc}
+	 * 
+	 * @throws IOException
+	 * @throws PacketManagerException
+	 * @throws JsonProcessingException
+	 * @throws ApisResourceAccessException
+	 * @throws ValidationFailedException
 	 */
 
 	public Map<String, String> generateAgeTags(String registrationId, String process)
-			throws BaseCheckedException {
-		try {
+			throws IOException, ApisResourceAccessException, JsonProcessingException, PacketManagerException,
+			ValidationFailedException {
+
 			String ageGroup = "";
 			int age = utility.getApplicantAge(registrationId, process, ProviderStageName.CLASSIFICATION);
 
@@ -100,17 +107,13 @@ public class LegacyValidationUtility {
 			}
 
 			if (ageGroup == null || ageGroup.trim().isEmpty())
-				throw new BaseCheckedException(PlatformErrorMessages.RPR_PCM_AGE_GROUP_NOT_FOUND.getCode(),
+				throw new ValidationFailedException(PlatformErrorMessages.RPR_PCM_AGE_GROUP_NOT_FOUND.getCode(),
 						PlatformErrorMessages.RPR_PCM_AGE_GROUP_NOT_FOUND.getMessage() + " Age: " + age);
 
 			Map<String, String> tags = new HashMap<String, String>();
 			tags.put(tagName, ageGroup);
 			return tags;
-		} catch (IOException e) {
-			throw new BaseCheckedException(
-					PlatformErrorMessages.RPR_PCM_ACCESSING_IDOBJECT_MAPPING_FILE_FAILED.getCode(),
-					PlatformErrorMessages.RPR_PCM_ACCESSING_IDOBJECT_MAPPING_FILE_FAILED.getMessage(), e);
-		}
+
 	}
 
 	public boolean checkNumberOfSpouses(JSONObject jsonObject, String id, String process)
