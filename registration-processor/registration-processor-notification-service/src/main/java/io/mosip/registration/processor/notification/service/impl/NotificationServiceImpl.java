@@ -369,6 +369,11 @@ public class NotificationServiceImpl implements NotificationService {
 					
 					if (countryCode != null && "Uganda (256)".equals(countryCode)) {
 						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
+					} else {
+						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), id,
+								"SMS notification not allowed for this country code.");
+						isSMSSuccess = true;
 					}
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
 						&& isTemplateAvailable(messageSenderDto)) {
@@ -390,7 +395,7 @@ public class NotificationServiceImpl implements NotificationService {
 					} else {
 						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 								LoggerFileConstant.REGISTRATIONID.toString(), id,
-								"enter else case" + enableEmailForOtherProcess);
+								"Email notification not allowed.");
 						isEmailSuccess = true;
 					}
 				} else {

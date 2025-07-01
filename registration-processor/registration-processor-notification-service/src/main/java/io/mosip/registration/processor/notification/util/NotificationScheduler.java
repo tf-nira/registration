@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.TransactionDto;
 import io.mosip.registration.processor.status.entity.BaseRegistrationPKEntity;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
+import io.mosip.registration.processor.status.service.NotificationMessageService;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.status.service.TransactionService;
 
@@ -45,6 +47,9 @@ public class NotificationScheduler {
 	
 	@Autowired
 	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
+	
+	@Autowired
+	private NotificationMessageService notificationMessageService;
 	
 	@Autowired
 	TransactionService<TransactionDto> transactionService;
@@ -83,8 +88,9 @@ public class NotificationScheduler {
 							workflowDto.setResultCode(ResultCode.PROCESSED.toString());
 						} else {
 							workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
-							//remove this when failed notification needs to send
-							sendNotification = false;
+							
+							Map<String, String> notificationAttibutes = notificationMessageService.getNotificationDetails(packet.getRegistrationId());
+							workflowDto.setNotificationAttributes(notificationAttibutes);
 						}
 					} else {
 						sendNotification = false;
@@ -102,8 +108,8 @@ public class NotificationScheduler {
 								workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_REJECTED.name());
 							}
 							
-							//remove this when rejected notification needs to send
-							sendNotification = false;
+							Map<String, String> notificationAttibutes = notificationMessageService.getNotificationDetails(packet.getRegistrationId());
+							workflowDto.setNotificationAttributes(notificationAttibutes);
 						}
 					} else {
 						sendNotification = false;
