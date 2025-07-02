@@ -3,7 +3,10 @@ package io.mosip.registration.processor.stages.utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -99,6 +102,9 @@ public class NotificationUtility {
 	@Value("${registration.processor.notification.service.email.enable.for.other.process:true}")
 	private boolean enableEmailForOtherProcess;
 
+	@Value("${registration.processor.notification.timezone}")
+	private String timeZone;
+
 	/** The env. */
 	@Autowired
 	private Environment env;
@@ -163,47 +169,61 @@ public class NotificationUtility {
                 MappingJsonConstants.VALUE);
 		String[] nameArray = nameField.toString().split(",");
 		for(String preferredLanguage:preferredLanguages) {
-//		if (registrationAdditionalInfoDTO.getName() != null) {
-//			attributes.put(nameArray[0] + "_" + preferredLanguage, registrationAdditionalInfoDTO.getName());
-//		} else {
-//			attributes.put(nameArray[0] + "_" + preferredLanguage, "");
-//		}
-//		if (nameArray.length > 1) {
-//			for (int i = 1; i < nameArray.length; i++) {
-//				attributes.put(nameArray[i] + "_" + preferredLanguage, "");
-//			}
-//		}
-		
-		attributes.put(nameArray[0] + "_" + preferredLanguage, "applicant");
-		
-		if (isProcessingSuccess) {
-			type = setNotificationTemplateType(registrationStatusDto, type);
-		} else if (!isValidSupervisorStatus) {
-			type = NotificationTemplateType.SUP_REJECT;
-		} else {
-			type = NotificationTemplateType.TECHNICAL_ISSUE;
-		}
-		if (type != null) {
-			setTemplateAndSubject(type, regType, messageSenderDTO);
-		}
+			attributes.put(nameArray[0] + "_" + preferredLanguage, "applicant");
 
-		if (allNotificationTypes != null) {
-			for (String notificationType : allNotificationTypes) {
-				if (notificationType.equalsIgnoreCase("EMAIL")
-						&& (registrationAdditionalInfoDTO.getEmail() != null
-						&& !registrationAdditionalInfoDTO.getEmail().isEmpty())) {
-					if (registrationStatusDto.getRegistrationType().equals("UPDATE") || enableEmailForOtherProcess) {
-						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-								LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
-								"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
-					sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
-				}
-				} else if (notificationType.equalsIgnoreCase("SMS") && (registrationAdditionalInfoDTO.getPhone() != null
-						&& !registrationAdditionalInfoDTO.getPhone().isEmpty())) {
-					sendSMSNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
+			String userService = "";
+			if ("NEW".equals(regType)) {
+				userService = "New Registration";
+			} else if ("LOST".equals(regType)) {
+				userService = "Replacement Of Card";
+			} else if ("UPDATE".equals(regType)) {
+				userService = "Change Of Particulars";
+			} else if ("RENEWAL".equals(regType)) {
+				userService = "Renewal Of Card";
+			}else if ("FIRSTID".equals(regType)) {
+				userService = "Get First ID";
+			}
+			attributes.put("SERVICE", userService);
+
+			DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
+			DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mma");
+
+			LocalDateTime now = LocalDateTime.now();
+			Instant nowUtc = Instant.now();
+			ZoneId countryZoneId = ZoneId.of(timeZone);
+			ZonedDateTime nowCountryTime = ZonedDateTime.ofInstant(nowUtc, countryZoneId);
+
+			attributes.put("DATE", dateFormatter.format(now));
+			attributes.put("TIME", timeFormatter.format(nowCountryTime));
+
+			if (isProcessingSuccess) {
+				type = setNotificationTemplateType(registrationStatusDto, type);
+			} else if (!isValidSupervisorStatus) {
+				type = NotificationTemplateType.SUP_REJECT;
+			} else {
+				type = NotificationTemplateType.TECHNICAL_ISSUE;
+			}
+			if (type != null) {
+				setTemplateAndSubject(type, regType, messageSenderDTO);
+			}
+
+			if (allNotificationTypes != null) {
+				for (String notificationType : allNotificationTypes) {
+					if (notificationType.equalsIgnoreCase("EMAIL")
+							&& (registrationAdditionalInfoDTO.getEmail() != null
+							&& !registrationAdditionalInfoDTO.getEmail().isEmpty())) {
+						if (registrationStatusDto.getRegistrationType().equals("UPDATE") || enableEmailForOtherProcess) {
+							regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+									LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+									"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
+							sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
+						}
+					} else if (notificationType.equalsIgnoreCase("SMS") && (registrationAdditionalInfoDTO.getPhone() != null
+							&& !registrationAdditionalInfoDTO.getPhone().isEmpty())) {
+						sendSMSNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
+					}
 				}
 			}
-		}
 		}
 	}
 

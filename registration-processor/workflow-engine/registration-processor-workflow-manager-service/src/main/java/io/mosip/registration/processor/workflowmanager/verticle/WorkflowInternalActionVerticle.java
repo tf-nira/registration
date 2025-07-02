@@ -65,6 +65,7 @@ import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.exception.TablenotAccessibleException;
 import io.mosip.registration.processor.status.service.AdditionalInfoRequestService;
 import io.mosip.registration.processor.status.service.AnonymousProfileService;
+import io.mosip.registration.processor.status.service.NotificationMessageService;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.workflowmanager.service.WorkflowActionService;
 import io.mosip.registration.processor.workflowmanager.util.WebSubUtil;
@@ -118,6 +119,9 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 	@Autowired
 	private AnonymousProfileService anonymousProfileService;
+	
+	@Autowired
+	private NotificationMessageService notificationMessageService;
 
 	private MosipEventBus mosipEventBus = null;
 	
@@ -507,6 +511,12 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 		}
 
+		Map<String, String> notificationAtrributes = workflowInternalActionDTO.getNotificationAttributes();
+		
+		if (notificationAtrributes != null) {
+			notificationMessageService.saveNotificationDetails(registrationStatusDto.getRegistrationId(), notificationAtrributes);	
+		}
+		
 		webSubUtil.publishEvent(workflowCompletedEventDTO);
 	}
 	}
