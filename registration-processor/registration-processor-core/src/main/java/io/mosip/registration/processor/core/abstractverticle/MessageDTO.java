@@ -44,6 +44,16 @@ public class MessageDTO implements Serializable {
 	
 	private Map<String, String> notificationAttributes;
 
+	private Boolean onHold;
+
+	public Boolean getOnHold() {
+		return onHold;
+	}
+
+	public void setOnHold(Boolean onHold) {
+		this.onHold = onHold;
+	}
+
 	/**
 	 * Instantiates a new message DTO.
 	 */

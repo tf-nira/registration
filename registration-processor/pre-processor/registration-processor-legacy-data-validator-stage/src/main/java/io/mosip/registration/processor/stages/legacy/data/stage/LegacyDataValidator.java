@@ -157,9 +157,11 @@ public class LegacyDataValidator {
 												+ " -- " + registrationId);
 								description.setCode(
 										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+								object.setOnHold(true);
 			}
 		} else {
 			regProcLogger.info("NIN is present in mosip system : {}", registrationId);
+			object.setOnHold(false);
 			Map<String, String> tags = new HashMap<>();
 			tags = object.getTags();
 			boolean getFirstIdAgeValidFlag = true;
@@ -173,6 +175,7 @@ public class LegacyDataValidator {
 						registrationType);
 				tags.putAll(ageTags);
 			}
+			object.setTags(tags);
 			//age check validation for get first id
 			if(registrationType.equalsIgnoreCase(RegistrationType.FIRSTID.toString())) {
 				String dateOfBirth = jSONObject.get("dateOfBirth").toString();
