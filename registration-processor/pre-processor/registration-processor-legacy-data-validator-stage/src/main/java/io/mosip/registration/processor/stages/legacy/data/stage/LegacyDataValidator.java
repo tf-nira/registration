@@ -173,6 +173,7 @@ public class LegacyDataValidator {
 					|| tags.get("AGE_GROUP").equalsIgnoreCase(notAvailableTagValue)) {
 				Map<String, String> ageTags = legacyValidationUtility.generateAgeTags(registrationId,
 						registrationType);
+				packetManagerService.addOrUpdateTags(registrationId, ageTags);
 				tags.putAll(ageTags);
 			}
 			object.setTags(tags);
