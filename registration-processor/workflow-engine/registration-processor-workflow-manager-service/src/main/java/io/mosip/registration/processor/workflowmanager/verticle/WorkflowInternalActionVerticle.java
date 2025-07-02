@@ -409,6 +409,8 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 								1,null);
 				dependentRidregistrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
 				dependentRidregistrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+				dependentRidregistrationStatusDto
+						.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 				registrationStatusService.updateRegistrationStatusForWorkflowEngine(dependentRidregistrationStatusDto, MODULE_ID, MODULE_NAME);
 				regProcLogger.info("updated status for  dependent registration id {}", dependentRid);
 			}
