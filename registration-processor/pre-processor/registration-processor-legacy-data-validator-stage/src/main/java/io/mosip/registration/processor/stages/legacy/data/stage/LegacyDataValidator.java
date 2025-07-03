@@ -47,7 +47,7 @@ import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
-import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
+import io.mosip.registration.processor.core.migration.dto.MigrationRequestUpdateDto;
 import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
@@ -125,11 +125,11 @@ public class LegacyDataValidator {
 		if (jSONObject == null) {
 			regProcLogger.info("call for ondemand migration Started: {}",
 					registrationId);
-			MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-			migrationRequestDto.setNin(NIN.toUpperCase());
-			migrationRequestDto.setDependentRid(registrationId);
-			RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-			requestWrapper.setRequest(migrationRequestDto);
+			MigrationRequestUpdateDto migrationRequestUpdateDto = new MigrationRequestUpdateDto();
+			migrationRequestUpdateDto.setNin(NIN.toUpperCase());
+			migrationRequestUpdateDto.setDependentRid(registrationId);
+			RequestWrapper<MigrationRequestUpdateDto> requestWrapper = new RequestWrapper();
+			requestWrapper.setRequest(migrationRequestUpdateDto);
 			ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
 					.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class,
 							null);
