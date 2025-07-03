@@ -10,6 +10,5 @@ import lombok.EqualsAndHashCode;
 public class MigrationRequestDto implements Serializable {
 
 	private String nin;
-	private String dependentRid;
 
 }
