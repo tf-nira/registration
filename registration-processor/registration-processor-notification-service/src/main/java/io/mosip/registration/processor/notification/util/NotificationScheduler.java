@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,6 +72,8 @@ public class NotificationScheduler {
 		
 		regProcLogger.info("Records picked for sending notifications: " + packets.size());
 		
+		AtomicInteger notificationsSent = new AtomicInteger(0);
+		
 		packets.forEach(packet -> {
 			try {
 				WorkflowCompletedEventDTO workflowDto = new WorkflowCompletedEventDTO();
@@ -120,6 +123,7 @@ public class NotificationScheduler {
 					regProcLogger.info("Sending notification for rid: " + packet.getRegistrationId());
 					notificationService.process(workflowDto);
 					
+					notificationsSent.incrementAndGet();
 					packet.setNotificationSent(true);
 					packet.setUpdatedBy(USER);
 					packet.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
@@ -130,6 +134,7 @@ public class NotificationScheduler {
 				regProcLogger.error("Failed to send notification: " + e.getMessage() , e);
 			}
 		});
+		regProcLogger.info("Batch job completed, notifications sent: " + notificationsSent.get());
 	}
 	
 	private RegistrationStatusEntity convertDtoToEntity(InternalRegistrationStatusDto dto) {

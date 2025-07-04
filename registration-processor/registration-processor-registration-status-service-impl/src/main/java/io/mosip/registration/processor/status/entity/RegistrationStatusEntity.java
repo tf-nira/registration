@@ -145,6 +145,9 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 	
 	@Column(name = "notification_sent")
 	private Boolean notificationSent;
+	
+	@Column(name = "is_anonymous_profile_added")
+	private Boolean isAnonymousProfileAdded;
 
 	/**
 	 * Instantiates a new registration status entity.
@@ -642,6 +645,14 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 	public void setNotificationSent(Boolean notificationSent) {
 		this.notificationSent = notificationSent;
 	}
+	
+	public Boolean getIsAnonymousProfileAdded() {
+		return isAnonymousProfileAdded;
+	}
+
+	public void setIsAnonymousProfileAdded(Boolean isAnonymousProfileAdded) {
+		this.isAnonymousProfileAdded = isAnonymousProfileAdded;
+	}
 
 	@Override
 	public boolean equals(Object o) {
@@ -677,11 +688,12 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 				Objects.equals(pauseRuleIds, that.pauseRuleIds) &&
 				Objects.equals(lastSuccessStageName, that.lastSuccessStageName) &&
 				Objects.equals(needsNotification, that.needsNotification) &&
-				Objects.equals(notificationSent, that.notificationSent);
+				Objects.equals(notificationSent, that.notificationSent) &&
+				Objects.equals(isAnonymousProfileAdded, that.isAnonymousProfileAdded);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, regId, registrationType, iteration, referenceRegistrationId, source, statusCode, langCode, statusComment, latestRegistrationTransactionId, isActive, createdBy, createDateTime, updatedBy, updateDateTime, isDeleted, deletedDateTime, retryCount, applicantType, latestTransactionTypeCode, latestTransactionStatusCode, latestTransactionTimes, registrationStageName, regProcessRetryCount, resumeTimeStamp, defaultResumeAction, pauseRuleIds, lastSuccessStageName, needsNotification, notificationSent);
+		return Objects.hash(id, regId, registrationType, iteration, referenceRegistrationId, source, statusCode, langCode, statusComment, latestRegistrationTransactionId, isActive, createdBy, createDateTime, updatedBy, updateDateTime, isDeleted, deletedDateTime, retryCount, applicantType, latestTransactionTypeCode, latestTransactionStatusCode, latestTransactionTimes, registrationStageName, regProcessRetryCount, resumeTimeStamp, defaultResumeAction, pauseRuleIds, lastSuccessStageName, needsNotification, notificationSent, isAnonymousProfileAdded);
 	}
 }

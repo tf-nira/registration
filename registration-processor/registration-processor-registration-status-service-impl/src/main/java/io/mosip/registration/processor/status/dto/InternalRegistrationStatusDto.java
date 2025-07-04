@@ -111,6 +111,8 @@ public class InternalRegistrationStatusDto implements Serializable {
 	private Boolean needsNotification;
 	
 	private Boolean notificationSent;
+	
+	private Boolean isAnonymousProfileAdded;
 
 	/**
 	 * Gets the ref id.
@@ -663,6 +665,14 @@ public class InternalRegistrationStatusDto implements Serializable {
 
 	public void setNotificationSent(Boolean notificationSent) {
 		this.notificationSent = notificationSent;
+	}
+	
+	public Boolean getIsAnonymousProfileAdded() {
+		return isAnonymousProfileAdded;
+	}
+
+	public void setIsAnonymousProfileAdded(Boolean isAnonymousProfileAdded) {
+		this.isAnonymousProfileAdded = isAnonymousProfileAdded;
 	}
 
 	@Override

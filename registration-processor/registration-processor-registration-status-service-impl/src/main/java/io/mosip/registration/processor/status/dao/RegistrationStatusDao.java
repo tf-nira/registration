@@ -248,4 +248,8 @@ public class RegistrationStatusDao {
 	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {
 		return registrationStatusRepositary.getUnNotifiedPackets(statusCodes, fetchSize);
 	}
+	
+	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(Integer fetchSize) {
+		return registrationStatusRepositary.getAnonymousNotAddedPackets(fetchSize);
+	}
 }

@@ -644,6 +644,7 @@ public class RegistrationStatusServiceImpl
 		registrationStatusDto.setPacketCreateDateTime(entity.getPacketCreatedDateTime());
 		registrationStatusDto.setNeedsNotification(entity.getNeedsNotification());
 		registrationStatusDto.setNotificationSent(entity.getNotificationSent());
+		registrationStatusDto.setIsAnonymousProfileAdded(entity.getIsAnonymousProfileAdded());
 		return registrationStatusDto;
 	}
 
@@ -889,6 +890,27 @@ public class RegistrationStatusServiceImpl
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"RegistrationStatusServiceImpl::getUnNotifiedPackets()::exit");
+
+			return convertEntityListToDtoList(entityList);
+
+		} catch (DataAccessException | DataAccessLayerException e) {
+
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", e.getMessage() + ExceptionUtils.getStackTrace(e));
+			throw new TablenotAccessibleException(
+					PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE.getMessage(), e);
+		}
+	}
+	
+	@Override
+	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(Integer fetchSize) {
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
+				"RegistrationStatusServiceImpl::getAnonymousNotAddedPackets()::entry");
+		try {
+			List<RegistrationStatusEntity> entityList = registrationStatusDao.getAnonymousNotAddedPackets(fetchSize);
+
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
+					"RegistrationStatusServiceImpl::getAnonymousNotAddedPackets()::exit");
 
 			return convertEntityListToDtoList(entityList);
 
