@@ -8,7 +8,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.dao.DataAccessException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
@@ -44,7 +45,8 @@ import io.mosip.registration.processor.status.exception.TablenotAccessibleExcept
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 
 @RefreshScope
-@Component
+@Service
+@Transactional
 public class LegacyDataValidateProcessor {
 	/**
 	 * The reg proc logger.
