@@ -12,8 +12,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -58,8 +57,7 @@ import io.vertx.core.json.JsonObject;
  * @since 0.10.0
  *
  */
-@Service
-@Transactional
+@Component
 public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 	private static final String VERTICLE_PROPERTY_PREFIX = "mosip.regproc.reprocessor.";
