@@ -223,6 +223,8 @@ public class NotificationServiceImpl implements NotificationService {
 				if (object.getNotificationAttributes() != null && !object.getNotificationAttributes().isEmpty()) {
 					attributes.putAll(object.getNotificationAttributes());
 				}
+
+				attributes.put("service", workflowType);
 				
 				String[] ccEMailList = null;
 
