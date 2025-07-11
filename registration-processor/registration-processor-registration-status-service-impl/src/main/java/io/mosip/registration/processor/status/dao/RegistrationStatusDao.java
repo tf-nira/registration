@@ -98,6 +98,16 @@ public class RegistrationStatusDao {
 	}
 
 	/**
+	 * 
+	 * @param toBeUpdatedList
+	 * @return
+	 */
+	public List<RegistrationStatusEntity> saveAll(List<RegistrationStatusEntity> toBeUpdatedList) {
+
+		return registrationStatusRepositary.saveAll(toBeUpdatedList);
+	}
+	
+	/**
 	 * Find by id.
 	 *
 	 * @param rid
