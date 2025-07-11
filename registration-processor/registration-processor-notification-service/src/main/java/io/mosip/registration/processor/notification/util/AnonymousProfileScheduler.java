@@ -1,17 +1,24 @@
 package io.mosip.registration.processor.notification.util;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
 
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -26,11 +33,14 @@ import io.mosip.registration.processor.status.dao.RegistrationStatusDao;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.TransactionDto;
+import io.mosip.registration.processor.status.entity.AnonymousProfileEntity;
+import io.mosip.registration.processor.status.entity.AnonymousProfilePKEntity;
 import io.mosip.registration.processor.status.entity.BaseRegistrationPKEntity;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import io.mosip.registration.processor.status.service.AnonymousProfileService;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.status.service.TransactionService;
+import io.mosip.registration.processor.status.utilities.RegistrationUtility;
 
 @Component
 public class AnonymousProfileScheduler {
@@ -38,8 +48,14 @@ public class AnonymousProfileScheduler {
 	private static Logger regProcLogger = RegProcessorLogger.getLogger(AnonymousProfileScheduler.class);
 	private static final String USER = "MOSIP_SYSTEM";
 	
-	@Value("${mosip.anonymous.profile.scheduler.fetchsize:5}")
+	@Value("${mosip.anonymous.profile.scheduler.fetchsize:1000}")
 	private Integer fetchSize;
+	
+	@Value("${{mosip.anonymous.profile.scheduler.threads.count:30}")
+	private Integer numberOfThreads;
+	
+	@Value("${mosip.anonymous.profile.bioInfo.required:true}")
+    private boolean anonymousProfileBioInfoRequired;
 	
 	@Autowired
 	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
@@ -62,59 +78,110 @@ public class AnonymousProfileScheduler {
 	@Autowired
 	private AnonymousProfileService anonymousProfileService;
 	
+	private ExecutorService executorService;
+	
+   JSONObject regProcessorIdentityJson = null;	
+   String idSchemaVersionValue = null;
+   List<RegistrationStatusEntity> toBeUpdatedRegStatusRecords = new ArrayList<>();
+   List<AnonymousProfileEntity> toBeUpdatedAnonymousProfiles = new ArrayList<>();
+   
+	@PostConstruct
+    public void init() {
+        this.executorService = Executors.newFixedThreadPool(numberOfThreads);		
+		try {
+			regProcessorIdentityJson = utility
+					.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+			idSchemaVersionValue = JsonUtil.getJSONValue(
+					JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.IDSCHEMA_VERSION),
+					MappingJsonConstants.VALUE);
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+	
 	@Scheduled(cron = "${mosip.anonymous.profile.scheduler.cron.expression:0 0/3 * * * ?}")
 	public void addAnonymousprofile() {
 		regProcLogger.info("Batch job for anonymous profile started");
-		List<InternalRegistrationStatusDto> packets = registrationStatusService.getAnonymousNotAddedPackets(fetchSize);
+		toBeUpdatedRegStatusRecords.clear();
+		toBeUpdatedAnonymousProfiles.clear();
 		
+		List<InternalRegistrationStatusDto> packets = getAnonymousNotAddedPackets();
 		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
-		
-		AtomicInteger profileAdded = new AtomicInteger(0);
-		
-		packets.forEach(packet -> {
-			try {
-				String json = null;
-				String registrationId = packet.getRegistrationId();
-				String registrationType = packet.getRegistrationType();
+		List<CompletableFuture<Void>> allBatches = packets.stream().map(packet -> CompletableFuture
+				.runAsync(() -> insertAnonymousProfile(packet), executorService).exceptionally(ex -> {
+					return null;
+				})).collect(Collectors.toList());
 
-				regProcLogger.info("Adding anonymous profile for registration id {}", registrationId);
-
-//				InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
-//						registrationId, registrationType, packet.getIteration(),
-//						packet.getWorkflowInstanceId());
-				JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
-				String idSchemaVersionValue = JsonUtil.getJSONValue(JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.IDSCHEMA_VERSION), MappingJsonConstants.VALUE);
-				String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId,
-						idSchemaVersionValue, registrationType, ProviderStageName.WORKFLOW_MANAGER);
-				Map<String,String> fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(
-						Double.parseDouble(schemaVersion));
-				Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
-						idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
-						ProviderStageName.WORKFLOW_MANAGER);
-				Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(registrationId, registrationType,
-						ProviderStageName.WORKFLOW_MANAGER);
-				BiometricRecord biometricRecord = packetManagerService.getBiometrics(registrationId,
-						MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationType, ProviderStageName.WORKFLOW_MANAGER);
-				json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
-						metaInfoMap, packet.getStatusCode(), packet.getRegistrationStageName());
-				anonymousProfileService.saveAnonymousProfile(registrationId, packet.getRegistrationStageName(), json);
-				
-				regProcLogger.info("added anonymous profile for registration id {}", registrationId);
-				
-				profileAdded.incrementAndGet();
-				packet.setIsAnonymousProfileAdded(true);
-				packet.setUpdatedBy(USER);
-				packet.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
-				RegistrationStatusEntity entity = convertDtoToEntity(packet);
-				registrationStatusDao.save(entity);
-			} catch (Exception e) {
-				regProcLogger.error("Failed to add anonymous profile: " + e.getMessage() , e);
-			}
-		});
-		regProcLogger.info("Batch job completed, profile added: " + profileAdded.get());
+		CompletableFuture<Void> allOfFuture = CompletableFuture.allOf(allBatches.toArray(new CompletableFuture[0]));
+		allOfFuture.join();
+		if (toBeUpdatedRegStatusRecords.size() > 0) {
+			updateRegistartionRecords(toBeUpdatedRegStatusRecords);
+		}
+		if(toBeUpdatedAnonymousProfiles.size() > 0) {
+			insertAnonymousProfiles(toBeUpdatedAnonymousProfiles);
+		}
 	}
 	
-	private RegistrationStatusEntity convertDtoToEntity(InternalRegistrationStatusDto dto) {
+	@Transactional(readOnly = true)
+	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(){
+		return registrationStatusService.getAnonymousNotAddedPackets(fetchSize);
+	}
+	
+	@Transactional
+	public void updateRegistartionRecords(List<RegistrationStatusEntity> toBeUpdatedList) {
+		registrationStatusDao.saveAll(toBeUpdatedList);
+	}
+	
+	public void insertAnonymousProfiles(List<AnonymousProfileEntity> toBeUpdatedAnonymousProfiles) {
+		anonymousProfileService.saveAnonymousProfiles(toBeUpdatedAnonymousProfiles);
+	}	
+	
+	private void addToBeUpdatedAnonymousProfileList(String regId, String processStage, String profileJson) {
+		AnonymousProfileEntity anonymousProfileEntity=new AnonymousProfileEntity();
+		AnonymousProfilePKEntity anonymousProfilePKEntity=new AnonymousProfilePKEntity();
+		anonymousProfilePKEntity.setId(RegistrationUtility.generateId());
+		anonymousProfileEntity.setId(anonymousProfilePKEntity);
+		anonymousProfileEntity.setProfile(profileJson);
+		anonymousProfileEntity.setProcessStage(processStage);
+		anonymousProfileEntity.setCreatedBy("SYSTEM");
+		anonymousProfileEntity.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+		anonymousProfileEntity.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+		anonymousProfileEntity.setIsDeleted(false);
+		toBeUpdatedAnonymousProfiles.add(anonymousProfileEntity);
+	}
+	private void insertAnonymousProfile(InternalRegistrationStatusDto packet) {
+		try {
+			String json = null;
+			String registrationId = packet.getRegistrationId();
+			String registrationType = packet.getRegistrationType();
+
+			regProcLogger.info("Adding anonymous profile for registration id {}", registrationId);
+			
+			String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId, idSchemaVersionValue,
+					registrationType, ProviderStageName.WORKFLOW_MANAGER);
+			Map<String, String> fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(Double.parseDouble(schemaVersion));
+			Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
+					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
+					ProviderStageName.WORKFLOW_MANAGER);
+			Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(registrationId, registrationType,
+					ProviderStageName.WORKFLOW_MANAGER);
+			BiometricRecord biometricRecord = null;
+			if(anonymousProfileBioInfoRequired) {
+				biometricRecord = packetManagerService.getBiometrics(registrationId,
+						MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationType, ProviderStageName.WORKFLOW_MANAGER);				
+			}
+			json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
+					metaInfoMap, packet.getStatusCode(), packet.getRegistrationStageName());
+			addToBeUpdatedAnonymousProfileList(registrationId, packet.getRegistrationStageName(), json);			
+			convertAndAddToBeUpdatedRegStatusRecords(packet);
+		} catch (Exception e) {
+			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
+		}
+	}
+
+	private void convertAndAddToBeUpdatedRegStatusRecords(InternalRegistrationStatusDto dto) {
 		BaseRegistrationPKEntity pk = new BaseRegistrationPKEntity();
 		pk.setWorkflowInstanceId(dto.getWorkflowInstanceId());
 
@@ -135,8 +202,8 @@ public class AnonymousProfileScheduler {
 		} else {
 			registrationStatusEntity.setCreateDateTime(dto.getCreateDateTime());
 		}
-		registrationStatusEntity.setUpdatedBy(dto.getUpdatedBy());
-		registrationStatusEntity.setUpdateDateTime(dto.getUpdateDateTime());
+		registrationStatusEntity.setUpdatedBy("anonymous");
+		registrationStatusEntity.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 		registrationStatusEntity.setIsDeleted(dto.isDeleted());
 
 		if (registrationStatusEntity.isDeleted() != null && registrationStatusEntity.isDeleted()) {
@@ -156,8 +223,8 @@ public class AnonymousProfileScheduler {
 		registrationStatusEntity.setDefaultResumeAction(dto.getDefaultResumeAction());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
 		registrationStatusEntity.setNotificationSent(dto.getNotificationSent());
-		registrationStatusEntity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
-		return registrationStatusEntity;
+		registrationStatusEntity.setIsAnonymousProfileAdded(true);
+		toBeUpdatedRegStatusRecords.add(registrationStatusEntity);
 	}
 	
 }
