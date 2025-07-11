@@ -22,7 +22,7 @@ on:
       - develop
       - tf_nira_dev
       - tf_nira_prod
-      - tf_nira_prod_tmp
+      - tf_nira_prod*
 
 jobs:
   build-maven-registration:
