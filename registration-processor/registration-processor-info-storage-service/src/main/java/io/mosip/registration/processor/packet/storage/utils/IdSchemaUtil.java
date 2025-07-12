@@ -53,7 +53,7 @@ public class IdSchemaUtil {
         List<String> fieldList = new ArrayList<>();
         List<Map<String, String>> fieldMapList = loadDefaultFields(schemaVersion);
         fieldMapList.stream().forEach(f -> fieldList.add(f.get(SCHEMA_ID)));
-        if(schemaWithDefaultFields != null) {
+        if(schemaWithDefaultFields == null) {
         	schemaWithDefaultFields = new HashMap<>();
         	schemaWithDefaultFields.put(schemaVersion, fieldList);
         }else {
