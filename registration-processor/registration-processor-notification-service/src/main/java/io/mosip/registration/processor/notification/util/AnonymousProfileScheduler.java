@@ -51,11 +51,11 @@ public class AnonymousProfileScheduler {
 	@Value("${mosip.anonymous.profile.scheduler.fetchsize:1000}")
 	private Integer fetchSize;
 	
-	@Value("${{mosip.anonymous.profile.scheduler.threads.count:30}")
+	@Value("${mosip.anonymous.profile.scheduler.threads.count:30}")
 	private Integer numberOfThreads;
 	
 	@Value("${mosip.anonymous.profile.bioInfo.required:true}")
-    private boolean anonymousProfileBioInfoRequired;
+        private boolean anonymousProfileBioInfoRequired;
 	
 	@Autowired
 	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
