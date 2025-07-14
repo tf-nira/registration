@@ -3,20 +3,12 @@ package io.mosip.registration.processor.packet.storage.utils;
 import io.mosip.registration.processor.core.code.ApiName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
-import io.mosip.registration.processor.rest.client.utils.RestApiClient;
 import org.assertj.core.util.Lists;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +20,8 @@ public class IdSchemaUtil {
 
     private static Map<String, String> categorySubpacketMapping = new HashMap<>();
     private Map<Double, String> idschema = null;
+    private Map<Double, List<String>> schemaWithDefaultFields = null;
+    private Map<Double, Map<String, String>> schemaWithFieldTypes = null;
     public static final String RESPONSE = "response";
     public static final String PROPERTIES = "properties";
     public static final String IDENTITY = "identity";
@@ -49,15 +43,23 @@ public class IdSchemaUtil {
     }
 
     @Autowired
-    private Environment env;
-
-    @Autowired
     RegistrationProcessorRestClientService<Object> registrationProcessorRestClientService;
 
     public List<String> getDefaultFields(Double schemaVersion) throws JSONException, ApisResourceAccessException, IOException {
+    	if(schemaWithDefaultFields != null && !schemaWithDefaultFields.isEmpty() && schemaWithDefaultFields.get(schemaVersion) != null) {
+    		return schemaWithDefaultFields.get(schemaVersion);
+    	}
+    		
         List<String> fieldList = new ArrayList<>();
         List<Map<String, String>> fieldMapList = loadDefaultFields(schemaVersion);
         fieldMapList.stream().forEach(f -> fieldList.add(f.get(SCHEMA_ID)));
+        if(schemaWithDefaultFields == null) {
+        	schemaWithDefaultFields = new HashMap<>();
+        	schemaWithDefaultFields.put(schemaVersion, fieldList);
+        }else {
+        	schemaWithDefaultFields.put(schemaVersion, fieldList);
+        }
+        
         return fieldList;
     }
 
@@ -129,7 +131,10 @@ public class IdSchemaUtil {
     }
 
     public Map<String, String> getIdSchemaFieldTypes(Double schemaVersion) throws JSONException, ApisResourceAccessException, IOException {
-        Map<String, String> fieldTypesMap = new HashMap<String, String>();
+        if(schemaWithFieldTypes != null && !schemaWithFieldTypes.isEmpty() && schemaWithFieldTypes.get(schemaVersion) != null) {
+        	return schemaWithFieldTypes.get(schemaVersion);
+        }
+    	Map<String, String> fieldTypesMap = new HashMap<String, String>();
 
         String schemaJson = getIdSchema(schemaVersion);
         JSONObject schema = getIdentityFieldsSchema(schemaJson);
@@ -144,6 +149,12 @@ public class IdSchemaUtil {
             else
                 fieldType = fieldDetail.getString(SCHEMA_TYPE);
             fieldTypesMap.put(fieldName, fieldType);
+        }
+        if(schemaWithFieldTypes == null) {
+        	schemaWithFieldTypes = new HashMap<>();
+        	schemaWithFieldTypes.put(schemaVersion, fieldTypesMap);        	
+        }else {
+        	schemaWithFieldTypes.put(schemaVersion, fieldTypesMap);
         }
         return fieldTypesMap;
     }

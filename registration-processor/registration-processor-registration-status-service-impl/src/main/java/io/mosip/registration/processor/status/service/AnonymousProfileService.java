@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.status.service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONException;
@@ -10,6 +11,7 @@ import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
+import io.mosip.registration.processor.status.entity.AnonymousProfileEntity;
 
 @Service
 public interface AnonymousProfileService {
@@ -25,4 +27,6 @@ public interface AnonymousProfileService {
 	public String buildJsonStringFromPacketInfo(BiometricRecord biometricRecord, Map<String, String> fieldMap,
 			Map<String, String> fieldTypeMap, Map<String, String> metaInfoMap, String statusCode, String processStage)
 			throws JSONException, ApisResourceAccessException, PacketManagerException, IOException, BaseCheckedException;
+	
+	public void saveAnonymousProfiles(List<AnonymousProfileEntity> anonymousProfiles);
 }
