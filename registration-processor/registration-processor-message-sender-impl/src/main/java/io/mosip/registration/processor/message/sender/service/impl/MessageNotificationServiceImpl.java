@@ -155,7 +155,7 @@ public class MessageNotificationServiceImpl
 	@Value("${mosip.default.user-preferred-language-attribute:#{null}}")
 	private String userPreferredLanguageAttribute;
 	
-	@Value("${mosip.regproc.masked:false}")
+	@Value("${mosip.regproc.masked}")
 	private boolean ismasked;
 
 	/** The resclient. */
@@ -459,8 +459,8 @@ public class MessageNotificationServiceImpl
 					? JsonUtil.getJSONValue(jsonObject, "NIN")
 					: "";
 
-			if (NIN.length() >= 7) {
-				maskedNin = "*******" + NIN.substring(7);
+			if (NIN.length() == 14) {
+				maskedNin = "*******" + NIN.substring(7, 14);
 			}
 			
 			if(ismasked==true)
@@ -518,12 +518,12 @@ public class MessageNotificationServiceImpl
 		pathsegments.add(uin);
 		IdResponseDTO response;
 		try {
-			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"MessageNotificationServiceImpl::setAttributesFromIdRepo():: IDREPOGETIDBYUIN GET service Started ");
 
 			response = (IdResponseDTO) restClientService.getApi(ApiName.IDREPOGETIDBYUIN, pathsegments, "", "",
 					IdResponseDTO.class);
-			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"MessageNotificationServiceImpl::setAttributesFromIdRepo():: IDREPOGETIDBYUIN GET service ended successfully");
 
 			if (response == null || response.getResponse() == null) {
