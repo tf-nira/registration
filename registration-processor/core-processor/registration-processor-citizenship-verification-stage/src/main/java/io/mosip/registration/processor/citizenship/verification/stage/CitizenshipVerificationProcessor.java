@@ -453,10 +453,10 @@ public class CitizenshipVerificationProcessor {
 			isValid = migrationUtil
 					.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(), fatherNIN);
 		} else if (motherNIN != null) {
-			regProcLogger.info("On demand migration of mother NIN for rid {} {}", fatherNIN,
+			regProcLogger.info("On demand migration of mother NIN for rid {} {}", motherNIN,
 					registrationStatusDto.getRegistrationId());
 			isValid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
-					fatherNIN);
+					motherNIN);
 		}
 		return isValid;
 	}
