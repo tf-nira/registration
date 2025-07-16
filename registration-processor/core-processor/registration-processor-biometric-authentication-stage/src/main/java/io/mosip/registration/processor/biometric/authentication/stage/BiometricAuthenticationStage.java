@@ -340,7 +340,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), code, registrationId,
 					description + e.getMessage() + ExceptionUtils.getStackTrace(e));
 			object.setInternalError(Boolean.TRUE);
-			
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getMessage());
+			object.setNotificationAttributes(notificationAttributes);
 		} catch (Exception ex) {
 			registrationStatusDto.setSubStatusCode(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getCode());
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
