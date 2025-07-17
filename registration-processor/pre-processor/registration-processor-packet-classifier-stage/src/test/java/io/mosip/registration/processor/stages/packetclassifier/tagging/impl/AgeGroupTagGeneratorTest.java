@@ -59,35 +59,35 @@ public class AgeGroupTagGeneratorTest {
 
 	@Test
 	public void testGenerateTagsForChildGroup() throws Exception {
-		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(17);
+		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(17.0);
 		Map<String, String> tags = ageGroupTagGenerator.generateTags("1234", "123", "NEW", null, null, 0);
 		assertEquals(tags.get(tagName), "CHILD");
 	}
 
 	@Test
 	public void testGenerateTagsForAdultGroup() throws Exception {
-		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(30);
+		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(30.0);
 		Map<String, String> tags = ageGroupTagGenerator.generateTags("1234", "123", "NEW", null, null, 0);
 		assertEquals(tags.get(tagName), "ADULT");
 	}
 
 	@Test
 	public void testGenerateTagsForSeniorCitizenGroup() throws Exception {
-		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(65);
+		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(65.0);
 		Map<String, String> tags = ageGroupTagGenerator.generateTags("1234", "123", "NEW", null, null, 0);
 		assertEquals(tags.get(tagName), "SENIOR_CITIZEN");
 	}
 	
 	@Test
 	public void testGenerateTagsForLostPacket() throws Exception {
-		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(-1);
+		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(-1.0);
 		Map<String, String> tags = ageGroupTagGenerator.generateTags("1234", "123", "LOST", null, null, 0);
 		assertEquals(tags.get(tagName), "--TAG_VALUE_NOT_AVAILABLE--");
 	}
 	
 	@Test(expected = BaseCheckedException.class)
 	public void testGenerateTagsForAgeGroupNotFound() throws Exception {
-		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(201);
+		Mockito.when(utility.getApplicantAge(anyString(), anyString(), any())).thenReturn(201.0);
 		ageGroupTagGenerator.generateTags("1234", "123", "LOST", null, null, 0);
 	}
 

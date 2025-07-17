@@ -172,7 +172,7 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		try {
 			String process = registrationStatusDto.getRegistrationType();
 			String registartionType = regEntity.getRegistrationType();
-			int applicantAge = utility.getApplicantAge(registrationId, process, ProviderStageName.BIO_AUTH);
+			double applicantAge = utility.getApplicantAge(registrationId, process, ProviderStageName.BIO_AUTH);
 			int childAgeLimit = Integer.parseInt(ageLimit);
 			String applicantType = BiometricAuthenticationConstants.ADULT;
 			if (applicantAge <= childAgeLimit && applicantAge >= 0) {

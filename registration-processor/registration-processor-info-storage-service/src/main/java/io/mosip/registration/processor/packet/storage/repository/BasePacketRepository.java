@@ -51,6 +51,17 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	@Query("SELECT demo FROM IndividualDemographicDedupeEntity demo WHERE demo.regId=:regId")
 	public List<E> findDemoById(@Param("regId") String regId);
 
+
+	/**
+	 * Find demo by id.
+	 *
+	 * @param regId
+	 *            the reg id
+	 * @return the list
+	 */
+	@Query("SELECT r.id.matchedRegId FROM RegDemoDedupeListEntity r WHERE r.regId = :regId")
+	List<String> findMatchedRegIdsByRegId(@Param("regId") String regId);
+
 	/**
 	 * This method gets the first created registration record
 	 * {@link ManualVerificationEntity} with the specified status.
@@ -138,7 +149,7 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	@Query("SELECT mve FROM ManualVerificationEntity mve where mve.regId =:regId and status_code =:status_code")
 	public List<ManualVerificationEntity> getMatchedIds(@Param("regId") String regId, @Param("status_code") String status_code);
 	
-	
+
 
 	/**
 	 * Gets the Manual verification entity based on request id and matchedreference id
