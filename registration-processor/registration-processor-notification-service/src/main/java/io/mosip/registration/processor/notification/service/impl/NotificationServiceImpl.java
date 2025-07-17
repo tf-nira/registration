@@ -579,7 +579,8 @@ public class NotificationServiceImpl implements NotificationService {
 		case TECHNICAL_ISSUE_WITH_ERROR:
 			messageSenderDto.setSmsTemplateCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR + SMS));
 			messageSenderDto.setEmailTemplateCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR+EMAIL));
-			messageSenderDto.setIdType(IdType.RID);
+			if (regType.equalsIgnoreCase(RegistrationType.NEW.name())) messageSenderDto.setIdType(IdType.RID);
+			else messageSenderDto.setIdType(IdType.UIN);
 			messageSenderDto.setSubjectCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR+SUB));
 			break;
 		case MVS_PACKET_REJECTED:
