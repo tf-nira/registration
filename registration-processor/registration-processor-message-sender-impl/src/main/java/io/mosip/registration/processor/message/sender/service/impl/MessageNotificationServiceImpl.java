@@ -477,7 +477,8 @@ public class MessageNotificationServiceImpl
 		}
 
 
-
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+				"MessageNotificationServiceImpl: idType: " + idType.toString() + " ; regType: " + regType);
 		if (idType.toString().equalsIgnoreCase(UIN) && (regType.equalsIgnoreCase(RegistrationType.ACTIVATED.name())
 				|| regType.equalsIgnoreCase(RegistrationType.DEACTIVATED.name())
 				|| regType.equalsIgnoreCase(RegistrationType.UPDATE.name())
@@ -485,8 +486,12 @@ public class MessageNotificationServiceImpl
 				|| regType.equalsIgnoreCase(RegistrationType.LOST.name())
 				|| regType.equalsIgnoreCase(RegistrationType.RENEWAL.name())
 				|| regType.equalsIgnoreCase(RegistrationType.FIRSTID.name()))) {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+					"MessageNotificationServiceImpl::setAttributesFromIdRepo()::entry");
 			setAttributesFromIdRepo(uin, attributes, regType,lang, phoneNumber, emailId);
 		} else {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+					"MessageNotificationServiceImpl::setAttributesFromIdJson()::entry");
 			setAttributesFromIdJson(id, process, attributes, regType,lang, phoneNumber, emailId);
 		}
 		
