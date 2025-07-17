@@ -698,7 +698,13 @@ public class CitizenshipVerificationProcessor {
 	            object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
 	            return true;
 	        }
-
+	        
+	        // Validation for 'Other' relationship
+	        if (guardianRelationValue.equalsIgnoreCase(Relationship.OTHER.getRelationship())) {
+	            regProcLogger.info("Skipping validation for 'Other' relationship.");
+	            object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+	            return true;
+	        }
 
 			if (guardianRelationValue.equalsIgnoreCase(Relationship.GRAND_FATHER_ON_FATHERS_SIDE.getRelationship())
 					|| Relationship.GRAND_FATHER_ON_MOTHERS_SIDE.getRelationship()
