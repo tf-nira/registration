@@ -270,10 +270,12 @@ public class DemodedupeProcessor {
 				if(isDataSavedsucces){
 					Map<String, String> tags = new HashMap<>();
 					tags = object.getTags();
-					if (tags.get("AGE_GROUP").equalsIgnoreCase("CHILD")) {
-						object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
-						regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}",
-								registrationStatusDto.getRegistrationId());
+					if(tags!=null){
+						if (tags.get("AGE_GROUP").equalsIgnoreCase("CHILD")) {
+							object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+							regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}",
+									registrationStatusDto.getRegistrationId());
+						}
 					}
 				}
 			} catch (Exception e) {
