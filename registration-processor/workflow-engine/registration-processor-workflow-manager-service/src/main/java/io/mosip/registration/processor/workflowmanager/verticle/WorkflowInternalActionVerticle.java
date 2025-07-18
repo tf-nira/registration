@@ -542,9 +542,12 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 				if (!registrationType.equalsIgnoreCase(RegistrationType.MIGRATOR.toString())
 						&& !registrationType.equalsIgnoreCase(notAvailableTagValue)) {
+					if (registrationStatusDto.getStatusCode()
+							.equalsIgnoreCase(RegistrationStatusCode.PROCESSED.toString())) {
+						UpdateStatusForOndemand(workflowInternalActionDTO, registrationStatusDto, registrationType,
+								registrationId);
+					}
 
-				UpdateStatusForOndemand(workflowInternalActionDTO, registrationStatusDto, registrationType,
-						registrationId);
 				WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
 				workflowCompletedEventDTO.setInstanceId(registrationId);
 				workflowCompletedEventDTO.setResultCode(registrationStatusDto.getStatusCode());
@@ -567,14 +570,15 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		InternalRegistrationStatusDto originalRegistrationStatusDto = registrationStatusService
 				.getRegistrationStatus(registrationId, registrationType, 1,
 						null);
-		originalRegistrationStatusDto.setStatusComment(workflowInternalActionDTO.getActionMessage());
-		originalRegistrationStatusDto.setStatusCode(registrationStatusDto.getStatusCode());
+		originalRegistrationStatusDto.setStatusComment(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getMessage());
+		originalRegistrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
 		originalRegistrationStatusDto
 				.setLatestTransactionTypeCode(
 				RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		originalRegistrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 		originalRegistrationStatusDto
-				.setLatestTransactionStatusCode(registrationStatusDto.getLatestTransactionStatusCode());
+				.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+		originalRegistrationStatusDto.setRegistrationStageName("LegacyDataValidatorStage");
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(originalRegistrationStatusDto,
 				MODULE_ID, MODULE_NAME);
 	}
