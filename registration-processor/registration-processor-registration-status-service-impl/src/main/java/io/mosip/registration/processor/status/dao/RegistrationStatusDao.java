@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
 import io.mosip.registration.processor.core.workflow.dto.FilterInfo;
@@ -114,6 +115,7 @@ public class RegistrationStatusDao {
 	 *            the enrolment id
 	 * @return the registration status entity
 	 */
+	@Transactional(readOnly = true)
 	public RegistrationStatusEntity find(String rid, String process, Integer iteration, String workflowInstanceId) {
 		List<RegistrationStatusEntity> registrationStatusEntityList =null;
 		if (workflowInstanceId != null) {
