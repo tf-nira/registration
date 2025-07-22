@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -608,11 +609,13 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 	 * @return the sync registration entity
 	 */
 	@Override
+	@Transactional(readOnly = true)
 	public List<SyncRegistrationEntity> findByRegistrationId(String registrationId) {
 		return syncRegistrationDao.findById(registrationId);
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public SyncRegistrationEntity findByWorkflowInstanceId(String workflowInstanceId) {
 		return syncRegistrationDao.findByWorkflowInstanceId(workflowInstanceId);
 	}
