@@ -115,6 +115,9 @@ public class IntroducerValidationProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+			Map<String, String> notificationAttributes = new HashMap<>();
+			notificationAttributes.put("FAILURE_REASON", StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getMessage());
+			object.setNotificationAttributes(notificationAttributes);
 		} catch (PacketManagerException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,

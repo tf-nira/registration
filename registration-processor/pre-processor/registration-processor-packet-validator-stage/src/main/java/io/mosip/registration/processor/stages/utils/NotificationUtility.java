@@ -217,8 +217,8 @@ public class NotificationUtility {
 							regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 									LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
 									"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
-						sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
-					}
+							sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
+						}
 					} else if (notificationType.equalsIgnoreCase("SMS") && (registrationAdditionalInfoDTO.getPhone() != null
 							&& !registrationAdditionalInfoDTO.getPhone().isEmpty())) {
 						sendSMSNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);

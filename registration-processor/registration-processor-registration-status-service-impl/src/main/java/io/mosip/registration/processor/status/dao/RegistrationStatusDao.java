@@ -98,6 +98,16 @@ public class RegistrationStatusDao {
 	}
 
 	/**
+	 * 
+	 * @param toBeUpdatedList
+	 * @return
+	 */
+	public List<RegistrationStatusEntity> saveAll(List<RegistrationStatusEntity> toBeUpdatedList) {
+
+		return registrationStatusRepositary.saveAll(toBeUpdatedList);
+	}
+	
+	/**
 	 * Find by id.
 	 *
 	 * @param rid
@@ -243,5 +253,13 @@ public class RegistrationStatusDao {
 	public List<RegistrationStatusEntity> getResumablePackets(Integer fetchSize) {
 
 		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), fetchSize);
+	}
+	
+	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {
+		return registrationStatusRepositary.getUnNotifiedPackets(statusCodes, fetchSize);
+	}
+	
+	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(Integer fetchSize) {
+		return registrationStatusRepositary.getAnonymousNotAddedPackets(fetchSize);
 	}
 }

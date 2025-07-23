@@ -60,6 +60,7 @@ public static final String APPLICANT_DATEOFBIRTH = "dateOfBirth";
 public static final String APPLICANT_CITIZENSHIPTYPE = "userServiceType";
 public static final String CHANGE_IN_APPLICANT_CITIZENSHIPTYPE = "citizenshipTypeCop";
 public static final String CHANGE_APPLICANT_CITIZENSHIPTYPECOP = "changeInCitizenshipType";
+public static final String DEPENDENT_RID = "dependentRid";
 public static final String CLAN = "Clan";
 public static final String TRIBE = "Tribe";
 public static final String PERSON = "Guardian";

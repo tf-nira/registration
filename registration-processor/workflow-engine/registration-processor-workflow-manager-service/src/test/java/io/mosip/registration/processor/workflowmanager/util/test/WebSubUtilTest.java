@@ -37,7 +37,7 @@ public class WebSubUtilTest {
 				"registration_processor_workflow_completed_event");
 		WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
 		webSubUtil.publishEvent(workflowCompletedEventDTO);
-//		verify(pb, times(1)).publishUpdate(any(), any(WorkflowCompletedEventDTO.class), any(), any(), any());		
+		//verify(pb, times(1)).publishUpdate(any(), any(WorkflowCompletedEventDTO.class), any(), any(), any());
 	}
 
 	@Test
@@ -47,8 +47,8 @@ public class WebSubUtilTest {
 				"registration_processor_workflow_paused_for_additional_info_event");
 		WorkflowPausedForAdditionalInfoEventDTO workflowPausedForAdditionalInfoEventDTO = new WorkflowPausedForAdditionalInfoEventDTO();
 		webSubUtil.publishEvent(workflowPausedForAdditionalInfoEventDTO);
-//		verify(workflowPausedForAdditionalInfoPublisher, times(1)).publishUpdate(any(),
-//				any(WorkflowPausedForAdditionalInfoEventDTO.class), any(), any(),
-//				any());
+		// verify(workflowPausedForAdditionalInfoPublisher, times(1)).publishUpdate(any(),
+		// 		any(WorkflowPausedForAdditionalInfoEventDTO.class), any(), any(),
+		// 		any());
 	}
 }
