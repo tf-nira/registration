@@ -355,21 +355,21 @@ public class StageHealthCheckHandler implements HealthCheckHandler {
 					if (healthCheckDto.isEventBusConnected()) {
 						final JsonObject result = resultBuilder.create()
 								.add(HealthConstant.RESPONSE, healthCheckDto.isEventBusConnected()).build();
-						promise.complete(Status.OK(result));
+						promise.tryComplete(Status.KO(result));
 					} else {
 						final JsonObject result = resultBuilder.create()
 								.add(HealthConstant.ERROR, healthCheckDto.getFailureReason()).build();
-						promise.complete(Status.KO(result));
+						promise.tryComplete(Status.KO(result));
 					}
 
 				} catch (Exception e) {
 					final JsonObject result = resultBuilder.create().add(HealthConstant.ERROR, e.getMessage()).build();
-					promise.complete(Status.KO(result));
+					promise.tryComplete(Status.KO(result));
 				}
 			}, address);
 		} catch (Exception e) {
 			final JsonObject result = resultBuilder.create().add(HealthConstant.ERROR, e.getMessage()).build();
-			promise.complete(Status.KO(result));
+			promise.tryComplete(Status.KO(result));
 		}
 	}
 
