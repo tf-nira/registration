@@ -8,7 +8,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.dao.DataAccessException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
@@ -44,7 +45,8 @@ import io.mosip.registration.processor.status.exception.TablenotAccessibleExcept
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 
 @RefreshScope
-@Component
+@Service
+@Transactional
 public class LegacyDataValidateProcessor {
 	/**
 	 * The reg proc logger.
@@ -106,6 +108,8 @@ public class LegacyDataValidateProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.DATA_MIGRATION_API_FAILED, RegistrationExceptionTypeCode.DATA_MIGRATION_EXCEPTION,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_MIGRATION_API_FAILED, e);
+			attributes.put("FAILURE_COMMENT", "Potential mistyping of NIN at application");
+			object.setNotificationAttributes(attributes);
 		} catch (LegacyDataValidationException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.LEGACYERROR,
 					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
@@ -174,7 +178,7 @@ public class LegacyDataValidateProcessor {
 			/** Module-Id can be Both Success/Error code */
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.LEGACY_DATA.toString();
-			if (registrationStatusDto.getStatusCode().equals(RegistrationStatusCode.MERGED.name())) {
+			if (registrationStatusDto.getStatusCode().equals(RegistrationStatusCode.ON_HOLD.name())) {
 				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
 						moduleName);
 			} else {

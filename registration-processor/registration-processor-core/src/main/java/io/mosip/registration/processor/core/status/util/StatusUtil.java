@@ -174,7 +174,7 @@ public enum StatusUtil {
 	INTRODUCER_UIN_NOT_FOUND_FOR_NIN(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "009",
 			"Introducer UIN not Found for the Given NIN"),
 	INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "010",
-			"Introducer NIN Ondemand migration failed"),
+			"Invalid introducer NIN provided"),
 	INTRODUCER_APPLICANT_AGE_CHECK_FAILED(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "012",
 			"Applicant is not eligible to get FirstId"),
 	// printing stage
@@ -437,7 +437,7 @@ public enum StatusUtil {
 	LEGACY_DATA_VALIDATION_SUCCESS(StatusConstants.LEGACY_DATA_VALIDATION_SUCCESS + "001",
 			"Person found in mosip"),
 	LEGACY_DATA_VALIDATION_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "002",
-			"Biometrics - Person not found in legacy"),
+			"Data Validation failed"),
 	ON_DEMAND_PACKET_CREATION_SUCCESS(StatusConstants.LEGACY_DATA_VALIDATION_SUCCESS + "003",
 			"OnDemand Packet created"),
 	ON_DEMAND_PACKET_CREATION_FAILED(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "004",

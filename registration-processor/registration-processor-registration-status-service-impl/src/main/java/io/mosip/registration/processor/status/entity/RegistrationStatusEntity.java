@@ -139,6 +139,15 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 	/** The last success stage name. */
 	@Column(name = "last_success_stage_name")
 	private String lastSuccessStageName;
+	
+	@Column(name = "needs_notification")
+	private Boolean needsNotification;
+	
+	@Column(name = "notification_sent")
+	private Boolean notificationSent;
+	
+	@Column(name = "is_anonymous_profile_added")
+	private Boolean isAnonymousProfileAdded;
 
 	/**
 	 * Instantiates a new registration status entity.
@@ -620,6 +629,30 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 	public void setLastSuccessStageName(String lastSuccessStageName) {
 		this.lastSuccessStageName = lastSuccessStageName;
 	}
+	
+	public Boolean getNeedsNotification() {
+		return needsNotification;
+	}
+
+	public void setNeedsNotification(Boolean needsNotification) {
+		this.needsNotification = needsNotification;
+	}
+
+	public Boolean getNotificationSent() {
+		return notificationSent;
+	}
+
+	public void setNotificationSent(Boolean notificationSent) {
+		this.notificationSent = notificationSent;
+	}
+	
+	public Boolean getIsAnonymousProfileAdded() {
+		return isAnonymousProfileAdded;
+	}
+
+	public void setIsAnonymousProfileAdded(Boolean isAnonymousProfileAdded) {
+		this.isAnonymousProfileAdded = isAnonymousProfileAdded;
+	}
 
 	@Override
 	public boolean equals(Object o) {
@@ -653,11 +686,14 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 				Objects.equals(resumeTimeStamp, that.resumeTimeStamp) &&
 				Objects.equals(defaultResumeAction, that.defaultResumeAction) &&
 				Objects.equals(pauseRuleIds, that.pauseRuleIds) &&
-				Objects.equals(lastSuccessStageName, that.lastSuccessStageName);
+				Objects.equals(lastSuccessStageName, that.lastSuccessStageName) &&
+				Objects.equals(needsNotification, that.needsNotification) &&
+				Objects.equals(notificationSent, that.notificationSent) &&
+				Objects.equals(isAnonymousProfileAdded, that.isAnonymousProfileAdded);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, regId, registrationType, iteration, referenceRegistrationId, source, statusCode, langCode, statusComment, latestRegistrationTransactionId, isActive, createdBy, createDateTime, updatedBy, updateDateTime, isDeleted, deletedDateTime, retryCount, applicantType, latestTransactionTypeCode, latestTransactionStatusCode, latestTransactionTimes, registrationStageName, regProcessRetryCount, resumeTimeStamp, defaultResumeAction, pauseRuleIds, lastSuccessStageName);
+		return Objects.hash(id, regId, registrationType, iteration, referenceRegistrationId, source, statusCode, langCode, statusComment, latestRegistrationTransactionId, isActive, createdBy, createDateTime, updatedBy, updateDateTime, isDeleted, deletedDateTime, retryCount, applicantType, latestTransactionTypeCode, latestTransactionStatusCode, latestTransactionTimes, registrationStageName, regProcessRetryCount, resumeTimeStamp, defaultResumeAction, pauseRuleIds, lastSuccessStageName, needsNotification, notificationSent, isAnonymousProfileAdded);
 	}
 }

@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -245,7 +246,9 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 			assisted.add(supervisorId);
 		}
 		anonymousProfileDTO.setAssisted(assisted);
-		getExceptionAndBiometricInfo(biometricRecord, anonymousProfileDTO);
+		if(biometricRecord != null) {
+			getExceptionAndBiometricInfo(biometricRecord, anonymousProfileDTO);
+		}
 
 		regProcLogger.info("buildJsonStringFromPacketInfo method call ended");
 		return JsonUtil.objectMapperObjectToJson(anonymousProfileDTO);
@@ -391,5 +394,9 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
         }
     }
 
-
+	@Override
+	@Transactional
+	public void saveAnonymousProfiles(List<AnonymousProfileEntity> anonymousProfiles) {
+		anonymousProfileRepository.saveAll(anonymousProfiles);	
+	}
 }

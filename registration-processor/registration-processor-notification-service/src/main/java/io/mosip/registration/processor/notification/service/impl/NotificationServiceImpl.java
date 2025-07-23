@@ -223,6 +223,8 @@ public class NotificationServiceImpl implements NotificationService {
 				if (object.getNotificationAttributes() != null && !object.getNotificationAttributes().isEmpty()) {
 					attributes.putAll(object.getNotificationAttributes());
 				}
+
+				attributes.put("service", workflowType);
 				
 				String[] ccEMailList = null;
 
@@ -367,8 +369,13 @@ public class NotificationServiceImpl implements NotificationService {
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
 					}
 					
-					if (countryCode != null && countryCodeVal.equals("UGANDA (+256)")) {
+					if (countryCode != null && "Uganda (256)".equals(countryCode)) {
 						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
+					} else {
+						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), id,
+								"SMS notification not allowed for this country code.");
+						isSMSSuccess = true;
 					}
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
 						&& isTemplateAvailable(messageSenderDto)) {
@@ -390,7 +397,7 @@ public class NotificationServiceImpl implements NotificationService {
 					} else {
 						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 								LoggerFileConstant.REGISTRATIONID.toString(), id,
-								"enter else case" + enableEmailForOtherProcess);
+								"Email notification not allowed.");
 						isEmailSuccess = true;
 					}
 				} else {
@@ -572,7 +579,8 @@ public class NotificationServiceImpl implements NotificationService {
 		case TECHNICAL_ISSUE_WITH_ERROR:
 			messageSenderDto.setSmsTemplateCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR + SMS));
 			messageSenderDto.setEmailTemplateCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR+EMAIL));
-			messageSenderDto.setIdType(IdType.RID);
+			if (regType.equalsIgnoreCase(RegistrationType.NEW.name())) messageSenderDto.setIdType(IdType.RID);
+			else messageSenderDto.setIdType(IdType.UIN);
 			messageSenderDto.setSubjectCode(env.getProperty(TECHNICAL_ISSUE_WITH_ERROR+SUB));
 			break;
 		case MVS_PACKET_REJECTED:

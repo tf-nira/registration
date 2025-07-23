@@ -453,10 +453,10 @@ public class CitizenshipVerificationProcessor {
 			isValid = migrationUtil
 					.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(), fatherNIN);
 		} else if (motherNIN != null) {
-			regProcLogger.info("On demand migration of mother NIN for rid {} {}", fatherNIN,
+			regProcLogger.info("On demand migration of mother NIN for rid {} {}", motherNIN,
 					registrationStatusDto.getRegistrationId());
 			isValid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
-					fatherNIN);
+					motherNIN);
 		}
 		return isValid;
 	}
@@ -698,7 +698,7 @@ public class CitizenshipVerificationProcessor {
 	            object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
 	            return true;
 	        }
-	        
+
 	        // Validation for 'Other' relationship
 	        if (guardianRelationValue.equalsIgnoreCase(Relationship.OTHER.getRelationship())) {
 	            regProcLogger.info("Skipping validation for 'Other' relationship.");

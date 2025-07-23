@@ -96,6 +96,12 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 	@Value("#{T(java.util.Arrays).asList('${mosip.regproc.stage-common.bus-out-halt-addresses:}')}")
 	protected List<String> busOutHaltAddresses;
 	
+	/*
+	 * Comma separated out bus message addresses for which tags are not required
+	 */
+	@Value("#{T(java.util.Arrays).asList('${mosip.regproc.stage-common.bus-out-exclude_tags-addresses:packet-receiver-bus-out,packet-uploader-bus-out,securezone-notification-bus-out}')}")
+	protected List<String> tagsExcludedBusOutAddresses;
+	
 	@Autowired
 	private MosipEventBusFactory mosipEventBusFactory;
 
@@ -230,7 +236,10 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 	public void send(MosipEventBus mosipEventBus, MessageBusAddress toAddress, MessageDTO message) {
 		if(busOutHaltAddresses.contains(toAddress.getAddress()))
 			return;
-		addTagsToMessageDTO(message);
+		message.setTags(new HashMap<>());
+		if(!tagsExcludedBusOutAddresses.contains(toAddress.getAddress())) {
+			addTagsToMessageDTO(message);
+		}		
 		message.setLastHopTimestamp(DateUtils.formatToISOString(DateUtils.getUTCCurrentDateTime()));
 		mosipEventBus.send(toAddress, message);
 	}

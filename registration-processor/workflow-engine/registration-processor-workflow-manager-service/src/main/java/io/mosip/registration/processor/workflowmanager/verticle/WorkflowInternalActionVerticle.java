@@ -65,6 +65,7 @@ import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.exception.TablenotAccessibleException;
 import io.mosip.registration.processor.status.service.AdditionalInfoRequestService;
 import io.mosip.registration.processor.status.service.AnonymousProfileService;
+import io.mosip.registration.processor.status.service.NotificationMessageService;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.workflowmanager.service.WorkflowActionService;
 import io.mosip.registration.processor.workflowmanager.util.WebSubUtil;
@@ -118,6 +119,9 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 	@Autowired
 	private AnonymousProfileService anonymousProfileService;
+	
+	@Autowired
+	private NotificationMessageService notificationMessageService;
 
 	private MosipEventBus mosipEventBus = null;
 	
@@ -394,6 +398,25 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
+		if(RegistrationType.MIGRATOR.toString().equalsIgnoreCase(registrationStatusDto.getRegistrationType())){
+			String dependentRid = packetManagerService.getField(workflowInternalActionDTO.getRid(),
+					MappingJsonConstants.DEPENDENT_RID, registrationStatusDto.getRegistrationType(),
+					ProviderStageName.WORKFLOW_MANAGER);
+			regProcLogger.info("WorkflowInternalActionVerticle called for dependent registration id {}", dependentRid);
+			if(dependentRid != null){
+				InternalRegistrationStatusDto dependentRidregistrationStatusDto = registrationStatusService
+						.getRegistrationStatus(dependentRid, null,
+								1,null);
+				dependentRidregistrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
+				dependentRidregistrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+				dependentRidregistrationStatusDto
+						.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+				dependentRidregistrationStatusDto
+						.setStatusComment(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getMessage());
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(dependentRidregistrationStatusDto, MODULE_ID, MODULE_NAME);
+				regProcLogger.info("updated status for  dependent registration id {}", dependentRid);
+			}
+		}
 		if (additionalInfoRequestDto != null) {
 			Map<String, String> tags = new HashMap<String, String>();
 			tags.put(workflowInternalActionDTO.getReg_type() + "_FLOW_STATUS",
@@ -496,6 +519,12 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 		}
 
+		Map<String, String> notificationAtrributes = workflowInternalActionDTO.getNotificationAttributes();
+		
+		if (notificationAtrributes != null) {
+			notificationMessageService.saveNotificationDetails(registrationStatusDto.getRegistrationId(), notificationAtrributes);	
+		}
+		
 		webSubUtil.publishEvent(workflowCompletedEventDTO);
 	}
 	}
@@ -513,9 +542,12 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 				if (!registrationType.equalsIgnoreCase(RegistrationType.MIGRATOR.toString())
 						&& !registrationType.equalsIgnoreCase(notAvailableTagValue)) {
+					if (registrationStatusDto.getStatusCode()
+							.equalsIgnoreCase(RegistrationStatusCode.PROCESSED.toString())) {
+						UpdateStatusForOndemand(workflowInternalActionDTO, registrationStatusDto, registrationType,
+								registrationId);
+					}
 
-				UpdateStatusForOndemand(workflowInternalActionDTO, registrationStatusDto, registrationType,
-						registrationId);
 				WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
 				workflowCompletedEventDTO.setInstanceId(registrationId);
 				workflowCompletedEventDTO.setResultCode(registrationStatusDto.getStatusCode());
@@ -538,14 +570,15 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		InternalRegistrationStatusDto originalRegistrationStatusDto = registrationStatusService
 				.getRegistrationStatus(registrationId, registrationType, 1,
 						null);
-		originalRegistrationStatusDto.setStatusComment(workflowInternalActionDTO.getActionMessage());
-		originalRegistrationStatusDto.setStatusCode(registrationStatusDto.getStatusCode());
+		originalRegistrationStatusDto.setStatusComment(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getMessage());
+		originalRegistrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
 		originalRegistrationStatusDto
 				.setLatestTransactionTypeCode(
 				RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		originalRegistrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 		originalRegistrationStatusDto
-				.setLatestTransactionStatusCode(registrationStatusDto.getLatestTransactionStatusCode());
+				.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+		originalRegistrationStatusDto.setRegistrationStageName("LegacyDataValidatorStage");
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(originalRegistrationStatusDto,
 				MODULE_ID, MODULE_NAME);
 	}
