@@ -499,7 +499,7 @@ public class BioDedupeProcessor {
 	private boolean infantCheck(String registrationId, String registrationType) throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
 		boolean isInfant = false;
 		if (RegistrationType.NEW.name().equalsIgnoreCase(registrationType)) {
-			int age = utilities.getApplicantAge(registrationId, registrationType, ProviderStageName.BIO_DEDUPE);
+			double age = utilities.getApplicantAge(registrationId, registrationType, ProviderStageName.BIO_DEDUPE);
 			int ageThreshold = Integer.parseInt(ageLimit);
 			isInfant = age < ageThreshold;
 		} else {

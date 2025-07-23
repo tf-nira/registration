@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
+import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
 import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
 import io.mosip.registration.processor.status.code.RegistrationType;
 import org.apache.commons.lang.StringUtils;
@@ -208,6 +209,9 @@ public class MVSServiceImpl implements MVSService {
 
 	@Autowired
 	private IdRepoService idRepoService;
+
+	@Autowired
+	private BasePacketRepository<RegDemoDedupeListEntity, String> regDemoDedupeListRepository;
 
 	/** The Constant PROTOCOL. */
 	public static final String PROTOCOL = "https";
@@ -487,7 +491,7 @@ public class MVSServiceImpl implements MVSService {
 		return entities;
 	}
 
-	private String getDataShareUrl(String id, String process, VerificationRequestDTO verReq) throws Exception {
+	private String getDataShareUrl(String id, String process, VerificationRequestDTO verReq, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -526,7 +530,13 @@ public class MVSServiceImpl implements MVSService {
 		Map<String, String> tagsPresent = packetService.getTags(id, tags);
 		verReq.setFoundLink(tagsPresent.get("ID_OBJECT-foundLink"));
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
-		
+
+		//duplicate's data
+		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
+			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
+			verReq.setMatchedRegIds(matchedRegIds);
+		}
+
 		// set documents
 		JSONObject docJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT);
 		for (Object doc : docJson.keySet()) {
@@ -736,7 +746,7 @@ public class MVSServiceImpl implements MVSService {
 		}
 		
 		try {
-			req.setReferenceURL(getDataShareUrl(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req));
+			req.setReferenceURL(getDataShareUrl(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req,registrationStatusDto));
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),

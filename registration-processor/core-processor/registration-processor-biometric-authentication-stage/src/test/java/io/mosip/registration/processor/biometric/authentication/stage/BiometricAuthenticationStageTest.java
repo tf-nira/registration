@@ -298,7 +298,7 @@ public class BiometricAuthenticationStageTest {
 
 
 		when(utility.getDefaultSource(any(), any())).thenReturn("reg-client");
-		when(utility.getApplicantAge(anyString(),anyString(), any())).thenReturn(21);
+		when(utility.getApplicantAge(anyString(),anyString(), any())).thenReturn(21.0);
 
 		regentity.setRegistrationType("update");
 		when(syncRegistrationservice.findByWorkflowInstanceId(any())).thenReturn(regentity);
@@ -424,7 +424,7 @@ public class BiometricAuthenticationStageTest {
 	@Test
 	public void childPacketTest() throws ApisResourceAccessException, JsonProcessingException, io.mosip.kernel.core.exception.IOException, PacketManagerException, IOException {
 		when(regentity.getRegistrationType()).thenReturn("UPDATE");
-		when(utility.getApplicantAge(anyString(),anyString(), any())).thenReturn(2);
+		when(utility.getApplicantAge(anyString(),anyString(), any())).thenReturn(2.0);
 		MessageDTO messageDto = biometricAuthenticationStage.process(dto);
 		assertTrue(messageDto.getIsValid());
 	}
@@ -622,7 +622,7 @@ public class BiometricAuthenticationStageTest {
 	@Test
 	public void testChildPacketWithLessThanOneYear() throws ApisResourceAccessException, JsonProcessingException, io.mosip.kernel.core.exception.IOException, PacketManagerException, IOException {
 		when(regentity.getRegistrationType()).thenReturn("UPDATE");
-		when(utility.getApplicantAge(anyString(),anyString(), any())).thenReturn(0);
+		when(utility.getApplicantAge(anyString(),anyString(), any())).thenReturn(0.0);
 		MessageDTO messageDto = biometricAuthenticationStage.process(dto);
 		assertTrue(messageDto.getIsValid());
 	}
