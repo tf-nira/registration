@@ -319,9 +319,11 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 					String eventName = EventName.UPDATE.toString();
 					String eventType = EventType.BUSINESS.toString();
 
-					if (!isTransactionSuccessful)
-						auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName,
-								eventType, moduleId, moduleName, registrationId);
+					/*
+					 * if (!isTransactionSuccessful)
+					 * auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(),
+					 * eventId, eventName, eventType, moduleId, moduleName, registrationId);
+					 */
 				});
 			
 			}
@@ -358,8 +360,10 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			String moduleId = isTransactionSuccessful ? PlatformSuccessMessages.RPR_RE_PROCESS_SUCCESS.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.RE_PROCESSOR.toString();
-			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
-					moduleId, moduleName, (ridSb.toString().length()>1?ridSb.substring(0,ridSb.length()-1):""));			
+			// auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(),
+			// eventId, eventName, eventType,
+			// moduleId, moduleName,
+			// (ridSb.toString().length()>1?ridSb.substring(0,ridSb.length()-1):""));
 		}
 
 		return object;
