@@ -1,11 +1,8 @@
 package io.mosip.registration.processor.workflowmanager.util;
 
-import javax.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -37,21 +34,18 @@ public class WebSubUtil {
 	private static Logger regProcLogger = RegProcessorLogger.getLogger(WebSubUtil.class);
 	
 
-	@PostConstruct
-	private void registerTopic() {
-		try {
-			workflowCompletedPublisher.registerTopic(workflowCompleteTopic, webSubPublishUrl);
-
-		} catch (WebSubClientException exception) {
-			regProcLogger.warn(exception.getMessage());
-		}
-		try {
-			workflowPausedForAdditionalInfoPublisher.registerTopic(workflowPausedforadditionalinfoTopic,
-					webSubPublishUrl);
-		} catch (WebSubClientException exception) {
-			regProcLogger.warn(exception.getMessage());
-		}
-	}
+	/*
+	 * @PostConstruct private void registerTopic() { try {
+	 * workflowCompletedPublisher.registerTopic(workflowCompleteTopic,
+	 * webSubPublishUrl);
+	 * 
+	 * } catch (WebSubClientException exception) {
+	 * regProcLogger.warn(exception.getMessage()); } try {
+	 * workflowPausedForAdditionalInfoPublisher.registerTopic(
+	 * workflowPausedforadditionalinfoTopic, webSubPublishUrl); } catch
+	 * (WebSubClientException exception) {
+	 * regProcLogger.warn(exception.getMessage()); } }
+	 */
 
 	public void publishEvent(WorkflowCompletedEventDTO workflowCompletedEventDTO) throws WebSubClientException {
 		// String rid = workflowCompletedEventDTO.getInstanceId();
