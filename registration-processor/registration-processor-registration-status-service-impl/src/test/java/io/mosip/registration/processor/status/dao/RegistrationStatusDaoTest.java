@@ -51,7 +51,9 @@ public class RegistrationStatusDaoTest {
 		Mockito.when(registrationStatusRepositary.findByStatusCode(Matchers.any())).thenReturn(list);
 		Mockito.when(registrationStatusRepositary.findByWorkflowInstanceId(Matchers.any())).thenReturn(list);
 		Mockito.when(registrationStatusRepositary.getActionablePausedPackets(Matchers.any(),Matchers.any())).thenReturn(list);
-		Mockito.when(registrationStatusRepositary.getResumablePackets(Matchers.any(),Matchers.any())).thenReturn(list);
+		Mockito.when(
+				registrationStatusRepositary.getResumablePackets(Matchers.any(), Matchers.any(), Matchers.anyList()))
+				.thenReturn(list);
 		Mockito.when(registrationStatusRepositary.getUnProcessedPacketsCount(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(1);
 		Mockito.when(registrationStatusRepositary.getUnProcessedPackets(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(list);
 	}
@@ -149,7 +151,9 @@ public class RegistrationStatusDaoTest {
 	public void testResumablePackets() {
 		List<String> statusList = new ArrayList<>();
 		statusList.add("SUCCESS");
-		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getResumablePackets(2);
+		List<String> stageList = new ArrayList<>();
+		stageList.add("stage");
+		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getResumablePackets(2, stageList);
 		assertEquals(list, rEntityList);
 	}
 
