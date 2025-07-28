@@ -11,8 +11,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -196,7 +194,9 @@ public class PacketValidateProcessor {
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.VALIDATE_PACKET.toString());
 			registrationStatusDto.setRegistrationStageName(stageName);
 			setPacketCreatedDateTime(registrationStatusDto);
-			boolean isValidSupervisorStatus = isValidSupervisorStatus(object);
+			SyncRegistrationEntity regEntity = syncRegistrationService
+					.findByWorkflowInstanceId(object.getWorkflowInstanceId());
+			boolean isValidSupervisorStatus = isValidSupervisorStatus(object, regEntity);
 			if (isValidSupervisorStatus) {
 				Boolean isValid = compositePacketValidator.validate(object.getRid(),
 						registrationStatusDto.getRegistrationType(), packetValidationDto);
@@ -286,7 +286,8 @@ public class PacketValidateProcessor {
 			}
 			object.setInternalError(Boolean.FALSE);
 			registrationStatusDto.setUpdatedBy(USER);
-			SyncRegistrationEntity regEntity = syncRegistrationService.findByWorkflowInstanceId(object.getWorkflowInstanceId());
+			// SyncRegistrationEntity regEntity =
+			// syncRegistrationService.findByWorkflowInstanceId(object.getWorkflowInstanceId());
 			//Only send success notification here because failure notifications are sent via internal workflow
 			if (packetValidationDto.isTransactionSuccessful()) {
 				sendNotification(regEntity, registrationStatusDto, packetValidationDto.isTransactionSuccessful(),isValidSupervisorStatus);	
@@ -487,8 +488,8 @@ public class PacketValidateProcessor {
 		}
 	}
 
-		private boolean isValidSupervisorStatus(MessageDTO messageDTO) {
-			SyncRegistrationEntity regEntity = syncRegistrationService.findByWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
+	private boolean isValidSupervisorStatus(MessageDTO messageDTO, SyncRegistrationEntity regEntity) {
+
 			if (regEntity.getSupervisorStatus().equalsIgnoreCase(APPROVED)) {
 				return true;
 
