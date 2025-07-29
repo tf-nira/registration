@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -188,14 +189,12 @@ public class PacketValidateProcessor {
 					"", "PacketValidateProcessor::process()::entry");
 			registrationId = object.getRid();
 			packetValidationDto.setTransactionSuccessful(false);
-			registrationStatusDto = registrationStatusService.getRegistrationStatus(
-					registrationId, object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
+			registrationStatusDto = getRegistrationDto(object, registrationId);
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.VALIDATE_PACKET.toString());
 			registrationStatusDto.setRegistrationStageName(stageName);
 			setPacketCreatedDateTime(registrationStatusDto);
-			SyncRegistrationEntity regEntity = syncRegistrationService
-					.findByWorkflowInstanceId(object.getWorkflowInstanceId());
+			SyncRegistrationEntity regEntity = getSyncRegistrationEntity(object);
 			boolean isValidSupervisorStatus = isValidSupervisorStatus(object, regEntity);
 			if (isValidSupervisorStatus) {
 				Boolean isValid = compositePacketValidator.validate(object.getRid(),
@@ -286,8 +285,6 @@ public class PacketValidateProcessor {
 			}
 			object.setInternalError(Boolean.FALSE);
 			registrationStatusDto.setUpdatedBy(USER);
-			// SyncRegistrationEntity regEntity =
-			// syncRegistrationService.findByWorkflowInstanceId(object.getWorkflowInstanceId());
 			//Only send success notification here because failure notifications are sent via internal workflow
 			if (packetValidationDto.isTransactionSuccessful()) {
 				sendNotification(regEntity, registrationStatusDto, packetValidationDto.isTransactionSuccessful(),isValidSupervisorStatus);	
@@ -459,6 +456,23 @@ public class PacketValidateProcessor {
 
 		return object;
 
+	}
+
+
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+	private SyncRegistrationEntity getSyncRegistrationEntity(MessageDTO object) {
+		SyncRegistrationEntity regEntity = syncRegistrationService
+				.findByWorkflowInstanceId(object.getWorkflowInstanceId());
+		return regEntity;
+	}
+
+
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+	private InternalRegistrationStatusDto getRegistrationDto(MessageDTO object, String registrationId) {
+		InternalRegistrationStatusDto registrationStatusDto;
+		registrationStatusDto = registrationStatusService.getRegistrationStatus(
+				registrationId, object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
+		return registrationStatusDto;
 	}
 
 
