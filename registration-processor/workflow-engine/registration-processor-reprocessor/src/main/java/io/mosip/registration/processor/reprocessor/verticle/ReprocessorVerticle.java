@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -329,7 +330,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 				});
 			  				String resultRids = registrationIds.stream()
                         .collect(Collectors.joining(", "));
-				regProcLogger.info("Picked up records to re-process :: " + resultRids);
+				regProcLogger.info("Reprocessor pickedup records to process :: " + resultRids);
 			}
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
