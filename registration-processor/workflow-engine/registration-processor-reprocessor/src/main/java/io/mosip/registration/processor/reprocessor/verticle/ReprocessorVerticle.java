@@ -251,9 +251,11 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			
 			
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
+				List<String> registrationIds = new ArrayList<>();
 				AtomicInteger processedCount = new AtomicInteger(0);
 				reprocessorDtoList.forEach(dto -> {
 					String registrationId = dto.getRegistrationId();
+					registrationIds.add(registrationId);
 					ridSb.append(registrationId);
 					ridSb.append(",");
 					MessageDTO messageDTO = new MessageDTO();
@@ -325,7 +327,9 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 					 * eventId, eventName, eventType, moduleId, moduleName, registrationId);
 					 */
 				});
-			
+			  				String resultRids = registrationIds.stream()
+                        .collect(Collectors.joining(", "));
+				regProcLogger.info("Picked up records to re-process :: " + resultRids);
 			}
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
