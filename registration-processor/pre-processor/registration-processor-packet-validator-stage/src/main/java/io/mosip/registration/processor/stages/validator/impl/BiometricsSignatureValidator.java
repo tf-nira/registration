@@ -92,9 +92,9 @@ public class BiometricsSignatureValidator {
 			if (exceptionValue) {
 				continue;
 			}
-			String pkt_cr_date= metaInfoMap.get("creationDate");
+			String packetCreationDate = metaInfoMap.get("creationDate");
 			String token = BiometricsSignatureHelper.extractJWTToken(bir);
-			validateJWTToken(id, token, pkt_cr_date);
+			validateJWTToken(id, token, packetCreationDate);
 		}
 
 	}
@@ -120,7 +120,7 @@ public class BiometricsSignatureValidator {
 		return version;
 	}
 
-	private void validateJWTToken(String id, String token, String pkt_cr_date)
+	private void validateJWTToken(String id, String token, String packetCreationDate)
 			throws JsonParseException, JsonMappingException, JsonProcessingException, IOException, JSONException,
 			BiometricSignatureValidationException, ApisResourceAccessException, io.mosip.kernel.core.util.exception.JsonProcessingException {
 		JWTSignatureVerifyRequestDto jwtSignatureVerifyRequestDto = new JWTSignatureVerifyRequestDto();
@@ -133,7 +133,7 @@ public class BiometricsSignatureValidator {
 		// packet so setting validTrust to false
 		jwtSignatureVerifyRequestDto.setValidateTrust(false);
 		jwtSignatureVerifyRequestDto.setDomain("Device");
-		jwtSignatureVerifyRequestDto.setPacketCreationDate(pkt_cr_date);
+		jwtSignatureVerifyRequestDto.setPacketCreationDate(packetCreationDate);
 		RequestWrapper<JWTSignatureVerifyRequestDto> request = new RequestWrapper<>();
 
 		request.setRequest(jwtSignatureVerifyRequestDto);
