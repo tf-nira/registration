@@ -166,8 +166,6 @@ public class LegacyDataValidateProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.UNKNOWN_EXCEPTION_OCCURED, RegistrationExceptionTypeCode.EXCEPTION, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_VALIDATION_FAILED, e);
-			attributes.put("FAILURE_COMMENT", "Potential mistyping of NIN at application");
-			object.setNotificationAttributes(attributes);
 		} finally {
 			if (object.getInternalError()) {
 				int retryCount = registrationStatusDto.getRetryCount() != null
