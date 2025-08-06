@@ -286,7 +286,8 @@ public class PacketValidateProcessor {
 			object.setInternalError(Boolean.FALSE);
 			registrationStatusDto.setUpdatedBy(USER);
 			//Only send success notification here because failure notifications are sent via internal workflow
-			if (packetValidationDto.isTransactionSuccessful()) {
+			if (packetValidationDto.isTransactionSuccessful()
+					&& !registrationStatusDto.getRegistrationType().equalsIgnoreCase("MIGRATOR")) {
 				sendNotification(regEntity, registrationStatusDto, packetValidationDto.isTransactionSuccessful(),isValidSupervisorStatus);	
 			}
 		} catch (PacketManagerException e) {
