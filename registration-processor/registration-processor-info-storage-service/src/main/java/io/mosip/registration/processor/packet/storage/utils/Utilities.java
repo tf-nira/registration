@@ -283,6 +283,44 @@ public class Utilities {
 
 	}
 
+	public Double getApplicantAgeInDouble(String id, String process, ProviderStageName stageName)
+			throws IOException, ApisResourceAccessException, JsonProcessingException, PacketManagerException {
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+				"Utilities::getApplicantAge()::entry");
+
+		String applicantDob = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.DOB, process,
+				stageName);
+		String applicantAge = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.AGE, process,
+				stageName);
+		if (applicantDob != null) {
+			return calculateAgeInDouble(applicantDob);
+		} else if (applicantAge != null) {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+					"Utilities::getApplicantAge()::exit when applicantAge is not null");
+			return Double.valueOf(applicantAge);
+		} else {
+			String nin = getNIN(id, process, stageName);
+			JSONObject identityJSONOject = getIdentityJSONObjectByHandle(nin);
+			JSONObject regProcessorIdentityJson = getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+			String ageKey = JsonUtil
+					.getJSONValue(JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.AGE), VALUE);
+			String dobKey = JsonUtil
+					.getJSONValue(JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.DOB), VALUE);
+			String idRepoApplicantDob = JsonUtil.getJSONValue(identityJSONOject, dobKey);
+			if (idRepoApplicantDob != null) {
+				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+						"Utilities::getApplicantAge()::exit when ID REPO applicantDob is not null");
+				return calculateAgeInDouble(idRepoApplicantDob);
+			}
+			Integer idRepoApplicantAge = JsonUtil.getJSONValue(identityJSONOject, ageKey);
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
+					"Utilities::getApplicantAge()::exit when ID REPO applicantAge is not null");
+			return idRepoApplicantAge != null ? idRepoApplicantAge : -1.0;
+
+		}
+
+	}
+
 	public String getDefaultSource(String process, ConfigEnum config) {
 		Map<String, String> configMap = null;
 		if (config.equals(ConfigEnum.READER))
@@ -807,6 +845,30 @@ public class Utilities {
 				"Utilities::calculateAge():: exit");
 
 		return p.getYears();
+
+	}
+
+	private double calculateAgeInDouble(String applicantDob){
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+				"Utilities::calculateAge():: entry");
+
+		DateFormat sdf = new SimpleDateFormat(dobFormat);
+		Date birthDate = null;
+		try {
+			birthDate = sdf.parse(applicantDob);
+
+		} catch (ParseException e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", "Utilities::calculateAge():: error with error message "
+							+ PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getMessage());
+			throw new ParsingException(PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getCode(), e);
+		}
+		LocalDate ld = new java.sql.Date(birthDate.getTime()).toLocalDate();
+		Period p = Period.between(ld, LocalDate.now());
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+				"Utilities::calculateAge():: exit");
+
+		return p.getMonths()/12.0 ;
 
 	}
 
