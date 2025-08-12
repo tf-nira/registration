@@ -196,6 +196,7 @@ public class PacketValidateProcessor {
 			setPacketCreatedDateTime(registrationStatusDto);
 			SyncRegistrationEntity regEntity = getSyncRegistrationEntity(object);
 			boolean isValidSupervisorStatus = isValidSupervisorStatus(object, regEntity);
+			String supervisorStatusComment = regEntity.getSupervisorComment();
 			if (isValidSupervisorStatus) {
 				Boolean isValid = compositePacketValidator.validate(object.getRid(),
 						registrationStatusDto.getRegistrationType(), packetValidationDto);
@@ -262,7 +263,7 @@ public class PacketValidateProcessor {
 				}
 			} else {
 				Map<String, String> notificationAttributes = new HashMap<>();
-            	notificationAttributes.put("FAILURE_REASON", "application rejected by supervisor");
+            	notificationAttributes.put("FAILURE_REASON", supervisorStatusComment);
             	object.setNotificationAttributes(notificationAttributes);
             	
 				registrationStatusDto.setLatestTransactionStatusCode(
@@ -602,6 +603,8 @@ public class PacketValidateProcessor {
 
 	private void sendNotification(SyncRegistrationEntity regEntity,
 								  InternalRegistrationStatusDto registrationStatusDto, boolean isTransactionSuccessful,boolean isValidSupervisorStatus) {
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+				"", "PacketValidateProcessor::sendNotification()::entry");
 		try {
 			String registrationId = registrationStatusDto.getRegistrationId();
 			if (regEntity.getOptionalValues() != null) {

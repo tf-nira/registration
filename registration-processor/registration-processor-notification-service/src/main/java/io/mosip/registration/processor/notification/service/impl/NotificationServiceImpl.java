@@ -98,6 +98,7 @@ public class NotificationServiceImpl implements NotificationService {
 	private static final String UIN_RENEWAL = NOTIFICATION_TEMPLATE_CODE + "uin.renewal.";
 	private static final String GET_FIRSTID = NOTIFICATION_TEMPLATE_CODE + "get.firstid.";
 	private static final String ONDEMAND = NOTIFICATION_TEMPLATE_CODE + "ondemand.";
+	private static final String SUPERVISOR_REJECTED = NOTIFICATION_TEMPLATE_CODE + "supervisor.rejected.";
 
 
 	/** The core audit request builder. */
@@ -597,6 +598,12 @@ public class NotificationServiceImpl implements NotificationService {
 			messageSenderDto.setEmailTemplateCode(env.getProperty(ONDEMAND + EMAIL));
 			messageSenderDto.setIdType(IdType.RID);
 			messageSenderDto.setSubjectCode(env.getProperty(ONDEMAND + SUB));
+			break;
+		case SUPERVISOR_REJECTION:
+			messageSenderDto.setSmsTemplateCode(env.getProperty(SUPERVISOR_REJECTED + SMS));
+			messageSenderDto.setEmailTemplateCode(env.getProperty(SUPERVISOR_REJECTED + EMAIL));
+			messageSenderDto.setIdType(IdType.RID);
+			messageSenderDto.setSubjectCode(env.getProperty(SUPERVISOR_REJECTED + SUB));
 			break;
 		default:
 			break;
