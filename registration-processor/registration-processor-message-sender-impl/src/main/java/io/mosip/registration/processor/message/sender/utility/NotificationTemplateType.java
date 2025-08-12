@@ -27,6 +27,8 @@ public enum NotificationTemplateType {
 	/** THe Lost UIN. */
 	LOST_UIN,
 	
-	ONDEMAND
+	ONDEMAND,
+
+	SUPERVISOR_REJECTION
 
 }

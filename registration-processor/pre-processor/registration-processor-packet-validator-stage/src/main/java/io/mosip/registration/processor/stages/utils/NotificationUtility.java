@@ -155,6 +155,9 @@ public class NotificationUtility {
 			InternalRegistrationStatusDto registrationStatusDto, SyncRegistrationEntity regEntity,
 			String[] allNotificationTypes, boolean isProcessingSuccess,boolean isValidSupervisorStatus)
 			throws ApisResourceAccessException, IOException, PacketManagerException, JsonProcessingException, JSONException {
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+				"", "NotificationUtility::sendNotification()::entry");
+
 		registrationId = regEntity.getRegistrationId();
 		LogDescription description = new LogDescription();
 		String regType = regEntity.getRegistrationType();
