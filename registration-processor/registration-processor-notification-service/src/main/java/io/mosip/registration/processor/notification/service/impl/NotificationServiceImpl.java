@@ -249,6 +249,11 @@ public class NotificationServiceImpl implements NotificationService {
 					ccEMailList = notificationEmails.split("\\|");
 				}
 
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+						messageSenderDto);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+							object);
+
 				 isTransactionSuccessful = sendNotification(id, workflowType,
 						attributes, ccEMailList, allNotificationTypes, workflowType, messageSenderDto, description);
 
