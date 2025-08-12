@@ -187,7 +187,7 @@ public class NotificationServiceImpl implements NotificationService {
 		MessageSenderDto messageSenderDto = new MessageSenderDto();
 		String id = object.getInstanceId();
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
-				"MessageSenderStage::process()::entry");
+				"NotificationServiceImpl::process()::entry");
 	
 		try {
 
@@ -207,6 +207,8 @@ public class NotificationServiceImpl implements NotificationService {
 					type = NotificationTemplateType.TECHNICAL_ISSUE_WITH_ERROR;
 				}
 			}
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+					type);
 
 			if (!NotificationTemplateType.TECHNICAL_ISSUE.equals(type)) {
 
@@ -249,9 +251,9 @@ public class NotificationServiceImpl implements NotificationService {
 					ccEMailList = notificationEmails.split("\\|");
 				}
 
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
 						messageSenderDto);
-					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
 							object);
 
 				 isTransactionSuccessful = sendNotification(id, workflowType,
