@@ -244,14 +244,15 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 					addTagsToMessageDTO(message);
 				}
 				message.setLastHopTimestamp(DateUtils.formatToISOString(DateUtils.getUTCCurrentDateTime()));
-				mosipEventBus.send(toAddress, message);
 				promise.complete();
 			} catch (Exception e) {
 				promise.fail(e);
 			}
 		}, res -> {
 			if (res.succeeded()) {
-				logger.info("Vertex thread sucess: message sent");
+				logger.info("Vertex thread sucess: kafka send initiated");
+				mosipEventBus.send(toAddress, message);
+				logger.info("Vertex thread sucess: kafka send completed");
 			} else {
 				logger.error("Vertex thread failed: " + res.cause());
 			}
