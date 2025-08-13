@@ -19,7 +19,7 @@ import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.rest.client.utils.RestApiClient;
-import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
 
 /**
  * The Class RegistrationProcessorRestClientServiceImpl.
@@ -27,7 +27,7 @@ import io.vertx.core.AbstractVerticle;
  * @author Rishabh Keshari
  */
 @Service
-public class RegistrationProcessorRestClientServiceImpl extends AbstractVerticle implements RegistrationProcessorRestClientService<Object> {
+public class RegistrationProcessorRestClientServiceImpl implements RegistrationProcessorRestClientService<Object> {
 
 	/** The logger. */
 	private static Logger regProcLogger = RegProcessorLogger
@@ -40,6 +40,9 @@ public class RegistrationProcessorRestClientServiceImpl extends AbstractVerticle
 	/** The env. */
 	@Autowired
 	private Environment env;
+	
+	@Autowired
+    private Vertx vertx;
 
 	/*
 	 * (non-Javadoc)
