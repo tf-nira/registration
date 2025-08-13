@@ -107,9 +107,6 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 
 	protected MosipEventBus mosipEventBus;
 	
-	@Autowired
-    private Vertx vertx;
-
 	/*
 	 * (non-Javadoc)
 	 * 
