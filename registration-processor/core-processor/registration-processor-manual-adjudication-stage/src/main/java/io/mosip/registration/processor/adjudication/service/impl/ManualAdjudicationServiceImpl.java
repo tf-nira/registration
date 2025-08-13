@@ -4,6 +4,9 @@ import static io.mosip.registration.processor.adjudication.constants.ManualAdjud
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -157,6 +160,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	@Value("${mosip.regproc.manual.adjudication.use.lts.format:true}")
 	private boolean  uselatestManualAdjudicationRequestFormat;
+
+	@Value("${registration.processor.applicant.dob.format}")
+	private String dobFormat;
 
 	@Autowired
 	private RegistrationProcessorRestClientService registrationProcessorRestClientService;
@@ -418,7 +424,20 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		// set demographic
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
-		requestDto.setIdentity(packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
+		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
+		Map<String, String> metaInfo = packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION);
+
+		// calculate age in months
+		String dateOfBirth = identity.get("dateOfBirth");
+
+		String dateOfEnrollment;
+		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
+		else dateOfEnrollment = metaInfo.get("creationDate");
+
+		String ageAtEnrollment = calculateAgeInMonths(dateOfBirth, dateOfEnrollment);
+
+		identity.put("ageAtEnrollment", ageAtEnrollment);
+		requestDto.setIdentity(identity);
 
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
@@ -430,7 +449,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 			// set metainfo
 			if (entry.getValue().contains(META_INFO))
-				requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION)));
+				requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(metaInfo));
 
 
 			// set biometrics
@@ -449,6 +468,17 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}
 
 		return CreateDataShareUrl(requestDto, policy);
+	}
+
+	private String calculateAgeInMonths(String dateOfBirth, String dateOfEnrollment) {
+		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
+		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
+		LocalDate enrollmentDate = LocalDate.parse(dateOfEnrollment.substring(0, 10));
+
+		Period period = Period.between(dob, enrollmentDate);
+		int totalMonths = period.getYears() * 12 + period.getMonths();
+
+		return String.valueOf(totalMonths);
 	}
 
 	private String getDataShareUrlfromIdRepo(String id) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
