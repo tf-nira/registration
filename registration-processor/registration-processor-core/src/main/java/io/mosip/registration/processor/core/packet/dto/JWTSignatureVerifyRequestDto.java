@@ -23,4 +23,5 @@ public class JWTSignatureVerifyRequestDto {
 
 	private String domain;
 
+	private String packetCreationDate;
 }
