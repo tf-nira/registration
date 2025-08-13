@@ -106,6 +106,9 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 	private MosipEventBusFactory mosipEventBusFactory;
 
 	protected MosipEventBus mosipEventBus;
+	
+	@Autowired
+    private Vertx vertx;
 
 	/*
 	 * (non-Javadoc)
@@ -237,11 +240,25 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 		if(busOutHaltAddresses.contains(toAddress.getAddress()))
 			return;
 		message.setTags(new HashMap<>());
-		if(!tagsExcludedBusOutAddresses.contains(toAddress.getAddress())) {
-			addTagsToMessageDTO(message);
-		}		
-		message.setLastHopTimestamp(DateUtils.formatToISOString(DateUtils.getUTCCurrentDateTime()));
-		mosipEventBus.send(toAddress, message);
+		
+		vertx.executeBlocking(promise -> {
+			try {
+				if(!tagsExcludedBusOutAddresses.contains(toAddress.getAddress())) {
+					addTagsToMessageDTO(message);
+				}
+				message.setLastHopTimestamp(DateUtils.formatToISOString(DateUtils.getUTCCurrentDateTime()));
+				mosipEventBus.send(toAddress, message);
+				promise.complete();
+			} catch (Exception e) {
+				promise.fail(e);
+			}
+		}, res -> {
+			if (res.succeeded()) {
+				logger.info("Vertex thread sucess: message sent");
+			} else {
+				logger.error("Vertex thread failed: " + res.cause());
+			}
+		});
 	}
 
 	/**
