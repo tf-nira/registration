@@ -212,4 +212,9 @@ public class CoreConfigBean {
 	public PropertiesUtil getPropertiesUtil() {
 		return new PropertiesUtil();
 	}
+	
+	@Bean
+    public Vertx vertx() {
+        return Vertx.vertx();
+    }
 }
