@@ -19,6 +19,7 @@ import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.rest.client.utils.RestApiClient;
+import io.vertx.core.AbstractVerticle;
 
 /**
  * The Class RegistrationProcessorRestClientServiceImpl.
@@ -26,7 +27,7 @@ import io.mosip.registration.processor.rest.client.utils.RestApiClient;
  * @author Rishabh Keshari
  */
 @Service
-public class RegistrationProcessorRestClientServiceImpl implements RegistrationProcessorRestClientService<Object> {
+public class RegistrationProcessorRestClientServiceImpl extends AbstractVerticle implements RegistrationProcessorRestClientService<Object> {
 
 	/** The logger. */
 	private static Logger regProcLogger = RegProcessorLogger
@@ -157,7 +158,7 @@ public class RegistrationProcessorRestClientServiceImpl implements RegistrationP
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationProcessorRestClientServiceImpl::postApi()::entry");
 
-		Object obj = null;
+		Object[] objHolder = new Object[1];
 		String apiHostIpPort = env.getProperty(apiName.name());
 		UriComponentsBuilder builder = null;
 		if (apiHostIpPort != null)
@@ -172,23 +173,39 @@ public class RegistrationProcessorRestClientServiceImpl implements RegistrationP
 					builder.queryParam(queryParamNameArr[i], queryParamValueArr[i]);
 				}
 			}
+			
+			final UriComponentsBuilder finalBuilder = builder;
+		    Throwable[] errorHolder = new Throwable[1];
+			//CompletableFuture<Object> cf = new CompletableFuture<>();
 
-			try {
-				obj = restApiClient.postApi(builder.toUriString(), mediaType, requestedData, responseType);
+			vertx.executeBlocking(promise -> {
+		        try {
+		        	Object res = restApiClient.postApi(finalBuilder.toUriString(), mediaType, requestedData, responseType);
+		            promise.complete(res);
+		        } catch (Exception e) {
+		        	regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+	                        LoggerFileConstant.REGISTRATIONID.toString(), "",
+	                        e.getMessage() + ExceptionUtils.getStackTrace(e));
 
-			} catch (Exception e) {
-				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), "",
-						e.getMessage() + ExceptionUtils.getStackTrace(e));
-
-				throw new ApisResourceAccessException(
-						PlatformErrorMessages.RPR_RCT_UNKNOWN_RESOURCE_EXCEPTION.getMessage(), e);
-
-			}
+	                promise.fail(new ApisResourceAccessException(
+	                        PlatformErrorMessages.RPR_RCT_UNKNOWN_RESOURCE_EXCEPTION.getMessage(), e));
+		        }
+		    }, res -> {
+		    	if (res.succeeded()) {
+		    		regProcLogger.info("Vertex API response received");
+	                objHolder[0] = res.result();
+	            } else {
+	                errorHolder[0] = res.cause();
+	            }
+		    });
+			
+			if (errorHolder[0] != null) {
+	            throw (ApisResourceAccessException) errorHolder[0];
+	        }
 		}
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationProcessorRestClientServiceImpl::postApi()::exit");
-		return obj;
+		return objHolder[0];
 	}
 
 	/*
