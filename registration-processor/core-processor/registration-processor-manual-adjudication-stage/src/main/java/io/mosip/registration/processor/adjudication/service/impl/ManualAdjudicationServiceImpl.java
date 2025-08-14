@@ -478,9 +478,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		LocalDate enrollmentDate = LocalDate.parse(dateOfEnrollment.substring(0, 10));
 
 		Period period = Period.between(dob, enrollmentDate);
-		int totalMonths = period.getYears();
+		int totalYears = period.getYears();
 
-		return String.valueOf(totalMonths);
+		return String.valueOf(totalYears);
 	}
 
 	private String getDataShareUrlfromIdRepo(String id) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
