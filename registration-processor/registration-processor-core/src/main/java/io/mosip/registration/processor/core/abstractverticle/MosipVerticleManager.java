@@ -238,8 +238,10 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 			return;
 		message.setTags(new HashMap<>());
 		
+		Map<String, String> mdc = MDC.getCopyOfContextMap();
 		vertx.executeBlocking(promise -> {
 			try {
+				MDC.setContextMap(mdc);
 				if(!tagsExcludedBusOutAddresses.contains(toAddress.getAddress())) {
 					addTagsToMessageDTO(message);
 				}
@@ -258,6 +260,7 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 				logger.error("Vertex thread failed: " + res.cause());
 			}
 		});
+		MDC.clear();
 	}
 
 	/**
