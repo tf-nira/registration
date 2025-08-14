@@ -261,8 +261,8 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 			} else {
 				logger.error("Vertex thread failed: " + res.cause());
 			}
+			MDC.clear();
 		});
-		MDC.clear();
 	}
 
 	/**
