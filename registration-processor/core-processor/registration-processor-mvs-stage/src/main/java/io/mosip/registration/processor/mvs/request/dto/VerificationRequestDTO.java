@@ -22,5 +22,11 @@ public class VerificationRequestDTO {
 	private String ageGroup;
 	private String applicantPlaceOfResidenceDistrict;
 	private List<String> matchedRegIds;
+	private String surname;
+	private String givenName;
+	private String dateOfBirth;
+	private String applicantPlaceOfEnrolmentDistrict;
+	
+	
 
 }

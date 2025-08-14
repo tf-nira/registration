@@ -531,6 +531,61 @@ public class MVSServiceImpl implements MVSService {
 		verReq.setFoundLink(tagsPresent.get("ID_OBJECT-foundLink"));
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
 
+		//additional fields for new filters
+		
+		if(requestDto.getIdentity().get("surname") != null) {
+			JSONArray surnameArray = new JSONArray(requestDto.getIdentity().get("surname"));
+			String surnameValue = surnameArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted surname is: {}",surnameValue);
+			
+			verReq.setSurname(surnameValue);
+		} else if(requestDto.getIdentity().get("surname") == null) {
+			regProcLogger.info("Extracted surname value is null");
+		}
+		
+		if(requestDto.getIdentity().get("givenName") != null) {
+			JSONArray givenNameArray = new JSONArray(requestDto.getIdentity().get("givenName"));
+			String givenNameValue = givenNameArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted given name value is : {}",givenNameValue);
+			
+			verReq.setGivenName(givenNameValue);
+			
+		} else if(requestDto.getIdentity().get("givenName") == null) {
+			regProcLogger.info("Extracted given name value is null");
+		}
+		
+		if(requestDto.getIdentity().get("dateOfBirth") != null) {
+			regProcLogger.info("Extracted date of birth is : {}", requestDto.getIdentity().get("dateOfBirth"));
+			
+			verReq.setDateOfBirth(requestDto.getIdentity().get("dateOfBirth"));
+		} else if(requestDto.getIdentity().get("dateOfBirth") == null) {
+			regProcLogger.info("Extracted date of birth value is null");
+		}
+		
+		if(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict") != null) {
+			JSONArray residentDistrictArray = new JSONArray(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict"));
+			String residentDistrictValue = residentDistrictArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted resident district value is : {}", residentDistrictValue);
+			
+			verReq.setApplicantPlaceOfResidenceDistrict(residentDistrictValue);
+		} else if(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict") == null) {
+			regProcLogger.info("Extracted applicant place of residence district is null");
+		}
+		
+		if(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict") != null) {
+			JSONArray enrolmentDistrictArray = new JSONArray(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict"));
+			String enrolmentDistrictValue = enrolmentDistrictArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted enrolment district value is : {}", enrolmentDistrictValue);
+			
+			verReq.setApplicantPlaceOfEnrolmentDistrict(enrolmentDistrictValue);
+		} else if(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict") == null) {
+			regProcLogger.info("Extracted applicant place of enrolment district is null");
+		}
+		;
 		//duplicate's data
 		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
 			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
