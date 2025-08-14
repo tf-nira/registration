@@ -434,7 +434,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
 		else dateOfEnrollment = metaInfo.get("creationDate");
 
-		String ageAtEnrollment = calculateAgeInMonths(dateOfBirth, dateOfEnrollment);
+		String ageAtEnrollment = calculateAgeInYears(dateOfBirth, dateOfEnrollment);
 
 		identity.put("ageAtEnrollment", ageAtEnrollment);
 		requestDto.setIdentity(identity);
@@ -467,16 +467,18 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 		}
 
-		return CreateDataShareUrl(requestDto, policy);
+		String dataShareUrl = CreateDataShareUrl(requestDto, policy);
+		regProcLogger.info("Datashare URL for id " + id + " is : " + dataShareUrl);
+		return dataShareUrl;
 	}
 
-	private String calculateAgeInMonths(String dateOfBirth, String dateOfEnrollment) {
+	private String calculateAgeInYears(String dateOfBirth, String dateOfEnrollment) {
 		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
 		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
 		LocalDate enrollmentDate = LocalDate.parse(dateOfEnrollment.substring(0, 10));
 
 		Period period = Period.between(dob, enrollmentDate);
-		int totalMonths = period.getYears() * 12 + period.getMonths();
+		int totalMonths = period.getYears();
 
 		return String.valueOf(totalMonths);
 	}
