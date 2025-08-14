@@ -241,7 +241,9 @@ public abstract class MosipVerticleManager extends AbstractVerticle
 		Map<String, String> mdc = MDC.getCopyOfContextMap();
 		vertx.executeBlocking(promise -> {
 			try {
-				MDC.setContextMap(mdc);
+				if (mdc != null) {
+					MDC.setContextMap(mdc);
+				}
 				if(!tagsExcludedBusOutAddresses.contains(toAddress.getAddress())) {
 					addTagsToMessageDTO(message);
 				}
