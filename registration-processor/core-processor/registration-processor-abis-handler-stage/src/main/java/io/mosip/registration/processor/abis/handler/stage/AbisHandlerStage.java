@@ -163,7 +163,7 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 	private Map<String, String> exceptionSegmentsMap;
 
 	@Value("${registration.processor.applicant.dob.format}")
-	private String dobFormat;
+	private String dobFormat = "";
 
 	@Autowired
 	private RegistrationProcessorRestClientService registrationProcessorRestClientService;
@@ -663,7 +663,10 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
 		else dateOfEnrollment = metaInfo.get("creationDate");
 
-        return calculateAgeInYears(dateOfBirth, dateOfEnrollment);
+		if (dateOfBirth != null && dateOfEnrollment != null)
+			return calculateAgeInYears(dateOfBirth, dateOfEnrollment);
+
+		return null;
 	}
 
 	private String calculateAgeInYears(String dateOfBirth, String dateOfEnrollment) {
