@@ -651,13 +651,8 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 	}
 
 	private String getAgeAtEnrollment(String id, String process) throws Exception {
-		Map<String, String> demographicMap = new HashMap<String, String>();
-		demographicMap.put("dateOfBirth", "dateOfBirth");
-
-		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
+		String dateOfBirth = packetManagerService.getField(id, "dateOfBirth", process, ProviderStageName.MANUAL_ADJUDICATION);
 		Map<String, String> metaInfo = packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION);
-
-		String dateOfBirth = identity.get("dateOfBirth");
 
 		String dateOfEnrollment;
 		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
