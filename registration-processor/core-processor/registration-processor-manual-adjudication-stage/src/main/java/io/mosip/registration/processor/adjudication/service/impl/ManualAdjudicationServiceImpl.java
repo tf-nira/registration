@@ -434,7 +434,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
 		else dateOfEnrollment = metaInfo.get("creationDate");
 
-		String ageAtEnrollment = calculateAgeInYears(dateOfBirth, dateOfEnrollment);
+		String ageAtEnrollment = calculateAgeInMonths(dateOfBirth, dateOfEnrollment);
 
 		identity.put("ageAtEnrollment", ageAtEnrollment);
 		requestDto.setIdentity(identity);
@@ -467,20 +467,18 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 		}
 
-		String dataShareUrl = CreateDataShareUrl(requestDto, policy);
-		regProcLogger.info("Datashare URL for id " + id + " is : " + dataShareUrl);
-		return dataShareUrl;
+		return CreateDataShareUrl(requestDto, policy);
 	}
 
-	private String calculateAgeInYears(String dateOfBirth, String dateOfEnrollment) {
+	private String calculateAgeInMonths(String dateOfBirth, String dateOfEnrollment) {
 		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
 		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
 		LocalDate enrollmentDate = LocalDate.parse(dateOfEnrollment.substring(0, 10));
 
 		Period period = Period.between(dob, enrollmentDate);
-		int totalYears = period.getYears();
+		int totalMonths = period.getYears() * 12 + period.getMonths();
 
-		return String.valueOf(totalYears);
+		return String.valueOf(totalMonths);
 	}
 
 	private String getDataShareUrlfromIdRepo(String id) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
