@@ -36,8 +36,8 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.isDeleted =false AND registration.isActive=true")
 	public List<RegistrationStatusEntity> findByRegId(@Param("regId") String regId);
 	
-	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.process = :process AND registration.isDeleted =false AND registration.isActive=true")
-	public List<RegistrationStatusEntity> findByProcessANDRegId(@Param("regId") String regId, @Param("process") String process);
+	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.registrationType = :registrationType AND registration.isDeleted =false AND registration.isActive=true")
+	public List<RegistrationStatusEntity> findByProcessANDRegId(@Param("regId") String regId, @Param("registrationType") String registrationType);
 	
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId IN :regIds AND registration.isDeleted =false AND registration.isActive=true")
 	public List<RegistrationStatusEntity> findByRegIds(@Param("regIds") List<String> regIds);
