@@ -120,9 +120,9 @@ public class RegistrationStatusDao {
 	 * @return the registration status entity
 	 */
 	public RegistrationStatusEntity find(String rid, String process, Integer iteration, String workflowInstanceId) {
-	    List<RegistrationStatusEntity> registrationStatusEntityList = Collections.emptyList();
+	    List<RegistrationStatusEntity> registrationStatusEntityList = null;
 
-	    if (process == null && workflowInstanceId != null && !workflowInstanceId.isBlank()) {
+	    if (workflowInstanceId != null) {
 	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
 	    } else if (process != null && Services.contains(process)) {
 	        registrationStatusEntityList = registrationStatusRepositary.findByProcessANDRegId(rid, process);
