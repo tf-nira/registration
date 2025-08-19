@@ -3,6 +3,7 @@ package io.mosip.registration.processor.status.dao;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -119,16 +120,19 @@ public class RegistrationStatusDao {
 	 * @return the registration status entity
 	 */
 	public RegistrationStatusEntity find(String rid, String process, Integer iteration, String workflowInstanceId) {
-		List<RegistrationStatusEntity> registrationStatusEntityList =null;
-		if (process == null && workflowInstanceId != null) {
-			registrationStatusEntityList=registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
-		} else if (process != null && Services.contains(process)) {
-			registrationStatusEntityList=registrationStatusRepositary.findByProcessANDRegId(rid, process);
-		}else {
-			registrationStatusEntityList=registrationStatusRepositary.findByRegId(rid);
-		}
-		return !registrationStatusEntityList.isEmpty() ? registrationStatusEntityList.get(0) : null;
+	    List<RegistrationStatusEntity> registrationStatusEntityList = Collections.emptyList();
+
+	    if (process == null && workflowInstanceId != null && !workflowInstanceId.isBlank()) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
+	    } else if (process != null && Services.contains(process)) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByProcessANDRegId(rid, process);
+	    } else {
+	        registrationStatusEntityList = registrationStatusRepositary.findByRegId(rid);
+	    }
+
+	    return registrationStatusEntityList.isEmpty() ? null : registrationStatusEntityList.get(0);
 	}
+
 
 	public List<RegistrationStatusEntity> findAll(String rid) {
 
