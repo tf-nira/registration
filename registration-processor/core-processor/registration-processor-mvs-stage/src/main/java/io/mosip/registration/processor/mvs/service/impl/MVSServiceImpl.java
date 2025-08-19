@@ -329,12 +329,12 @@ public class MVSServiceImpl implements MVSService {
 
 //		VerificationEntity entity = validateRequestIdAndReturnRid(mvsResponseDTO.getRequestId());
 		String regId = mvsResponseDTO.getRegId();
-
+		String process = mvsResponseDTO.getService();
 		MessageDTO messageDTO = new MessageDTO();
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		try {
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(
-					regId, null, null,
+					regId, process, null,
 					 null);
 			registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.MVS.name());
 			registrationStatusDto.setRegistrationStageName(stageName);

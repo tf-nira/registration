@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -73,6 +74,10 @@ public class RegistrationStatusDao {
 
 	public static final String UPDATED_DATE_TIME = "updateDateTime";
 
+	private static final Set<String> Services = Set.of(
+	        "NEW", "RENEWAL", "LOST", "UPDATE", "FIRSTID"
+	);
+	
 	/**
 	 * Save.
 	 *
@@ -115,13 +120,17 @@ public class RegistrationStatusDao {
 	 * @return the registration status entity
 	 */
 	public RegistrationStatusEntity find(String rid, String process, Integer iteration, String workflowInstanceId) {
-		List<RegistrationStatusEntity> registrationStatusEntityList =null;
-		if (workflowInstanceId != null) {
-			registrationStatusEntityList=registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
-		} else {
-			registrationStatusEntityList=registrationStatusRepositary.findByRegId(rid);
-		}
-		return !registrationStatusEntityList.isEmpty() ? registrationStatusEntityList.get(0) : null;
+		List<RegistrationStatusEntity> registrationStatusEntityList = null;
+
+	    if (workflowInstanceId != null) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
+	    } else if (process != null && Services.contains(process)) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByProcessANDRegId(rid, process);
+	    } else {
+	        registrationStatusEntityList = registrationStatusRepositary.findByRegId(rid);
+	    }
+
+	    return registrationStatusEntityList.isEmpty() ? null : registrationStatusEntityList.get(0);
 	}
 
 	public List<RegistrationStatusEntity> findAll(String rid) {
