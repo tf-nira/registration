@@ -138,7 +138,7 @@ public class RegistrationStatusDao {
 
 	    if (workflowInstanceId != null) {
 	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
-	    } else if (process != null && Services.contains(process)) {
+	    } else if (process != null) {
 	        registrationStatusEntityList = registrationStatusRepositary.findByProcessANDRegId(rid, process);
 	    } else {
 	       registrationStatusEntityList = registrationStatusRepositary.findByRegId(rid);
