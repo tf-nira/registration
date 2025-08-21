@@ -116,12 +116,12 @@ public class RegistrationStatusServiceImpl
 	public InternalRegistrationStatusDto getRegistrationStatusforMVS(String registrationId, String process, Integer iteration, String workflowInstanceId) {
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
-				registrationId, "RegistrationStatusServiceImpl::getRegistrationStatus()::entry");
+				registrationId, "RegistrationStatusServiceImpl::getRegistrationStatusforMVS()::entry");
 		try {
 			RegistrationStatusEntity entity = registrationStatusDao.findMVS(registrationId, process, iteration, workflowInstanceId);
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
-					registrationId, "RegistrationStatusServiceImpl::getRegistrationStatus()::exit");
+					registrationId, "RegistrationStatusServiceImpl::getRegistrationStatusforMVS()::exit");
 
 			return entity != null ? convertEntityToDto(entity) : null;
 		} catch (DataAccessLayerException e) {
