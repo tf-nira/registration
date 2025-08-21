@@ -45,11 +45,6 @@
 			<artifactId>registration-processor-manual-adjudication-stage</artifactId>
 			<version>1.2.0.1</version>
 		</dependency>
-		<dependency>
-			<groupId>io.mosip.registrationprocessor</groupId>
-			<artifactId>registration-processor-legacy-data-stage</artifactId>
-			<version>1.2.0.1-SNAPSHOT</version>
-		</dependency>
 		<!--  -->
 		
 	</dependencies>
