@@ -81,9 +81,6 @@ public class RegistrationStatusDaoTest {
 
 	@Test
 	public void findByIdworkFlowNullTest() {
-	    when(registrationStatusRepositary.findByProcessANDRegId("1000.zip", "NEW"))
-	        .thenReturn(List.of(registrationStatusEntity));
-
 	    RegistrationStatusEntity rEntity = registrationStatusDao.find("1000.zip", "NEW", 1, null);
 	    assertEquals(registrationStatusEntity, rEntity);
 	}

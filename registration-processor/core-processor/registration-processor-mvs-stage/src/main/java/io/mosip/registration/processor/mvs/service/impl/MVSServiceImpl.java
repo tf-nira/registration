@@ -333,7 +333,7 @@ public class MVSServiceImpl implements MVSService {
 		MessageDTO messageDTO = new MessageDTO();
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		try {
-			registrationStatusDto = registrationStatusService.getRegistrationStatus(
+			registrationStatusDto = registrationStatusService.getRegistrationStatusforMVS(
 					regId, process, null,
 					 null);
 			registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.MVS.name());
