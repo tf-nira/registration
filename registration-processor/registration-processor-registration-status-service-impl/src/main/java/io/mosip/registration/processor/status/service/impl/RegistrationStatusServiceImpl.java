@@ -105,6 +105,33 @@ public class RegistrationStatusServiceImpl
 					PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE.getMessage(), e);
 		}
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see
+	 * io.mosip.registration.processor.status.service.RegistrationStatusService#
+	 * getRegistrationStatus(java.lang.Object)
+	 */
+	public InternalRegistrationStatusDto getRegistrationStatusforMVS(String registrationId, String process, Integer iteration, String workflowInstanceId) {
+
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				registrationId, "RegistrationStatusServiceImpl::getRegistrationStatusforMVS()::entry");
+		try {
+			RegistrationStatusEntity entity = registrationStatusDao.findMVS(registrationId, process, iteration, workflowInstanceId);
+
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+					registrationId, "RegistrationStatusServiceImpl::getRegistrationStatusforMVS()::exit");
+
+			return entity != null ? convertEntityToDto(entity) : null;
+		} catch (DataAccessLayerException e) {
+
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					registrationId, e.getMessage() + ExceptionUtils.getStackTrace(e));
+			throw new TablenotAccessibleException(
+					PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE.getMessage(), e);
+		}
+	}
 
 	@Override
 	public List<InternalRegistrationStatusDto> getAllRegistrationStatuses(String registrationId) {
