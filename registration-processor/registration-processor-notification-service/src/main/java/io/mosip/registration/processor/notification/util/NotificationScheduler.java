@@ -90,11 +90,13 @@ public class NotificationScheduler {
 						
 						if (dto != null) {
 							workflowDto.setResultCode(ResultCode.PROCESSED.toString());
-						} else if (Objects.equals(packet.getRegistrationStageName(), "PacketValidatorStage")) {
-							workflowDto.setErrorCode(RegistrationExceptionTypeCode.REG_PACKET_REJECTED.name());
 						} else {
-							workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
-							
+							if (Objects.equals(packet.getRegistrationStageName(), "PacketValidatorStage")) {
+								workflowDto.setErrorCode(RegistrationExceptionTypeCode.REG_PACKET_REJECTED.name());
+							} else {
+								workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
+							}
+
 							Map<String, String> notificationAttibutes = notificationMessageService.getNotificationDetails(packet.getRegistrationId());
 							workflowDto.setNotificationAttributes(notificationAttibutes);
 						}
