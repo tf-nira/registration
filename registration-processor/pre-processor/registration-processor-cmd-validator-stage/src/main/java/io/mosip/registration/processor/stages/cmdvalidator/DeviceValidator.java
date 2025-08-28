@@ -209,7 +209,8 @@ public class DeviceValidator {
 			}
 			NewDigitalId newDigitalId = mapper.readValue(digitalIdString, NewDigitalId.class);
 			if(!signatures.contains(digitalIdString)) {
-				validateDigitalId(payload);
+				String creationDate = regOsi.getPacketCreationDate();
+				validateDigitalId(payload,creationDate);
 				signatures.add(digitalIdString);
 			}
 			signatures.add(digitalIdString);
@@ -346,7 +347,7 @@ public class DeviceValidator {
 		return true;
 	}
 
-	private void validateDigitalId(JSONObject payload) throws JsonParseException, JsonMappingException, JsonProcessingException, IOException, JSONException, BaseCheckedException {
+	private void validateDigitalId(JSONObject payload, String creationDate) throws JsonParseException, JsonMappingException, JsonProcessingException, IOException, JSONException, BaseCheckedException {
 		JWTSignatureVerifyRequestDto jwtSignatureVerifyRequestDto = new JWTSignatureVerifyRequestDto();
 		jwtSignatureVerifyRequestDto.setApplicationId("REGISTRATION");
 		jwtSignatureVerifyRequestDto.setReferenceId("SIGN");
@@ -354,6 +355,7 @@ public class DeviceValidator {
 		jwtSignatureVerifyRequestDto.setActualData(payload.getString("digitalId").split("\\.")[1]);
 		jwtSignatureVerifyRequestDto.setValidateTrust(!disableTrustValidation);
 		jwtSignatureVerifyRequestDto.setDomain("Device");
+		jwtSignatureVerifyRequestDto.setPacketCreationDate(creationDate);
 		RequestWrapper<JWTSignatureVerifyRequestDto> request = new RequestWrapper<>();
 
 		request.setRequest(jwtSignatureVerifyRequestDto);
