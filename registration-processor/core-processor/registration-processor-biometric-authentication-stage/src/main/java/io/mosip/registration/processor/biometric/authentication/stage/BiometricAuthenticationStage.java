@@ -3,11 +3,23 @@ package io.mosip.registration.processor.biometric.authentication.stage;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.mosip.kernel.core.dataaccess.exception.DataAccessLayerException;
+import io.mosip.registration.processor.core.code.*;
+import io.mosip.registration.processor.core.logger.LogDescription;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationPKEntity;
+import io.mosip.registration.processor.packet.storage.exception.UnableToInsertData;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
+import io.mosip.registration.processor.status.exception.RegStatusAppException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONException;
@@ -31,13 +43,6 @@ import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
 import io.mosip.registration.processor.core.abstractverticle.MosipEventBus;
 import io.mosip.registration.processor.core.abstractverticle.MosipRouter;
 import io.mosip.registration.processor.core.abstractverticle.MosipVerticleAPIManager;
-import io.mosip.registration.processor.core.code.EventId;
-import io.mosip.registration.processor.core.code.EventName;
-import io.mosip.registration.processor.core.code.EventType;
-import io.mosip.registration.processor.core.code.ModuleName;
-import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
@@ -99,6 +104,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 	@Autowired
 	RegistrationExceptionMapperUtil registrationStatusMapperUtil;
 
+	@Autowired
+	private BasePacketRepository<ManualVerificationEntity, String> manualVerficationRepository;
+
 	@Value("${vertx.cluster.configuration}")
 	private String clusterManagerUrl;
 
@@ -133,6 +141,12 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		this.consumeAndSend(mosipEventBus, MessageBusAddress.BIOMETRIC_AUTHENTICATION_BUS_IN,
 				MessageBusAddress.BIOMETRIC_AUTHENTICATION_BUS_OUT, messageExpiryTimeLimit);
 
+		MessageDTO message = new MessageDTO();
+		message.setRid("10147100030000720250404074503");
+		message.setReg_type("UPDATE");
+		message.setSource("REGISTRATION_CLIENT");
+		message.setWorkflowInstanceId("73c48048-48d2-40fe-a2ba-ed516b364280");
+		process(message);
 	}
 
 	@Override
@@ -168,10 +182,12 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		String code = "";
 		boolean isBioAuthSkipped = false;
 		boolean isTransactionSuccessful = false;
+		String nin = "";
 
 		try {
 			String process = registrationStatusDto.getRegistrationType();
 			String registartionType = regEntity.getRegistrationType();
+			nin = packetManagerService.getField(registrationId, "NIN", process, ProviderStageName.MANUAL_ADJUDICATION);
 			double applicantAge = utility.getApplicantAge(registrationId, process, ProviderStageName.BIO_AUTH);
 			int childAgeLimit = Integer.parseInt(ageLimit);
 			String applicantType = BiometricAuthenticationConstants.ADULT;
@@ -343,7 +359,21 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 			Map<String, String> notificationAttributes = new HashMap<>();
 			notificationAttributes.put("FAILURE_REASON", StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getMessage());
 			object.setNotificationAttributes(notificationAttributes);
-		} catch (Exception ex) {
+
+			// save MA Data
+            try {
+                saveManualAdjudicationData(object, nin);
+
+				Map<String, String> tags = object.getTags();
+				if (tags == null) tags = new HashMap<>();
+				tags.put("BIO_AUTH_FAILED", "true");
+				object.setTags(tags);
+
+            } catch (RegStatusAppException ex) {
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", e.getMessage() + io.mosip.kernel.core.exception.ExceptionUtils.getStackTrace(e));
+            }
+        } catch (Exception ex) {
 			registrationStatusDto.setSubStatusCode(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getCode());
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
 			registrationStatusDto.setStatusComment(trimExceptionMessage
@@ -441,4 +471,65 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		return biorecord;
 	}
 
+	private void saveManualAdjudicationData(MessageDTO messageDTO, String nin) throws RegStatusAppException {
+		boolean isTransactionSuccessful = false;
+		LogDescription description = new LogDescription();
+		String registrationId = messageDTO.getRid();
+
+		try {
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+					registrationId, "BiometricAuthenticationStage::saveManualAdjudicationData()::entry");
+
+			ManualVerificationEntity manualVerificationEntity = new ManualVerificationEntity();
+			ManualVerificationPKEntity manualVerificationPKEntity = new ManualVerificationPKEntity();
+			manualVerificationPKEntity.setMatchedRefId(syncRegistrationservice.getHashCode(nin));
+			manualVerificationPKEntity.setMatchedRefType("NIN");
+			manualVerificationPKEntity.setWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
+
+			manualVerificationEntity.setRegId(registrationId);
+			manualVerificationEntity.setId(manualVerificationPKEntity);
+			manualVerificationEntity.setLangCode("eng");
+			manualVerificationEntity.setRequestId(UUID.randomUUID().toString());
+			manualVerificationEntity.setReponseText(null);
+			manualVerificationEntity.setRequestId(null);
+			manualVerificationEntity.setTransactionId(null);
+			manualVerificationEntity.setMvUsrId(null);
+			manualVerificationEntity.setReasonCode("Potential Match");
+			manualVerificationEntity.setStatusCode("PENDING");
+			manualVerificationEntity.setStatusComment("Assigned to manual Adjudication");
+			manualVerificationEntity.setIsActive(true);
+			manualVerificationEntity.setIsDeleted(false);
+			manualVerificationEntity.setCrBy("SYSTEM");
+			manualVerificationEntity.setCrDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+			manualVerificationEntity.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+			manualVerificationEntity.setTrnTypCode(DedupeSourceName.BIO_AUTH_FAILURE.toString());
+			manualVerficationRepository.save(manualVerificationEntity);
+			isTransactionSuccessful = true;
+			description.setMessage("Manual Adjudication data saved successfully");
+
+
+		} catch (DataAccessLayerException e) {
+			description.setMessage("DataAccessLayerException while saving Manual Adjudication data for rid"
+					+ registrationId + "::" + e.getMessage());
+
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", e.getMessage() + ExceptionUtils.getStackTrace(e));
+
+			throw new UnableToInsertData(
+					PlatformErrorMessages.RPR_PIS_UNABLE_TO_INSERT_DATA.getMessage() + registrationId, e);
+		} finally {
+
+			String eventId = isTransactionSuccessful ? EventId.RPR_407.toString() : EventId.RPR_405.toString();
+			String eventName = eventId.equalsIgnoreCase(EventId.RPR_407.toString()) ? EventName.ADD.toString()
+					: EventName.EXCEPTION.toString();
+			String eventType = eventId.equalsIgnoreCase(EventId.RPR_407.toString()) ? EventType.BUSINESS.toString()
+					: EventType.SYSTEM.toString();
+
+			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
+					PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_AUTH_SYSTEM_EXCEPTION.getCode(), ModuleName.BIOMETRIC_AUTHENTICATION.toString(), registrationId);
+
+		}
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				registrationId, "BiometricAuthenticationStage::saveManualAdjudicationData()::exit");
+	}
 }

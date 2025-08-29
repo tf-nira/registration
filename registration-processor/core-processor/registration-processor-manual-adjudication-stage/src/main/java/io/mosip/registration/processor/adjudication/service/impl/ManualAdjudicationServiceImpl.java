@@ -4,15 +4,8 @@ import static io.mosip.registration.processor.adjudication.constants.ManualAdjud
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -451,14 +444,16 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return CreateDataShareUrl(requestDto, policy);
 	}
 
-	private String getDataShareUrlfromIdRepo(String id) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
+	private String getDataShareUrlfromIdRepo(String id, String idType) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
 
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 		LinkedHashMap<String, Object> policy = getPolicy();
 		Map<String, String> policyMap = getPolicyMap(policy);
 		Map<String, String> demographicMap  = getDemographicMap(policyMap);
 
-		ResponseDTO responseDTO=idRepoService.getIdResponseFromIDRepo(id);
+		ResponseDTO responseDTO;
+		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
+		else responseDTO = idRepoService.getIdResponseFromIDRepoByNIN(id);
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
 		Map<String,String> identity=new HashMap<>();
@@ -682,22 +677,39 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		List<ReferenceIds> referenceIds = new ArrayList<>();
 		mve.forEach(e -> {
-			ReferenceIds r = new ReferenceIds();
-			InternalRegistrationStatusDto registrationStatusDto1 = null;
-			registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
-					e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
+            ReferenceIds r = new ReferenceIds();
 
-			try {
-				r.setReferenceId(e.getId().getMatchedRefId());
-				r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
-				referenceIds.add(r);
-			} catch (PacketManagerException | ApisResourceAccessException ex) {
-				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
-				r.setReferenceURL(null);
-				referenceIds.add(r);
-			} catch (Exception exp) {
-				regProcLogger.error(ExceptionUtils.getStackTrace(exp));
+            if (e.getId().getMatchedRefType().equalsIgnoreCase("rid")) {
+                InternalRegistrationStatusDto registrationStatusDto1 = null;
+				registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
+						e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
+
+				try {
+					r.setReferenceId(e.getId().getMatchedRefId());
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					referenceIds.add(r);
+				} catch (PacketManagerException | ApisResourceAccessException ex) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
+					r.setReferenceURL(null);
+					referenceIds.add(r);
+				} catch (Exception exp) {
+					regProcLogger.error(ExceptionUtils.getStackTrace(exp));
+				}
+			}
+			else {
+                try {
+					r.setReferenceId(e.getId().getMatchedRefId());
+					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
+					referenceIds.add(r);
+				} catch (PacketManagerException | ApisResourceAccessException ex) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
+					r.setReferenceURL(null);
+					referenceIds.add(r);
+				} catch (Exception exp) {
+					regProcLogger.error(ExceptionUtils.getStackTrace(exp));
+				}
 			}
 
 		});
@@ -772,7 +784,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ReferenceURL referenceURL=new ReferenceURL();
 			referenceURL.setSource(ID_REPO);
 			referenceURL.setStatus(registrationStatusDto.getStatusCode());
-			referenceURL.setURL(getDataShareUrlfromIdRepo(id));
+			referenceURL.setURL(getDataShareUrlfromIdRepo(id, "RID"));
 			referenceURLs.add(referenceURL);
 		}
 		else{
@@ -794,7 +806,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				referenceURL1.setSource(ID_REPO);
 				referenceURL1.setStatus(PROCESSED);
 				referenceURL1.setURL(
-						getDataShareUrlfromIdRepo(uinField));
+						getDataShareUrlfromIdRepo(uinField, "RID"));
 				referenceURLs.add(referenceURL1);
 			}
 		}

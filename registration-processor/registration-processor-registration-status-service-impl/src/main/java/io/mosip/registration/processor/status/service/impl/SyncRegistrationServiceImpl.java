@@ -981,7 +981,7 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 		return HMACUtils2.digestAsPlainTextWithSalt(valueBytes, saltBytes).getBytes();
 	}
 
-	private String getHashCode(String value) throws RegStatusAppException {
+	public String getHashCode(String value) throws RegStatusAppException {
 		String encodedHash = null;
 		if (value == null) {
 			return null;
