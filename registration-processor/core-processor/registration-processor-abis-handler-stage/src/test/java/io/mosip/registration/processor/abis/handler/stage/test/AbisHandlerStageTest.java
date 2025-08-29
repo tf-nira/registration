@@ -460,6 +460,7 @@ public class AbisHandlerStageTest {
 	public void testReprocessInsert() throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
 		registrationStatusDto.setLatestTransactionTypeCode("BIOGRAPHIC_VERIFICATION");
 		registrationStatusDto.setLatestRegistrationTransactionId("dd7b7d20-910a-4b84-be21-c9f211318563");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any())).thenReturn(registrationStatusDto);
 		Mockito.when(packetInfoManager.getIdentifyByTransactionId(any(), any())).thenReturn(Boolean.FALSE);
 		List<String> appCodeList = new ArrayList<>();
@@ -862,6 +863,7 @@ public class AbisHandlerStageTest {
 	public void testBiometricSegmentNotConfiguredInfant() throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
 		registrationStatusDto.setLatestTransactionTypeCode("DEMOGRAPHIC_VERIFICATION");
 		registrationStatusDto.setLatestRegistrationTransactionId("dd7b7d20-910a-4b84-be21-c9f211318563");
+		registrationStatusDto.setRegistrationType("NEW");
 		Mockito.when(registrationStatusService.getRegistrationStatus(any(), any(), any(), any())).thenReturn(registrationStatusDto);
 		Mockito.when(packetInfoManager.getIdentifyByTransactionId(any(), any())).thenReturn(Boolean.FALSE);
 		Mockito.when(packetInfoManager.getAllAbisDetails()).thenReturn(abisApplicationDtos);
