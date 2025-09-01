@@ -93,6 +93,9 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 	@Value("#{T(java.util.Arrays).asList('${registration.processor.main-processes:}')}")
 	private List<String> mainProcesses;
 
+	@Value("${securezone.packet.resumable:true}")
+	private boolean packetResumable;
+
 	/** The Constant USER. */
 	private static final String USER = "MOSIP_SYSTEM";
 
@@ -215,6 +218,7 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 		TrimExceptionMessage trimMessage = new TrimExceptionMessage();
 		LogDescription description = new LogDescription();
 		boolean isTransactionSuccessful = false;
+		boolean migratorPacketResumable = false;
 		try {
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(messageDTO.getRid(),
 					messageDTO.getReg_type(), messageDTO.getIteration(), messageDTO.getWorkflowInstanceId());
@@ -238,7 +242,12 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 				messageDTO.setIsValid(Boolean.TRUE);
 				registrationStatusDto.setStatusComment(StatusUtil.NOTIFICATION_RECEIVED_TO_SECUREZONE.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.NOTIFICATION_RECEIVED_TO_SECUREZONE.getCode());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+				if (registrationStatusDto.getRegistrationType().equalsIgnoreCase("MIGRATOR") && packetResumable) {
+					registrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
+					migratorPacketResumable = true;
+				} else {
+					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+				}
 
 				isTransactionSuccessful = true;
 				description.setMessage(PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getMessage() + " -- "
@@ -303,7 +312,13 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 					? PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.SECUREZONE_NOTIFICATION.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			if (migratorPacketResumable) {
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
+						moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
+
 			if (isTransactionSuccessful)
 				description.setMessage(PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getMessage());
 			String eventId = isTransactionSuccessful ? EventId.RPR_401.toString() : EventId.RPR_405.toString();
