@@ -194,34 +194,4 @@ public class IdRepoServiceImpl implements IdRepoService {
 
 		return responseDTO;
 	}
-
-	@Override
-	public ResponseDTO getIdResponseFromIDRepoByNIN(String nin) throws IOException, ApisResourceAccessException {
-		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), "NIN",
-				nin, "IdRepoServiceImpl::getIdResponseFromIDRepoByNIN()::entry");
-		ResponseDTO responseDTO=null;
-		List<String> pathSegments = new ArrayList<>();
-		pathSegments.add(nin + "@nin");
-
-		List<String> queryParam = new ArrayList<>();
-		queryParam.add("type");
-		queryParam.add("idType");
-
-		List<Object> queryParamValue = new ArrayList<>();
-		queryParamValue.add("all");
-		queryParamValue.add("handle");
-
-		@SuppressWarnings("unchecked")
-		ResponseWrapper<ResponseDTO> response=(ResponseWrapper<ResponseDTO>) restClientService.getApi(ApiName.IDREPOGETIDBYUIN, pathSegments, queryParam, queryParamValue,
-				ResponseWrapper.class);
-
-		if (response.getResponse() != null) {
-			responseDTO=mapper.readValue(mapper.writeValueAsString(response.getResponse()), ResponseDTO.class);
-
-		}
-		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), "NIN",
-				nin, "IdRepoServiceImpl::getIdResponseFromIDRepoByNIN()::exit");
-
-		return responseDTO;
-	}
 }

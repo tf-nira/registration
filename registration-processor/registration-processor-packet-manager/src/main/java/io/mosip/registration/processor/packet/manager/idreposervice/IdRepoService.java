@@ -76,6 +76,4 @@ public interface IdRepoService {
 	 */
 	ResponseDTO getIdResponseFromIDRepo(String machedRegId) throws IOException, ApisResourceAccessException;
 
-	ResponseDTO getIdResponseFromIDRepoByNIN(String nin) throws IOException, ApisResourceAccessException;
-
 }
