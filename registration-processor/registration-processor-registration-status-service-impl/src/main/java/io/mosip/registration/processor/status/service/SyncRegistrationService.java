@@ -2,6 +2,7 @@ package io.mosip.registration.processor.status.service;
 
 import java.util.List;
 
+import io.mosip.registration.processor.status.exception.RegStatusAppException;
 import org.springframework.stereotype.Service;
 
 import io.mosip.registration.processor.status.dto.LostRidDto;
@@ -116,5 +117,7 @@ public interface SyncRegistrationService<T, U> {
 	public List<LostRidDto> searchLostRid(SearchInfo searchInfo);
 
 	public SyncRegistrationEntity saveSyncRegistrationEntity(SyncRegistrationEntity syncRegistrationEntity);
+
+	public String getHashCode(String value) throws RegStatusAppException;
 
 }
