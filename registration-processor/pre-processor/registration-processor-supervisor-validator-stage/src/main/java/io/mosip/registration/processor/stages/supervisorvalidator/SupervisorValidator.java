@@ -163,7 +163,7 @@ public class SupervisorValidator {
 			InternalRegistrationStatusDto registrationStatusDto) throws ApisResourceAccessException, IOException {
 		UserResponseDto userResponse;
 		List<String> pathSegments = new ArrayList<>();
-		pathSegments.add(operatorId);
+		pathSegments.add(operatorId.toLowerCase());
 		pathSegments.add(creationDate);
 
 		userResponse = (UserResponseDto) restClientService.getApi(ApiName.USERDETAILS, pathSegments, "", "",
