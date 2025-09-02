@@ -402,7 +402,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	}
 
-	private String getDataShareUrl(String id, String process) throws Exception {
+	private String getDataShareUrl(String id, String process, boolean isBioAuthFailed) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -411,7 +411,10 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		// set demographic
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
-		requestDto.setIdentity(packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
+		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
+
+		if (isBioAuthFailed) identity.put("BIO_AUTH_FAILED", "true");
+		requestDto.setIdentity(identity);
 
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
@@ -656,7 +659,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
-		ManualAdjudicationRequestDTO req = new ManualAdjudicationRequestDTO();
+		boolean isBioAuthFailed = Objects.equals(mve.get(0).getId().getMatchedRefType(), "NIN");
+
+        ManualAdjudicationRequestDTO req = new ManualAdjudicationRequestDTO();
 		req.setId(ManualAdjudicationConstants.MANUAL_ADJUDICATION_ID);
 		req.setVersion(ManualAdjudicationConstants.VERSION);
 		req.setRequestId(mve.get(0).getRequestId());
@@ -667,7 +672,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				mve.get(0).getRegId(), messageDTO.getReg_type(), messageDTO.getIteration(), mve.get(0).getId().getWorkflowInstanceId());
 		try {
 			req.setReferenceURL(
-					getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType()));
+					getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType(), isBioAuthFailed));
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -679,14 +684,14 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		mve.forEach(e -> {
             ReferenceIds r = new ReferenceIds();
 
-            if (e.getId().getMatchedRefType().equalsIgnoreCase("rid")) {
+            if (!isBioAuthFailed) {
                 InternalRegistrationStatusDto registrationStatusDto1 = null;
 				registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
 						e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType(), false));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -792,7 +797,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			referenceURL.setSource(PACKET);
 			referenceURL.setStatus(registrationStatusDto.getStatusCode());
 			referenceURL.setURL(
-					getDataShareUrl(id,registrationStatusDto.getRegistrationType()));
+					getDataShareUrl(id,registrationStatusDto.getRegistrationType(), false));
 			referenceURLs.add(referenceURL);
 			if(registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.UPDATE.name())
 					|| registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.RES_UPDATE.name())
