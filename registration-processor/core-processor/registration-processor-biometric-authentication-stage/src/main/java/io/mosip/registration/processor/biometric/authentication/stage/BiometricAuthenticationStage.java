@@ -181,7 +181,7 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		try {
 			String process = registrationStatusDto.getRegistrationType();
 			String registartionType = regEntity.getRegistrationType();
-			nin = packetManagerService.getField(registrationId, "NIN", process, ProviderStageName.MANUAL_ADJUDICATION);
+			nin = packetManagerService.getField(registrationId, "NIN", process, ProviderStageName.BIO_AUTH);
 			double applicantAge = utility.getApplicantAge(registrationId, process, ProviderStageName.BIO_AUTH);
 			int childAgeLimit = Integer.parseInt(ageLimit);
 			String applicantType = BiometricAuthenticationConstants.ADULT;
@@ -357,11 +357,7 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 			// save MA Data
             try {
                 saveManualAdjudicationData(object, nin);
-
-				Map<String, String> tags = object.getTags();
-				if (tags == null) tags = new HashMap<>();
-				tags.put("BIO_AUTH_FAILED", "true");
-				object.setTags(tags);
+				object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
 
             } catch (RegStatusAppException ex) {
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),

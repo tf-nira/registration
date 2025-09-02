@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.core.code.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONObject;
@@ -54,14 +55,6 @@ import io.mosip.registration.processor.adjudication.stage.ManualAdjudicationStag
 import io.mosip.registration.processor.adjudication.util.ManualVerificationUpdateUtility;
 import io.mosip.registration.processor.core.abstractverticle.MessageBusAddress;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
-import io.mosip.registration.processor.core.code.ApiName;
-import io.mosip.registration.processor.core.code.EventId;
-import io.mosip.registration.processor.core.code.EventName;
-import io.mosip.registration.processor.core.code.EventType;
-import io.mosip.registration.processor.core.code.ModuleName;
-import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.PolicyConstant;
@@ -456,7 +449,10 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		ResponseDTO responseDTO;
 		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
-		else responseDTO = idRepoService.getIdResponseFromIDRepoByNIN(id);
+		else {
+			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(id);
+			responseDTO = mapper.convertValue(jsonObject, ResponseDTO.class);
+		}
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
 		Map<String,String> identity=new HashMap<>();
@@ -659,7 +655,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
-		boolean isBioAuthFailed = Objects.equals(mve.get(0).getId().getMatchedRefType(), "NIN");
+		boolean isBioAuthFailed = Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString());
 
         ManualAdjudicationRequestDTO req = new ManualAdjudicationRequestDTO();
 		req.setId(ManualAdjudicationConstants.MANUAL_ADJUDICATION_ID);
@@ -723,6 +719,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		req.setGallery(g);
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
+		regProcLogger.info("Manual Adjudication Request : " + req);
 
 		return req;
 	}
