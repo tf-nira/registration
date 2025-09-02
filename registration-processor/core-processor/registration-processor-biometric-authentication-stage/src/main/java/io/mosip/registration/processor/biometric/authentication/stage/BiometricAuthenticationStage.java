@@ -141,12 +141,6 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		this.consumeAndSend(mosipEventBus, MessageBusAddress.BIOMETRIC_AUTHENTICATION_BUS_IN,
 				MessageBusAddress.BIOMETRIC_AUTHENTICATION_BUS_OUT, messageExpiryTimeLimit);
 
-		MessageDTO message = new MessageDTO();
-		message.setRid("10147100030000720250404074503");
-		message.setReg_type("UPDATE");
-		message.setSource("REGISTRATION_CLIENT");
-		message.setWorkflowInstanceId("73c48048-48d2-40fe-a2ba-ed516b364280");
-		process(message);
 	}
 
 	@Override
