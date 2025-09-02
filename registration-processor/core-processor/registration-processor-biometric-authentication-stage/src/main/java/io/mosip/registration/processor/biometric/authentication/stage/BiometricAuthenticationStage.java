@@ -272,6 +272,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
 				registrationStatusDto.setStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
 				registrationStatusDto.setStatusComment(StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getMessage());
+
+				saveManualAdjudicationData(object, nin);
+				object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
 			}
 
 		} catch (IOException | NoSuchAlgorithmException e) {
@@ -523,3 +526,4 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 				registrationId, "BiometricAuthenticationStage::saveManualAdjudicationData()::exit");
 	}
 }
+
