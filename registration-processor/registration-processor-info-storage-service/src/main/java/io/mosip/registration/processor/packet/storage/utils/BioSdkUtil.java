@@ -50,7 +50,7 @@ public class BioSdkUtil {
 
 	public void authenticateBiometrics(String uin, String individualType,
 			List<io.mosip.kernel.biometrics.entities.BIR> list, InternalRegistrationStatusDto registrationStatusDto,
-			String errorMsg, String errorCode) throws Exception {
+			String errorMsg, String errorCode) throws Exception, ValidationFailedException{
 		try {
 			regProcLogger.debug("BioSdkUtil :: authenticateBiometrics :: Fetching info from id repo based on uin ");
 			boolean status = false;

@@ -470,7 +470,7 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 		String registrationId = messageDTO.getRid();
 
 		try {
-			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 					registrationId, "BiometricAuthenticationStage::saveManualAdjudicationData()::entry");
 
 			ManualVerificationEntity manualVerificationEntity = new ManualVerificationEntity();
@@ -522,7 +522,7 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 					PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_AUTH_SYSTEM_EXCEPTION.getCode(), ModuleName.BIOMETRIC_AUTHENTICATION.toString(), registrationId);
 
 		}
-		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 				registrationId, "BiometricAuthenticationStage::saveManualAdjudicationData()::exit");
 	}
 }
