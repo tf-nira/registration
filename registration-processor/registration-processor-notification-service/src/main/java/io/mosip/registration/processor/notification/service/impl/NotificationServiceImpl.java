@@ -370,6 +370,11 @@ public class NotificationServiceImpl implements NotificationService {
 		}
 		if (allNotificationTypes != null) {
 			for (String notificationType : allNotificationTypes) {
+				regProcLogger.info("Setting the value for service for notification templates, process: {}",process);
+				attributes.put("service", process);
+				regProcLogger.info("The attributes added for the notification template for id: {}, are: {}",
+						id, attributes);
+				
 				if (notificationType.equalsIgnoreCase(NotificationTypeEnum.SMS.name())
 						&& isTemplateAvailable(messageSenderDto)) {
 					String countryCodeVal = packetManagerService.getField(id, "CountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
