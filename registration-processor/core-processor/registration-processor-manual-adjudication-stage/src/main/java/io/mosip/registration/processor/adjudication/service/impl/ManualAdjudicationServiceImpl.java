@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import io.mosip.registration.processor.core.code.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.codehaus.jackson.node.ObjectNode;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -406,7 +407,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
 		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
 
-		if (isBioAuthFailed) identity.put("BIO_AUTH_FAILED", "true");
+		if (isBioAuthFailed) identity.put("bioAuthFailed", "true");
 		requestDto.setIdentity(identity);
 
 		// set documents
@@ -450,7 +451,10 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		ResponseDTO responseDTO;
 		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 		else {
-			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(id);
+			byte[] decodedBytes = Base64.getDecoder().decode(id);
+			String nin = mapper.readValue(decodedBytes, String.class);
+
+			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(nin);
 			responseDTO = mapper.convertValue(jsonObject, ResponseDTO.class);
 		}
 

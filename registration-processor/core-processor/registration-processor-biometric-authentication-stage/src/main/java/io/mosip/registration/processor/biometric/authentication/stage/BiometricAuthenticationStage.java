@@ -6,12 +6,10 @@ import java.security.cert.CertificateException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.dataaccess.exception.DataAccessLayerException;
 import io.mosip.registration.processor.core.code.*;
 import io.mosip.registration.processor.core.logger.LogDescription;
@@ -475,7 +473,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 
 			ManualVerificationEntity manualVerificationEntity = new ManualVerificationEntity();
 			ManualVerificationPKEntity manualVerificationPKEntity = new ManualVerificationPKEntity();
-			manualVerificationPKEntity.setMatchedRefId(syncRegistrationservice.getHashCode(nin));
+			ObjectMapper mapper = new ObjectMapper();
+			String ninBytes = mapper.writeValueAsString(nin);
+			manualVerificationPKEntity.setMatchedRefId(ninBytes);
 			manualVerificationPKEntity.setMatchedRefType("NIN");
 			manualVerificationPKEntity.setWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
 
@@ -510,7 +510,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 
 			throw new UnableToInsertData(
 					PlatformErrorMessages.RPR_PIS_UNABLE_TO_INSERT_DATA.getMessage() + registrationId, e);
-		} finally {
+		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new RuntimeException(e);
+        } finally {
 
 			String eventId = isTransactionSuccessful ? EventId.RPR_407.toString() : EventId.RPR_405.toString();
 			String eventName = eventId.equalsIgnoreCase(EventId.RPR_407.toString()) ? EventName.ADD.toString()
