@@ -474,8 +474,9 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 			ManualVerificationEntity manualVerificationEntity = new ManualVerificationEntity();
 			ManualVerificationPKEntity manualVerificationPKEntity = new ManualVerificationPKEntity();
 			ObjectMapper mapper = new ObjectMapper();
-			String ninBytes = mapper.writeValueAsString(nin);
-			manualVerificationPKEntity.setMatchedRefId(ninBytes);
+			byte[] ninBytes = mapper.writeValueAsBytes(nin);
+			String base64String = Base64.getEncoder().encodeToString(ninBytes);
+			manualVerificationPKEntity.setMatchedRefId(base64String);
 			manualVerificationPKEntity.setMatchedRefType("NIN");
 			manualVerificationPKEntity.setWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
 
