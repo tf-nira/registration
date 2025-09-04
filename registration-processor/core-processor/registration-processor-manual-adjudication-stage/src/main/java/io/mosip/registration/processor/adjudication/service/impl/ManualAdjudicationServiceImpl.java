@@ -455,7 +455,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			String nin = mapper.readValue(decodedBytes, String.class);
 
 			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(nin);
-			responseDTO = mapper.convertValue(jsonObject, ResponseDTO.class);
+			responseDTO = new ResponseDTO();
+			Object identity = mapper.convertValue(jsonObject, Object.class);
+			responseDTO.setIdentity(identity);
 		}
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
@@ -473,16 +475,19 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		String individualBiometricsLabel = JsonUtil.getJSONValue(
 				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
 				MappingJsonConstants.VALUE);
-		for(Documents docs:documents) {
-			for(Entry<String,String> entry: policyMap.entrySet()) {
-				if(entry.getValue().contains(individualBiometricsLabel) && docs.getCategory().equalsIgnoreCase(individualBiometricsLabel)){
-					requestDto.setBiometrics(docs.getValue() != null ? docs.getValue() : null);
-				}
-				if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
-					requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
-				}
-				if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
-					requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
+
+		if (documents != null) {
+			for(Documents docs:documents) {
+				for(Entry<String,String> entry: policyMap.entrySet()) {
+					if(entry.getValue().contains(individualBiometricsLabel) && docs.getCategory().equalsIgnoreCase(individualBiometricsLabel)){
+						requestDto.setBiometrics(docs.getValue() != null ? docs.getValue() : null);
+					}
+					if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
+						requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
+					}
+					if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
+						requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
+					}
 				}
 			}
 		}
