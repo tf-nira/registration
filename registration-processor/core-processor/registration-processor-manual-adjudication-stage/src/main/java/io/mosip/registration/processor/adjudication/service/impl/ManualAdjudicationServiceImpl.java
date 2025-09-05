@@ -454,10 +454,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			byte[] decodedBytes = Base64.getDecoder().decode(id);
 			String nin = mapper.readValue(decodedBytes, String.class);
 
-			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(nin);
-			responseDTO = new ResponseDTO();
-			Object identity = mapper.convertValue(jsonObject, Object.class);
-			responseDTO.setIdentity(identity);
+			responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin);
 		}
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
