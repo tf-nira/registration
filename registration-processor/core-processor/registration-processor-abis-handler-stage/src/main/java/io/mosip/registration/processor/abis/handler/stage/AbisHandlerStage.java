@@ -563,6 +563,7 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 		regProcLogger.info("ABIS Insert Request for id " + regId + " is : " + abisInsertRequestDto);
 		try {
 			String jsonString = JsonUtils.javaObjectToJsonString(abisInsertRequestDto);
+			regProcLogger.info("ABIS Insert Request Json String for regId: {} , is : {}", regId, jsonString);
 			return jsonString.getBytes();
 		} catch (JsonProcessingException e) {
 			description.setStatusComment(AbisHandlerStageConstant.ERROR_IN_ABIS_HANDLER_IDENTIFY_REQUEST);
