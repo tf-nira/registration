@@ -372,7 +372,15 @@ public class NotificationServiceImpl implements NotificationService {
 		if (allNotificationTypes != null) {
 			for (String notificationType : allNotificationTypes) {
 				regProcLogger.info("Setting the value for service for notification templates, process: {}",process);
-				attributes.put("service", process);
+				
+				String displayService = env.getProperty(process);
+				regProcLogger.info("Fetched service from environment for the process: {} , is: {}", process, displayService);
+				
+				if(displayService == null || displayService.trim().isEmpty()) {
+					displayService = process;
+					regProcLogger.info("Fetched servce from properties is null thus adding process: {} in template", process);
+				}
+				attributes.put("service", displayService);
 				regProcLogger.info("The attributes added for the notification template for id: {}, are: {}",
 						id, attributes);
 				
