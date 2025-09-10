@@ -558,7 +558,7 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 		abisInsertRequestDto.setRequestId(id);
 		abisInsertRequestDto.setRequesttime(DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)));
 		abisInsertRequestDto.setVersion(AbisHandlerStageConstant.VERSION);
-		abisInsertRequestDto.setAgeAtEnrollment(getAgeAtEnrollment(regId, process));
+		//abisInsertRequestDto.setAgeAtEnrollment(getAgeAtEnrollment(regId, process));
 
 		regProcLogger.info("ABIS Insert Request for id " + regId + " is : " + abisInsertRequestDto);
 		try {
