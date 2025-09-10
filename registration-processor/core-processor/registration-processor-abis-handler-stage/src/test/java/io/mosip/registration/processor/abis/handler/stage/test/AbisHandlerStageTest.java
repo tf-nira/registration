@@ -370,7 +370,7 @@ public class AbisHandlerStageTest {
 		dto.setRid("10003100030001520190422074511");
 		MessageDTO result = abisHandlerStage.process(dto);
 
-		assertTrue(result.getMessageBusAddress().getAddress().equalsIgnoreCase("abis-handler-bus-in"));
+		assertTrue(result.getMessageBusAddress().getAddress().equalsIgnoreCase("abis-middle-ware-bus-in"));
 	}
 
 	@Test
@@ -401,7 +401,7 @@ public class AbisHandlerStageTest {
 		dto.setRid("10003100030001520190422074511");
 		MessageDTO result = abisHandlerStage.process(dto);
 
-		assertTrue(result.getMessageBusAddress().getAddress().equalsIgnoreCase("abis-handler-bus-in"));
+		assertTrue(result.getMessageBusAddress().getAddress().equalsIgnoreCase("abis-middle-ware-bus-in"));
 	}
 
 	@Test
