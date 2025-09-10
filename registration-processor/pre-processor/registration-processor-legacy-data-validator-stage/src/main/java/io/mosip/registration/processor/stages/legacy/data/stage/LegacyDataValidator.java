@@ -131,7 +131,7 @@ public class LegacyDataValidator {
 			RequestWrapper<MigrationRequestUpdateDto> requestWrapper = new RequestWrapper();
 			requestWrapper.setRequest(migrationRequestUpdateDto);
 			ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-					.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class,
+					.postApi(ApiName.MIGARTION_URL, "", "", requestWrapper, ResponseWrapper.class,
 							null);
 			if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
 				regProcLogger.error("Error from migration api : {}{}", registrationId,
