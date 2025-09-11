@@ -353,7 +353,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			  				String resultRids = registrationIds.stream()
                         .collect(Collectors.joining(", "));
 				regProcLogger.info("Reprocessor pickedup records to process :: " + resultRids);
-				hourlyReprocessRids= hourlyReprocessRids + resultRids;
+				hourlyReprocessRids = hourlyReprocessRids + "," + resultRids;
 			}
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
@@ -465,3 +465,4 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		return VERTICLE_PROPERTY_PREFIX;
 	}
 }
+
