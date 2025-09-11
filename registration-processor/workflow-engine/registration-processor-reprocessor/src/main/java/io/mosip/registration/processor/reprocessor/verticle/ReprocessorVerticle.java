@@ -6,7 +6,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -117,6 +121,23 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Value("${server.port}")
 	private String port;
 
+	
+    private static final AtomicLong hourlyReprocessCounter = new AtomicLong(0);
+    private static String hourlyReprocessRids = "";
+
+    
+    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    
+    static {
+        scheduler.scheduleAtFixedRate(() -> {
+            long totalRecords = hourlyReprocessCounter.getAndSet(0);
+            regProcLogger.info("Hourly Reprocess Report :: " + totalRecords + " packets processed in the last hour.");
+            regProcLogger.info("Hourly Reprocess Report :: " + hourlyReprocessRids + " packets picked in the last hour.");
+            hourlyReprocessRids = "";
+        }, 1, 1, TimeUnit.HOURS); 
+    }
+    
 	/**
 	 * Deploy verticle.
 	 */
@@ -248,7 +269,8 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 			
 			totalNumberOfReprocessRecords = (!CollectionUtils.isEmpty(reprocessorDtoList)?reprocessorDtoList.size():0);
-			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);			
+			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);	
+			hourlyReprocessCounter.set(hourlyReprocessCounter.get() + totalNumberOfReprocessRecords);
 			
 			
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
@@ -331,6 +353,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			  				String resultRids = registrationIds.stream()
                         .collect(Collectors.joining(", "));
 				regProcLogger.info("Reprocessor pickedup records to process :: " + resultRids);
+				hourlyReprocessRids= hourlyReprocessRids + resultRids;
 			}
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
