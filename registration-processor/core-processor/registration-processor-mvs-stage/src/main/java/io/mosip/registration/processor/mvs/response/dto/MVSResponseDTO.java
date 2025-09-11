@@ -22,6 +22,8 @@ public class MVSResponseDTO {
 	
 	private String category;
 	
+	private String service;
+	
 	private String actionDate;
 
 	public MVSResponseDTO()
@@ -30,7 +32,7 @@ public class MVSResponseDTO {
 	}
 
 	public MVSResponseDTO(String id, String requestId, String responsetime, String regId, String status, String comment,
-			String category, String actionDate) {
+			String category, String service, String actionDate) {
 		super();
 		this.id = id;
 		this.requestId = requestId;
@@ -38,6 +40,7 @@ public class MVSResponseDTO {
 		this.status = status;
 		this.comment = comment;
 		this.category = category;
+		this.service=service;
 		this.actionDate = actionDate;
 	//	this.analytics = analytics;
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -100,6 +103,14 @@ public class MVSResponseDTO {
 
 	public void setCategory(String category) {
 		this.category = category;
+	}
+	
+	public String getService() {
+		return service;
+	}
+
+	public void setService(String service) {
+		this.service = service;
 	}
 	
 	public String getActionDate() {

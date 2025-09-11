@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
+import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
 import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
 import io.mosip.registration.processor.status.code.RegistrationType;
 import org.apache.commons.lang.StringUtils;
@@ -209,6 +210,9 @@ public class MVSServiceImpl implements MVSService {
 	@Autowired
 	private IdRepoService idRepoService;
 
+	@Autowired
+	private BasePacketRepository<RegDemoDedupeListEntity, String> regDemoDedupeListRepository;
+
 	/** The Constant PROTOCOL. */
 	public static final String PROTOCOL = "https";
 
@@ -234,11 +238,11 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
 		try {
-			registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
 			VerificationRequestDTO mar = prepareVerificationRequest(messageDTO, registrationStatusDto, regEntity.getReferenceId());
+			registrationStatusDto.setRegistrationStageName(stageName);
 			//saveVerificationRecordUtility.saveVerificationRecord(messageDTO, mar.getRequestId(), description);
 			regProcLogger.debug("Request : " + JsonUtils.javaObjectToJsonString(mar));
 
@@ -325,12 +329,12 @@ public class MVSServiceImpl implements MVSService {
 
 //		VerificationEntity entity = validateRequestIdAndReturnRid(mvsResponseDTO.getRequestId());
 		String regId = mvsResponseDTO.getRegId();
-
+		String process = mvsResponseDTO.getService();
 		MessageDTO messageDTO = new MessageDTO();
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		try {
-			registrationStatusDto = registrationStatusService.getRegistrationStatus(
-					regId, null, null,
+			registrationStatusDto = registrationStatusService.getRegistrationStatusforMVS(
+					regId, process, null,
 					 null);
 			registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.MVS.name());
 			registrationStatusDto.setRegistrationStageName(stageName);
@@ -487,7 +491,7 @@ public class MVSServiceImpl implements MVSService {
 		return entities;
 	}
 
-	private String getDataShareUrl(String id, String process, VerificationRequestDTO verReq) throws Exception {
+	private String getDataShareUrl(String id, String process, VerificationRequestDTO verReq, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -526,7 +530,68 @@ public class MVSServiceImpl implements MVSService {
 		Map<String, String> tagsPresent = packetService.getTags(id, tags);
 		verReq.setFoundLink(tagsPresent.get("ID_OBJECT-foundLink"));
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
+
+		//additional fields for new filters
 		
+		if(requestDto.getIdentity().get("surname") != null) {
+			JSONArray surnameArray = new JSONArray(requestDto.getIdentity().get("surname"));
+			String surnameValue = surnameArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted surname is: {}",surnameValue);
+			
+			verReq.setSurname(surnameValue);
+		} else if(requestDto.getIdentity().get("surname") == null) {
+			regProcLogger.info("Extracted surname value is null");
+		}
+		
+		if(requestDto.getIdentity().get("givenName") != null) {
+			JSONArray givenNameArray = new JSONArray(requestDto.getIdentity().get("givenName"));
+			String givenNameValue = givenNameArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted given name value is : {}",givenNameValue);
+			
+			verReq.setGivenName(givenNameValue);
+			
+		} else if(requestDto.getIdentity().get("givenName") == null) {
+			regProcLogger.info("Extracted given name value is null");
+		}
+		
+		if(requestDto.getIdentity().get("dateOfBirth") != null) {
+			regProcLogger.info("Extracted date of birth is : {}", requestDto.getIdentity().get("dateOfBirth"));
+			
+			verReq.setDateOfBirth(requestDto.getIdentity().get("dateOfBirth"));
+		} else if(requestDto.getIdentity().get("dateOfBirth") == null) {
+			regProcLogger.info("Extracted date of birth value is null");
+		}
+		
+		if(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict") != null) {
+			JSONArray residentDistrictArray = new JSONArray(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict"));
+			String residentDistrictValue = residentDistrictArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted resident district value is : {}", residentDistrictValue);
+			
+			verReq.setApplicantPlaceOfResidenceDistrict(residentDistrictValue);
+		} else if(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict") == null) {
+			regProcLogger.info("Extracted applicant place of residence district is null");
+		}
+		
+		if(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict") != null) {
+			JSONArray enrolmentDistrictArray = new JSONArray(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict"));
+			String enrolmentDistrictValue = enrolmentDistrictArray.getJSONObject(0).getString("value");
+			
+			regProcLogger.info("Extracted enrolment district value is : {}", enrolmentDistrictValue);
+			
+			verReq.setApplicantPlaceOfEnrolmentDistrict(enrolmentDistrictValue);
+		} else if(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict") == null) {
+			regProcLogger.info("Extracted applicant place of enrolment district is null");
+		}
+		;
+		//duplicate's data
+		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
+			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
+			verReq.setMatchedRegIds(matchedRegIds);
+		}
+
 		// set documents
 		JSONObject docJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT);
 		for (Object doc : docJson.keySet()) {
@@ -722,12 +787,21 @@ public class MVSServiceImpl implements MVSService {
 			}
 		}
 		
-		if (registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty()) {
-			req.setStatusComment(registrationStatusDto.getStatusComment());
+		if (("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName()) ||
+				"BIO_DEDUPE".equals(registrationStatusDto.getRegistrationStageName())) && 
+				(registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty())) {
+			
+			//Format: STAGE_NAME::Status Comment
+			
+			String formattedComment = registrationStatusDto.getRegistrationStageName() +
+										"::" +
+										registrationStatusDto.getStatusComment();
+			
+			req.setStatusComment(formattedComment);
 		}
 		
 		try {
-			req.setReferenceURL(getDataShareUrl(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req));
+			req.setReferenceURL(getDataShareUrl(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req,registrationStatusDto));
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),

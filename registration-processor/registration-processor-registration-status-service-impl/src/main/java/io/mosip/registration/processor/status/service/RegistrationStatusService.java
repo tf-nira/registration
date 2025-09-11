@@ -36,6 +36,8 @@ public interface RegistrationStatusService<T, U, D> {
 	 * @return the registration status
 	 */
 	public U getRegistrationStatus(String regid, String processs, Integer iteration, String workflowInstanceId);
+	
+	public U getRegistrationStatusforMVS(String regid, String processs, Integer iteration, String workflowInstanceId);
 
 	public List<InternalRegistrationStatusDto> getAllRegistrationStatuses(String registrationId);
 

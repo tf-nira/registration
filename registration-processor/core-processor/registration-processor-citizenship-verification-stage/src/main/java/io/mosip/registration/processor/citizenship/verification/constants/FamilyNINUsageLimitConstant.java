@@ -21,8 +21,8 @@ public enum FamilyNINUsageLimitConstant {
     
     GRAND_MOTHER_ON_FATHERS_SIDE(Relationship.GRAND_MOTHER_ON_FATHERS_SIDE, 20),
     GRAND_MOTHER_ON_MOTHERS_SIDE(Relationship.GRAND_MOTHER_ON_MOTHERS_SIDE,20),
-
-    OTHER(Relationship.OTHER,20);
+    
+	OTHER(Relationship.OTHER,20);
 
     private final Relationship  relation;
     private final int limit;

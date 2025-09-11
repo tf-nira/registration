@@ -32,7 +32,7 @@ public enum NotificationStageStatus {
 	
 	MVS_PACKET_REJECTED,
 
-	MA_PACKET_REJECTED,
+	REG_PACKET_REJECTED,
 
 	PACKET_FAILED,
 

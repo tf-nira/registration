@@ -2,6 +2,8 @@ package io.mosip.registration.processor.mvs.request.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class VerificationRequestDTO {
 	private String id;
@@ -19,4 +21,12 @@ public class VerificationRequestDTO {
 	private String foundLink;
 	private String ageGroup;
 	private String applicantPlaceOfResidenceDistrict;
+	private List<String> matchedRegIds;
+	private String surname;
+	private String givenName;
+	private String dateOfBirth;
+	private String applicantPlaceOfEnrolmentDistrict;
+	
+	
+
 }

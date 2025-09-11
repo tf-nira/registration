@@ -171,6 +171,7 @@ public class NotificationUtility {
                 JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.NAME),
                 MappingJsonConstants.VALUE);
 		String[] nameArray = nameField.toString().split(",");
+
 		for(String preferredLanguage:preferredLanguages) {
 			attributes.put(nameArray[0] + "_" + preferredLanguage, "applicant");
 

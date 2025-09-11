@@ -3,6 +3,7 @@ package io.mosip.registration.processor.workflowmanager.util;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -59,13 +60,13 @@ public class WebSubUtil {
 
 	public void publishEvent(WorkflowPausedForAdditionalInfoEventDTO workflowPausedForAdditionalInfoEventDTO)
 			throws WebSubClientException {
-		// String rid = workflowPausedForAdditionalInfoEventDTO.getInstanceId();
-		// HttpHeaders httpHeaders = new HttpHeaders();
-		// workflowPausedForAdditionalInfoPublisher.publishUpdate(workflowPausedforadditionalinfoTopic,
-		// 		workflowPausedForAdditionalInfoEventDTO,
-		// 		MediaType.APPLICATION_JSON_UTF8_VALUE,
-		// 		httpHeaders, webSubPublishUrl);
-		// regProcLogger.info("Publish the update successfully  for registration id {}", rid);
+		 String rid = workflowPausedForAdditionalInfoEventDTO.getInstanceId();
+		 HttpHeaders httpHeaders = new HttpHeaders();
+		 workflowPausedForAdditionalInfoPublisher.publishUpdate(workflowPausedforadditionalinfoTopic,
+		 		workflowPausedForAdditionalInfoEventDTO,
+		 		MediaType.APPLICATION_JSON_UTF8_VALUE,
+		 		httpHeaders, webSubPublishUrl);
+		 regProcLogger.info("Publish the update successfully  for registration id {}", rid);
 
 	}
 	

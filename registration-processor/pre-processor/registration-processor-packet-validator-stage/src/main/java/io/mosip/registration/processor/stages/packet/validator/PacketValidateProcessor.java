@@ -197,6 +197,7 @@ public class PacketValidateProcessor {
 			SyncRegistrationEntity regEntity = getSyncRegistrationEntity(object);
 			boolean isValidSupervisorStatus = isValidSupervisorStatus(object, regEntity);
 			String supervisorStatusComment = regEntity.getSupervisorComment();
+			regProcLogger.info("reg_id : {}, supervisor status: {}, comment: {}", regEntity.getRegistrationId(), isValidSupervisorStatus, supervisorStatusComment);
 			if (isValidSupervisorStatus) {
 				Boolean isValid = compositePacketValidator.validate(object.getRid(),
 						registrationStatusDto.getRegistrationType(), packetValidationDto);

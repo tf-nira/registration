@@ -19,9 +19,9 @@ public enum Relationship {
 	SISTER("Biological Sister"),
 	
 	FIRST_COUSIN_FATHERS_SIDE ("1st Cousin (Father's side)"),
-    FIRST_COUSIN_MOTHERS_SIDE("1st Cousin (Mother's side)"),
-
-    OTHER("Other");
+	FIRST_COUSIN_MOTHERS_SIDE("1st Cousin (Mother's side)"),
+	
+	OTHER("Other");
 
     private final String relation;
 

@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.status.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,10 +83,10 @@ public class RegistrationStatusDaoTest {
 
 	@Test
 	public void findByIdworkFlowNullTest() {
-		RegistrationStatusEntity rEntity = registrationStatusDao.find("1000.zip", "NEW", 1, null);
-		assertEquals(registrationStatusEntity, rEntity);
-
+	    RegistrationStatusEntity rEntity = registrationStatusDao.find("1000.zip", "NEW", 1, null);
+	    assertEquals(registrationStatusEntity, rEntity);
 	}
+
 
 	@Test
 	public void findAllTest() {
