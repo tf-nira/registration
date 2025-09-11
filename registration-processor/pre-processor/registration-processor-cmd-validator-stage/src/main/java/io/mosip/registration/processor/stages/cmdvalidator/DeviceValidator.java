@@ -210,8 +210,8 @@ public class DeviceValidator {
 			NewDigitalId newDigitalId = mapper.readValue(digitalIdString, NewDigitalId.class);
 			if(!signatures.contains(digitalIdString)) {
 				String creationDate = regOsi.getPacketCreationDate();
-				validateDigitalId(payload, creationDate);
-				signatures.add(digitalIdString);
+        validateDigitalId(payload, creationDate);
+        signatures.add(digitalIdString);				
 			}
 			signatures.add(digitalIdString);
 			validateTimestamp(rid, regOsi.getPacketCreationDate(), newDigitalId.getDateTime());

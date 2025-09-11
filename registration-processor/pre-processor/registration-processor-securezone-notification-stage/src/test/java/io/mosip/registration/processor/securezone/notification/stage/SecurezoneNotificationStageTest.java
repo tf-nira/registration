@@ -1,6 +1,8 @@
 package io.mosip.registration.processor.securezone.notification.stage;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
@@ -394,12 +396,14 @@ public class SecurezoneNotificationStageTest {
         registrationStatusDto.setStatusCode("SECUREZONE_NOTIFICATION_SUCCESS");
         registrationStatusDto.setWorkflowInstanceId("78fc3d34-03f5-11ec-9a03-0242ac130004");
         registrationStatusDto.setCreateDateTime(LocalDateTime.now().minusDays(1));
+		registrationStatusDto.setRegistrationType("NEW");
 
         registrationStatusDto1 = new InternalRegistrationStatusDto();
         registrationStatusDto1.setRegistrationId("2018701130000410092018110735");
         registrationStatusDto1.setStatusCode("SECUREZONE_NOTIFICATION_SUCCESS");
         registrationStatusDto1.setWorkflowInstanceId("78fc3d34-03f5-11ec-9a03-0242ac130003");
         registrationStatusDto1.setCreateDateTime(LocalDateTime.now());
+		registrationStatusDto1.setRegistrationType("NEW");
 
         ResponseWrapper<AuditResponseDto> responseWrapper = new ResponseWrapper<AuditResponseDto>();
         AuditResponseDto auditResponseDto = new AuditResponseDto();
@@ -418,6 +422,7 @@ public class SecurezoneNotificationStageTest {
         ReflectionTestUtils.setField(notificationStage, "clusterManagerUrl", "/dummyPath");
         ReflectionTestUtils.setField(notificationStage, "messageExpiryTimeLimit", Long.valueOf(0));
         ReflectionTestUtils.setField(notificationStage, "mainProcesses", Arrays.asList("NEW","UPDATE","LOST"));
+		ReflectionTestUtils.setField(notificationStage, "packetResumable", true);
         //ReflectionTestUtils.setField(notificationStage, "port", "7999");
         Mockito.when(router.post(Mockito.any())).thenReturn(null);
         Mockito.doNothing().when(router).setRoute(Mockito.any());
