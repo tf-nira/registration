@@ -1,6 +1,7 @@
 package io.mosip.registartion.processor.abis.middleware.stage;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -567,16 +568,27 @@ public class AbisMiddleWareStage extends MosipVerticleAPIManager {
 				"AbisMiddlewareStage::sendToQueue()::Entry");
 		boolean isAddedToQueue;
 		try {
-			if (messageFormat.equalsIgnoreCase(TEXT_MESSAGE))
+			if (messageFormat.equalsIgnoreCase(TEXT_MESSAGE)) {
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						"", "message format is: {}", TEXT_MESSAGE);;
 				isAddedToQueue = mosipQueueManager.send(queue, abisReqTextString,
 					abisQueueAddress, messageTTL);
-			else
-				isAddedToQueue = mosipQueueManager.send(queue, abisReqTextString.getBytes(),
+			} else {
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						"", "message format is not text");
+				regProcLogger.info("Converting the abis request text string to bytes using the UTF-8 encoding.");
+				isAddedToQueue = mosipQueueManager.send(queue, abisReqTextString.getBytes("UTF-8"),
 					abisQueueAddress, messageTTL);
-
+			}
 			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"AbisMiddlewareStage:: sent to abis queue ::" + abisReqTextString);
-
+			
+		} catch(UnsupportedEncodingException e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", ExceptionUtils.getStackTrace(e));
+			regProcLogger.error("Unsupported encoding exception");
+			throw new RegistrationProcessorCheckedException(PlatformErrorMessages.RPR_SYS_IO_EXCEPTION.getCode(),
+					PlatformErrorMessages.RPR_SYS_IO_EXCEPTION.getMessage(), e);
 		} catch (Exception e) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					"", ExceptionUtils.getStackTrace(e));
