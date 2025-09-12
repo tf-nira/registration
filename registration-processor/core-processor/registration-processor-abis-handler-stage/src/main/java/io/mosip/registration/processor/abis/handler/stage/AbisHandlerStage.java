@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.abis.handler.stage;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -564,7 +565,14 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 		try {
 			String jsonString = JsonUtils.javaObjectToJsonString(abisInsertRequestDto);
 			regProcLogger.info("ABIS Insert Request Json String for regId: {} , is : {}", regId, jsonString);
-			return jsonString.getBytes();
+			return jsonString.getBytes("UTF-8");
+		}  catch (UnsupportedEncodingException e) {
+			description.setStatusComment(AbisHandlerStageConstant.ERROR_IN_ABIS_HANDLER_IDENTIFY_REQUEST);
+			description.setMessage(PlatformErrorMessages.RPR_ERROR_IN_ABIS_HANDLER_IDENTIFY_REQUEST.getMessage());
+			description.setCode(PlatformErrorMessages.RPR_ERROR_IN_ABIS_HANDLER_IDENTIFY_REQUEST.getCode());
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"","Unsupported Encoding Exception");
+			throw new AbisHandlerException(PlatformErrorMessages.RPR_ABIS_INTERNAL_ERROR.getCode(), e);
 		} catch (JsonProcessingException e) {
 			description.setStatusComment(AbisHandlerStageConstant.ERROR_IN_ABIS_HANDLER_IDENTIFY_REQUEST);
 			description.setMessage(PlatformErrorMessages.RPR_ERROR_IN_ABIS_HANDLER_IDENTIFY_REQUEST.getMessage());
