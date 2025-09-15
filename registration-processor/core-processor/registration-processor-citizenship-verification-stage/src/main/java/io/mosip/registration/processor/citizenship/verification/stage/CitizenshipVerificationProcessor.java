@@ -725,7 +725,8 @@ public class CitizenshipVerificationProcessor {
 				}
 			
 			//moving the packet directly to mvs if age >= 25.
-			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			double ageDouble = Double.parseDouble(applicantFields.get(MappingJsonConstants.AGE));
+			int age = (int) ageDouble;
 			regProcLogger.info("Applicant age: {} years for registrationId: {}", 
 				    age, applicantFields.get("registrationId"));
 			if(age >= ageCheckCVS) {
