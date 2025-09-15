@@ -418,7 +418,9 @@ public class CitizenshipVerificationProcessor {
 		else {
 			regProcLogger.info("ParentNIN found but validation status is {}. Checking age criteria for MVS redirection.", 
 			        isParentInfoValid ? "valid" : "invalid");
-			int age = Integer.parseInt(applicantFields.get(MappingJsonConstants.AGE));
+			//moving the packet directly to mvs if age >= 25.
+			double ageDouble = Double.parseDouble(applicantFields.get(MappingJsonConstants.AGE));
+			int age = (int) ageDouble;
 			regProcLogger.info("Applicant age: {} years (threshold: {}) for registrationId: {}", 
 			        age, ageCheckCVS, registrationStatusDto.getRegistrationId());
 			if(age >= ageCheckCVS) { 
