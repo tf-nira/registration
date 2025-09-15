@@ -153,10 +153,22 @@ public class MosipActiveMqImpl implements MosipQueueManager<MosipQueue, byte[]> 
                 initialSetup(mosipQueue);
             destination = session.createQueue(address);
             MessageProducer messageProducer = session.createProducer(destination);
-            TextMessage textMessage = session.createTextMessage();
             regProcLogger.info("Sending the message to active mq : {}", message);
-            textMessage.setText(message);
+            
+            //checking for Byte Order Mark and removing
+            String cleanMessage = message;
+            if(message.startsWith("\uFEFF")) {
+            	cleanMessage = message.substring(1);
+            }
+            regProcLogger.info("Sending clean message to active mq: {}", cleanMessage);
+            
+            TextMessage textMessage = session.createTextMessage(cleanMessage);
+            
+            //Explicit setting message property to UTF-8
+            textMessage.setStringProperty("JMSCharset","UTF-8");
+
             regProcLogger.info("Sending text message to active mq: {}", textMessage);
+            
             if(messageTTL > 0)
                 messageProducer.setTimeToLive(messageTTL * (long)1000);
             messageProducer.send(textMessage);
