@@ -154,7 +154,9 @@ public class MosipActiveMqImpl implements MosipQueueManager<MosipQueue, byte[]> 
             destination = session.createQueue(address);
             MessageProducer messageProducer = session.createProducer(destination);
             TextMessage textMessage = session.createTextMessage();
+            regProcLogger.info("Sending the message to active mq : {}", message);
             textMessage.setText(message);
+            regProcLogger.info("Sending text message to active mq: {}", textMessage);
             if(messageTTL > 0)
                 messageProducer.setTimeToLive(messageTTL * (long)1000);
             messageProducer.send(textMessage);

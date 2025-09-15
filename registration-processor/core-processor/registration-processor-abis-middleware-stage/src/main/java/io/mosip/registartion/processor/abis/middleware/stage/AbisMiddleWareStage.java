@@ -564,19 +564,28 @@ public class AbisMiddleWareStage extends MosipVerticleAPIManager {
 
 	private boolean sendToQueue(MosipQueue queue, String abisReqTextString, String abisQueueAddress,
 			int messageTTL) throws RegistrationProcessorCheckedException {
-		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"AbisMiddlewareStage::sendToQueue()::Entry");
+		regProcLogger.info("The meassage format is : {}", messageFormat);
 		boolean isAddedToQueue;
 		try {
 			if (messageFormat.equalsIgnoreCase(TEXT_MESSAGE)) {
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
-						"", "message format is: {}", TEXT_MESSAGE);;
+						"", "message format is: {}", TEXT_MESSAGE);
+				regProcLogger.info("The value for queue is : {}", queue);
+				regProcLogger.info("The value for abis request text string is : {}", abisReqTextString);
+				regProcLogger.info("The value for abis queue address is : {}", abisQueueAddress);
+				regProcLogger.info("The message TTL value is : {}", messageTTL);
 				isAddedToQueue = mosipQueueManager.send(queue, abisReqTextString,
 					abisQueueAddress, messageTTL);
 			} else {
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 						"", "message format is not text");
 				regProcLogger.info("Converting the abis request text string to bytes using the UTF-8 encoding.");
+				regProcLogger.info("The value for queue is : {}", queue);
+				regProcLogger.info("The value for abis request text string is : {}", abisReqTextString);
+				regProcLogger.info("The value for abis queue address is : {}", abisQueueAddress);
+				regProcLogger.info("The message TTL value is : {}", messageTTL);
 				isAddedToQueue = mosipQueueManager.send(queue, abisReqTextString.getBytes("UTF-8"),
 					abisQueueAddress, messageTTL);
 			}
