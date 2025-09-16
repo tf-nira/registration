@@ -599,10 +599,9 @@ public class PacketInfoDao {
 	 *            the status code
 	 * @return the processed or processing reg ids
 	 */
-	public List<RegistrationStatusEntity> getWithoutStatusCodeAndRegistartionType(List<String> matchedRegIds,
-			String statusCode, List<String> registrationTypes) {
-		return registrationRepositary.getWithoutStatusCodeAndRegistartionType(matchedRegIds, statusCode,
-				registrationTypes);
+	public List<RegistrationStatusEntity> getWithoutStatusCode(List<String> matchedRegIds,
+			String statusCode) {
+		return registrationRepositary.getWithoutStatusCode(matchedRegIds, statusCode);
 	}
 
 	/**
