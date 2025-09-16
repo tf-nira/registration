@@ -816,6 +816,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		String moduleId = PlatformSuccessMessages.RPR_MANUAL_VERIFICATION_SENT.getCode();
 		String registrationId = object.getRid();
 		boolean isTransactionSuccessful = false;
+		boolean isResumable = false;
 		try {
 			object.setInternalError(false);
 			object.setIsValid(false);
@@ -831,6 +832,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			registrationStatusDto = registrationStatusService
 					.getRegistrationStatus(object.getRid(), object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
 
+			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
+				isResumable = true;
+			}
 			pushRequestToQueue(object, queue);
 			isTransactionSuccessful=true;
 			registrationStatusDto.setStatusComment(StatusUtil.RPR_MANUAL_VERIFICATION_SENT_TO_QUEUE.getMessage());
@@ -883,7 +887,13 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}finally {
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.MANUAL_ADJUDICATION.toString());
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			if (isResumable) {
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
+						moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
+
 			if (object.getInternalError()) {
 				updateErrorFlags(registrationStatusDto, object);
 			}
