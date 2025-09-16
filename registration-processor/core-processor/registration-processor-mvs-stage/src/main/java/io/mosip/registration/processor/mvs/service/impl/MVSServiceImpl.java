@@ -86,8 +86,10 @@ import io.mosip.registration.processor.mvs.response.dto.MVSResponseDTO;
 import io.mosip.registration.processor.mvs.service.MVSService;
 import io.mosip.registration.processor.mvs.stage.MVSStage;
 import io.mosip.registration.processor.mvs.util.SaveVerificationRecordUtility;
+import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
 import io.mosip.registration.processor.packet.storage.dto.ApplicantInfoDto;
 import io.mosip.registration.processor.packet.storage.dto.Document;
+import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
 import io.mosip.registration.processor.packet.storage.entity.VerificationEntity;
 import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
@@ -95,6 +97,7 @@ import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketM
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
+import io.mosip.registration.processor.status.code.RegistrationType;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.SyncRegistrationDto;
@@ -237,7 +240,12 @@ public class MVSServiceImpl implements MVSService {
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
+		boolean isResumable=false;
 		try {
+			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
+				isResumable = true;
+			}
+			registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
@@ -300,7 +308,7 @@ public class MVSServiceImpl implements MVSService {
 			} else
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
-					PlatformSuccessMessages.RPR_MVS_SENT);
+					PlatformSuccessMessages.RPR_MVS_SENT, isResumable);
 		}
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -411,7 +419,7 @@ public class MVSServiceImpl implements MVSService {
 			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
-					PlatformSuccessMessages.RPR_MVS_SUCCESS);
+					PlatformSuccessMessages.RPR_MVS_SUCCESS, false);
 			mVSStage.sendMessage(messageDTO);
 		}
 		return isTransactionSuccessful;
@@ -419,7 +427,7 @@ public class MVSServiceImpl implements MVSService {
 
 	private void updateStatus(MessageDTO messageDTO, InternalRegistrationStatusDto registrationStatusDto,
 			boolean isTransactionSuccessful, LogDescription description,
-			PlatformSuccessMessages platformSuccessMessages) {
+			PlatformSuccessMessages platformSuccessMessages, boolean isResumable) {
 		if (messageDTO.getInternalError()) {
 			updateErrorFlags(registrationStatusDto, messageDTO);
 		}
@@ -428,7 +436,12 @@ public class MVSServiceImpl implements MVSService {
 		/** Module-Id can be Both Success/Error code */
 		String moduleId = isTransactionSuccessful ? platformSuccessMessages.getCode() : description.getCode();
 		String moduleName = ModuleName.MVS.toString();
-		registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+		if (isResumable) {
+			registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
+					moduleName);
+		} else {
+			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+		}
 
 		String eventId = isTransactionSuccessful ? EventId.RPR_402.toString() : EventId.RPR_405.toString();
 		String eventName = eventId.equalsIgnoreCase(EventId.RPR_402.toString()) ? EventName.UPDATE.toString()
@@ -532,55 +545,55 @@ public class MVSServiceImpl implements MVSService {
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
 
 		//additional fields for new filters
-		
+
 		if(requestDto.getIdentity().get("surname") != null) {
 			JSONArray surnameArray = new JSONArray(requestDto.getIdentity().get("surname"));
 			String surnameValue = surnameArray.getJSONObject(0).getString("value");
-			
+
 			regProcLogger.info("Extracted surname is: {}",surnameValue);
-			
+
 			verReq.setSurname(surnameValue);
 		} else if(requestDto.getIdentity().get("surname") == null) {
 			regProcLogger.info("Extracted surname value is null");
 		}
-		
+
 		if(requestDto.getIdentity().get("givenName") != null) {
 			JSONArray givenNameArray = new JSONArray(requestDto.getIdentity().get("givenName"));
 			String givenNameValue = givenNameArray.getJSONObject(0).getString("value");
-			
+
 			regProcLogger.info("Extracted given name value is : {}",givenNameValue);
-			
+
 			verReq.setGivenName(givenNameValue);
-			
+
 		} else if(requestDto.getIdentity().get("givenName") == null) {
 			regProcLogger.info("Extracted given name value is null");
 		}
-		
+
 		if(requestDto.getIdentity().get("dateOfBirth") != null) {
 			regProcLogger.info("Extracted date of birth is : {}", requestDto.getIdentity().get("dateOfBirth"));
-			
+
 			verReq.setDateOfBirth(requestDto.getIdentity().get("dateOfBirth"));
 		} else if(requestDto.getIdentity().get("dateOfBirth") == null) {
 			regProcLogger.info("Extracted date of birth value is null");
 		}
-		
+
 		if(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict") != null) {
 			JSONArray residentDistrictArray = new JSONArray(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict"));
 			String residentDistrictValue = residentDistrictArray.getJSONObject(0).getString("value");
-			
+
 			regProcLogger.info("Extracted resident district value is : {}", residentDistrictValue);
-			
+
 			verReq.setApplicantPlaceOfResidenceDistrict(residentDistrictValue);
 		} else if(requestDto.getIdentity().get("applicantPlaceOfResidenceDistrict") == null) {
 			regProcLogger.info("Extracted applicant place of residence district is null");
 		}
-		
+
 		if(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict") != null) {
 			JSONArray enrolmentDistrictArray = new JSONArray(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict"));
 			String enrolmentDistrictValue = enrolmentDistrictArray.getJSONObject(0).getString("value");
-			
+
 			regProcLogger.info("Extracted enrolment district value is : {}", enrolmentDistrictValue);
-			
+
 			verReq.setApplicantPlaceOfEnrolmentDistrict(enrolmentDistrictValue);
 		} else if(requestDto.getIdentity().get("applicantPlaceOfEnrolmentDistrict") == null) {
 			regProcLogger.info("Extracted applicant place of enrolment district is null");
@@ -793,15 +806,15 @@ public class MVSServiceImpl implements MVSService {
 		}
 		
 		if (("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName()) ||
-				"BIO_DEDUPE".equals(registrationStatusDto.getRegistrationStageName())) && 
+				"BIO_DEDUPE".equals(registrationStatusDto.getRegistrationStageName())) &&
 				(registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty())) {
-			
+
 			//Format: STAGE_NAME::Status Comment
-			
+
 			String formattedComment = registrationStatusDto.getRegistrationStageName() +
 										"::" +
 										registrationStatusDto.getStatusComment();
-			
+
 			req.setStatusComment(formattedComment);
 		}
 		
