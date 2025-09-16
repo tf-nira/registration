@@ -414,7 +414,7 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	 *            the reg id
 	 * @return the bio ref id by reg id
 	 */
-	@Query("SELECT bioRef FROM RegBioRefEntity bioRef WHERE bioRef.regId =:regId")
+	@Query("SELECT bioRef FROM RegBioRefEntity bioRef WHERE bioRef.regId =:regId order by bioRef.crDtimes desc")
 	public List<RegBioRefEntity> getBioRefIdByRegId(@Param("regId") String regId);
 
 	/**
