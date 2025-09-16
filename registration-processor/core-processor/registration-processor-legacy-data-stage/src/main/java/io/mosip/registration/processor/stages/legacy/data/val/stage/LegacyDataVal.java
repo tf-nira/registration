@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -154,14 +156,14 @@ public class LegacyDataVal {
 						regProcLogger.info(
 								"ondemand migration happended for registration id  and migration rid is  : {} {}",
 								registrationId, migrationOnDemandResponse.getRid());
-						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_FAILED.getCode());
+						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
+								StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNIN " + NIN);
 					} else {
 						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
 								registrationId);
 						throw new DataMigrationPacketCreationException(
-								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode(),
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage() + " matchedNIN " + NIN);
 					}
 
 			} else {
@@ -255,9 +257,11 @@ public class LegacyDataVal {
 					regProcLogger.info("Single nin returned from legacy : {}", registrationId);
 					NIN = persons.get(0).getNationalId();
 				} else {
-					regProcLogger.error("Mulitple nins returned from legacy : {}", registrationId);
-					throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-							StatusUtil.LEGACY_DATA_FAILED.getCode());
+					String nins = persons.stream().map(Person::getNationalId).filter(Objects::nonNull)
+							.collect(Collectors.joining(", "));
+					regProcLogger.error("Multiple NINs returned from legacy for regId {} : {}", registrationId, nins);
+					throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
+							StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNINs " + nins);
 				}
 			} else {
 				regProcLogger.info("No  nins returned from legacy : {}", registrationId);

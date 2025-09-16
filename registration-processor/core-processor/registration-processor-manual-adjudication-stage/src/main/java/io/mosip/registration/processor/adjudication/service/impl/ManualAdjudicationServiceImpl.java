@@ -976,7 +976,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformErrorMessages.RPR_MANUAL_VERIFICATION_REJECTED.getCode());
 			messageDTO.setIsValid(Boolean.FALSE);
 			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", "Application rejected in manual verification");
+			notificationAttributes.put("FAILURE_REASON", "Application rejected during the Manual Adujudication");
 			messageDTO.setNotificationAttributes(notificationAttributes);
 		} else {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());

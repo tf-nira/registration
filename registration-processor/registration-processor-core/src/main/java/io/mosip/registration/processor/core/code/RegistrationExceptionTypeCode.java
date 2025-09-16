@@ -288,6 +288,8 @@ public enum RegistrationExceptionTypeCode {
 	PACKET_REJECTED,
 	
 	MVS_PACKET_REJECTED,
+
+	REG_PACKET_REJECTED,
 	
 	VID_CREATION_EXCEPTION, 
 	

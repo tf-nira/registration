@@ -15,7 +15,6 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
@@ -99,6 +98,7 @@ public class NotificationServiceImpl implements NotificationService {
 	private static final String UIN_RENEWAL = NOTIFICATION_TEMPLATE_CODE + "uin.renewal.";
 	private static final String GET_FIRSTID = NOTIFICATION_TEMPLATE_CODE + "get.firstid.";
 	private static final String ONDEMAND = NOTIFICATION_TEMPLATE_CODE + "ondemand.";
+	private static final String SUPERVISOR_REJECTED = NOTIFICATION_TEMPLATE_CODE + "supervisor.rejected.";
 
 
 	/** The core audit request builder. */
@@ -157,22 +157,26 @@ public class NotificationServiceImpl implements NotificationService {
 	private Environment env;
 
 	// sends init subscribe req to hub
-	@Scheduled(fixedDelayString = "${mosip.regproc.websub.resubscription.delay.millisecs:43200000}",
-            initialDelayString = "${mosip.regproc.websub.subscriptions-delay-on-startup.millisecs:300000}")
-	protected void init() {
-		SubscriptionChangeRequest subscriptionRequest = new SubscriptionChangeRequest();
-		subscriptionRequest.setCallbackURL(callbackURL);
-		subscriptionRequest.setHubURL(hubURL);
-		subscriptionRequest.setSecret(secret);
-		subscriptionRequest.setTopic(topic);
-		sb.subscribe(subscriptionRequest);
-		SubscriptionChangeRequest subscriptionRequestPausedForAdditionalInfo = new SubscriptionChangeRequest();
-		subscriptionRequestPausedForAdditionalInfo.setCallbackURL(pausedForAdditonalInfoCallbackURL);
-		subscriptionRequestPausedForAdditionalInfo.setHubURL(hubURL);
-		subscriptionRequestPausedForAdditionalInfo.setSecret(pausedForAdditonalInfoSecret);
-		subscriptionRequestPausedForAdditionalInfo.setTopic(pausedForAdditonalInfoTopic);
-		sb.subscribe(subscriptionRequestPausedForAdditionalInfo);
-	}
+	/*
+	 * @Scheduled(fixedDelayString =
+	 * "${mosip.regproc.websub.resubscription.delay.millisecs:43200000}",
+	 * initialDelayString =
+	 * "${mosip.regproc.websub.subscriptions-delay-on-startup.millisecs:300000}")
+	 * protected void init() { SubscriptionChangeRequest subscriptionRequest = new
+	 * SubscriptionChangeRequest(); subscriptionRequest.setCallbackURL(callbackURL);
+	 * subscriptionRequest.setHubURL(hubURL); subscriptionRequest.setSecret(secret);
+	 * subscriptionRequest.setTopic(topic); sb.subscribe(subscriptionRequest);
+	 * SubscriptionChangeRequest subscriptionRequestPausedForAdditionalInfo = new
+	 * SubscriptionChangeRequest();
+	 * subscriptionRequestPausedForAdditionalInfo.setCallbackURL(
+	 * pausedForAdditonalInfoCallbackURL);
+	 * subscriptionRequestPausedForAdditionalInfo.setHubURL(hubURL);
+	 * subscriptionRequestPausedForAdditionalInfo.setSecret(
+	 * pausedForAdditonalInfoSecret);
+	 * subscriptionRequestPausedForAdditionalInfo.setTopic(
+	 * pausedForAdditonalInfoTopic);
+	 * sb.subscribe(subscriptionRequestPausedForAdditionalInfo); }
+	 */
 
 	@Override
 	public ResponseEntity<Void> process(@RequestBody WorkflowCompletedEventDTO object) {
@@ -183,7 +187,7 @@ public class NotificationServiceImpl implements NotificationService {
 		MessageSenderDto messageSenderDto = new MessageSenderDto();
 		String id = object.getInstanceId();
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
-				"MessageSenderStage::process()::entry");
+				"NotificationServiceImpl::process()::entry");
 	
 		try {
 
@@ -203,6 +207,8 @@ public class NotificationServiceImpl implements NotificationService {
 					type = NotificationTemplateType.TECHNICAL_ISSUE_WITH_ERROR;
 				}
 			}
+			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+					type);
 
 			if (!NotificationTemplateType.TECHNICAL_ISSUE.equals(type)) {
 
@@ -244,6 +250,11 @@ public class NotificationServiceImpl implements NotificationService {
 				if (isNotificationEmailsEmpty()) {
 					ccEMailList = notificationEmails.split("\\|");
 				}
+
+				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+						messageSenderDto);
+				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+							object);
 
 				 isTransactionSuccessful = sendNotification(id, workflowType,
 						attributes, ccEMailList, allNotificationTypes, workflowType, messageSenderDto, description);
@@ -594,6 +605,12 @@ public class NotificationServiceImpl implements NotificationService {
 			messageSenderDto.setEmailTemplateCode(env.getProperty(ONDEMAND + EMAIL));
 			messageSenderDto.setIdType(IdType.RID);
 			messageSenderDto.setSubjectCode(env.getProperty(ONDEMAND + SUB));
+			break;
+		case SUPERVISOR_REJECTION:
+			messageSenderDto.setSmsTemplateCode(env.getProperty(SUPERVISOR_REJECTED + SMS));
+			messageSenderDto.setEmailTemplateCode(env.getProperty(SUPERVISOR_REJECTED + EMAIL));
+			messageSenderDto.setIdType(IdType.RID);
+			messageSenderDto.setSubjectCode(env.getProperty(SUPERVISOR_REJECTED + SUB));
 			break;
 		default:
 			break;

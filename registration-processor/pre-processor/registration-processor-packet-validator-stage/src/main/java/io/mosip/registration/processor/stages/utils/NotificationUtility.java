@@ -155,6 +155,9 @@ public class NotificationUtility {
 			InternalRegistrationStatusDto registrationStatusDto, SyncRegistrationEntity regEntity,
 			String[] allNotificationTypes, boolean isProcessingSuccess,boolean isValidSupervisorStatus)
 			throws ApisResourceAccessException, IOException, PacketManagerException, JsonProcessingException, JSONException {
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+				"", "NotificationUtility::sendNotification()::entry");
+
 		registrationId = regEntity.getRegistrationId();
 		LogDescription description = new LogDescription();
 		String regType = regEntity.getRegistrationType();
@@ -207,20 +210,33 @@ public class NotificationUtility {
 			if (type != null) {
 				setTemplateAndSubject(type, regType, messageSenderDTO);
 			}
-
+			//
+			String countryCodeVal = packetManagerService.getField(registrationId, "CountryCode", regType, ProviderStageName.PACKET_VALIDATOR);
+			String countryCode = null;
+			if (countryCodeVal != null) {
+				JSONArray countryCodeArray = new JSONArray(countryCodeVal);
+				countryCode = countryCodeArray.getJSONObject(0).getString("value");
+			}
+			String residenceStatusPacketVal = packetManagerService.getField(registrationId, "residenceStatus", regType, ProviderStageName.PACKET_VALIDATOR);
+			String residenceStatus = null;
+			if (residenceStatusPacketVal != null) {
+				JSONArray residenceStatusArray = new JSONArray(residenceStatusPacketVal);
+				residenceStatus = residenceStatusArray.getJSONObject(0).getString("value");
+			}
+			//
 			if (allNotificationTypes != null) {
 				for (String notificationType : allNotificationTypes) {
 					if (notificationType.equalsIgnoreCase("EMAIL")
 							&& (registrationAdditionalInfoDTO.getEmail() != null
 							&& !registrationAdditionalInfoDTO.getEmail().isEmpty())) {
-						if (registrationStatusDto.getRegistrationType().equals("UPDATE") || enableEmailForOtherProcess) {
+						if (registrationStatusDto.getRegistrationType().equals("UPDATE") || enableEmailForOtherProcess || (residenceStatus != null && residenceStatus.equals("Outside Uganda"))) {
 							regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 									LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
 									"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
 							sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
 						}
 					} else if (notificationType.equalsIgnoreCase("SMS") && (registrationAdditionalInfoDTO.getPhone() != null
-							&& !registrationAdditionalInfoDTO.getPhone().isEmpty())) {
+							&& !registrationAdditionalInfoDTO.getPhone().isEmpty()) && "Uganda (256)".equals(countryCode)) {
 						sendSMSNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
 					}
 				}

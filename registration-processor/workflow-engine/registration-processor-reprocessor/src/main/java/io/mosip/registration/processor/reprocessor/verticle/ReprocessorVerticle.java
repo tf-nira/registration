@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -231,7 +232,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		int  totalNumberOfReprocessRecords = 0;
 		try {
 			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
-			reprocessorDtoList = registrationStatusService.getResumablePackets(fetchSize);
+			reprocessorDtoList = registrationStatusService.getResumablePackets(fetchSize, reprocessExcludeStageNames);
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
 				if (reprocessorDtoList.size() < fetchSize) {
 					List<InternalRegistrationStatusDto>  reprocessorPacketList = registrationStatusService.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime,
@@ -251,9 +252,11 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			
 			
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
+				List<String> registrationIds = new ArrayList<>();
 				AtomicInteger processedCount = new AtomicInteger(0);
 				reprocessorDtoList.forEach(dto -> {
 					String registrationId = dto.getRegistrationId();
+					registrationIds.add(registrationId);
 					ridSb.append(registrationId);
 					ridSb.append(",");
 					MessageDTO messageDTO = new MessageDTO();
@@ -319,11 +322,15 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 					String eventName = EventName.UPDATE.toString();
 					String eventType = EventType.BUSINESS.toString();
 
-					if (!isTransactionSuccessful)
-						auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName,
-								eventType, moduleId, moduleName, registrationId);
+					/*
+					 * if (!isTransactionSuccessful)
+					 * auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(),
+					 * eventId, eventName, eventType, moduleId, moduleName, registrationId);
+					 */
 				});
-			
+			  				String resultRids = registrationIds.stream()
+                        .collect(Collectors.joining(", "));
+				regProcLogger.info("Reprocessor pickedup records to process :: " + resultRids);
 			}
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
@@ -358,8 +365,10 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			String moduleId = isTransactionSuccessful ? PlatformSuccessMessages.RPR_RE_PROCESS_SUCCESS.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.RE_PROCESSOR.toString();
-			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
-					moduleId, moduleName, (ridSb.toString().length()>1?ridSb.substring(0,ridSb.length()-1):""));			
+			// auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(),
+			// eventId, eventName, eventType,
+			// moduleId, moduleName,
+			// (ridSb.toString().length()>1?ridSb.substring(0,ridSb.length()-1):""));
 		}
 
 		return object;

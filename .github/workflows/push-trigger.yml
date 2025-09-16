@@ -23,6 +23,7 @@ on:
       - tf_nira_dev
       - tf_nira_prod
       - tf_nira_prod_tmp
+      - tf_nira_preprod
 
 jobs:
   build-maven-registration:
@@ -85,6 +86,9 @@ jobs:
             BUILD_ARTIFACT: 'registration'
           - SERVICE_LOCATION: 'registration-processor/stage-groups/registration-processor-stage-group-9'
             SERVICE_NAME: 'registration-processor-stage-group-9'
+            BUILD_ARTIFACT: 'registration'
+          - SERVICE_LOCATION: 'registration-processor/stage-groups/registration-processor-stage-group-10'
+            SERVICE_NAME: 'registration-processor-stage-group-10'
             BUILD_ARTIFACT: 'registration'
           - SERVICE_LOCATION: 'registration-processor/core-processor/registration-processor-abis'
             SERVICE_NAME: 'registration-processor-abis'

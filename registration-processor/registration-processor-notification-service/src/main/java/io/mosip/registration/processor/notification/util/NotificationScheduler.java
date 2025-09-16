@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,8 +91,12 @@ public class NotificationScheduler {
 						if (dto != null) {
 							workflowDto.setResultCode(ResultCode.PROCESSED.toString());
 						} else {
-							workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
-							
+							if (Objects.equals(packet.getRegistrationStageName(), "PacketValidatorStage")) {
+								workflowDto.setErrorCode(RegistrationExceptionTypeCode.REG_PACKET_REJECTED.name());
+							} else {
+								workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
+							}
+
 							Map<String, String> notificationAttibutes = notificationMessageService.getNotificationDetails(packet.getRegistrationId());
 							workflowDto.setNotificationAttributes(notificationAttibutes);
 						}

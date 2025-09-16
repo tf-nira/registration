@@ -33,4 +33,7 @@ public class AbisCommonRequestDto implements Serializable{
 	
 	/** The reference id. */
 	private String referenceId;
+
+	/** The age of applicant at enrollment */
+	//private String ageAtEnrollment;
 }

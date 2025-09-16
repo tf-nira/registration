@@ -222,7 +222,7 @@ public class ReprocessorVerticleTest {
 	
 	@Test
 	public void nullPointerExceptionTest() throws Exception {
-		Mockito.when(registrationStatusService.getResumablePackets(anyInt()))
+		Mockito.when(registrationStatusService.getResumablePackets(anyInt(), anyList()))
 				.thenThrow(NullPointerException.class);
 		dto = reprocessorVerticle.process(dto);
 		assertEquals(null, dto.getIsValid());
@@ -263,7 +263,7 @@ public class ReprocessorVerticleTest {
 		registrationStatusDto1.setRegistrationType("NEW");
 		registrationStatusDto1.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 		reprocessorDtoList.add(registrationStatusDto1);
-		Mockito.when(registrationStatusService.getResumablePackets(anyInt()))
+		Mockito.when(registrationStatusService.getResumablePackets(anyInt(), anyList()))
 				.thenReturn(dtolist);
 		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenReturn(reprocessorDtoList);

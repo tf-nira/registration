@@ -1,7 +1,6 @@
 package io.mosip.registration.processor.status.dao;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,7 +13,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
 import io.mosip.registration.processor.core.workflow.dto.FilterInfo;
 import io.mosip.registration.processor.core.workflow.dto.PaginationInfo;
 import io.mosip.registration.processor.core.workflow.dto.SortInfo;
@@ -250,9 +248,10 @@ public class RegistrationStatusDao {
 		return registrationStatusRepositary.getActionablePausedPackets(statusCodes, fetchSize);
 	}
 
-	public List<RegistrationStatusEntity> getResumablePackets(Integer fetchSize) {
+	public List<RegistrationStatusEntity> getResumablePackets(Integer fetchSize, List<String> excludeStageNames) {
 
-		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), fetchSize);
+		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), fetchSize,
+				excludeStageNames);
 	}
 	
 	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {

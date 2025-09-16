@@ -6,15 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -452,26 +445,35 @@ public class MessageNotificationServiceImpl
 
 		String uin = "";
 		if (idType.toString().equalsIgnoreCase(UIN)) {
-			JSONObject jsonObject = utility.idrepoRetrieveIdentityByRid(id);
-			uin = JsonUtil.getJSONValue(jsonObject, UIN);
-			String maskedNin="" ;
-			String NIN = (jsonObject != null && JsonUtil.getJSONValue(jsonObject, "NIN") != null)
-					? JsonUtil.getJSONValue(jsonObject, "NIN")
-					: "";
 
-			if (NIN.length() == 14) {
-				maskedNin = "*******" + NIN.substring(7, 14);
+			try {
+				JSONObject jsonObject = utility.idrepoRetrieveIdentityByRid(id);
+				uin = JsonUtil.getJSONValue(jsonObject, UIN);
+
+				String maskedNin="" ;
+				String NIN = (jsonObject != null && JsonUtil.getJSONValue(jsonObject, "NIN") != null)
+						? JsonUtil.getJSONValue(jsonObject, "NIN")
+						: "";
+
+				if (NIN.length() == 14) {
+					maskedNin = "*******" + NIN.substring(7, 14);
+				}
+
+				if(ismasked==true)
+					attributes.put("MASKEDNIN",maskedNin );
+
+				else
+					attributes.put("MASKEDNIN",NIN );
+
+				attributes.put("RID", id);
+				attributes.put("UIN", uin);
+				attributes.put("VID", getVid(uin));
+
+			} catch (IdRepoAppException e) {
+				idType = IdType.RID;
+				attributes.put("RID", id);
 			}
-			
-			if(ismasked==true)
-			attributes.put("MASKEDNIN",maskedNin );
-			
-			else 
-				attributes.put("MASKEDNIN",NIN );
-			
-			attributes.put("RID", id);
-			attributes.put("UIN", uin);
-			attributes.put("VID", getVid(uin));
+
 		} else {
 			attributes.put("RID", id);
 		}

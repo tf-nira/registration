@@ -1,6 +1,9 @@
 package io.mosip.registration.processor.abis.handler.stage;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -158,6 +161,9 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 
 	@Value("#{${mosip.regproc.abis.handler.biometric-segments-exceptions-mapping}}")
 	private Map<String, String> exceptionSegmentsMap;
+
+	@Value("${registration.processor.applicant.dob.format}")
+	private String dobFormat = "";
 
 	@Autowired
 	private RegistrationProcessorRestClientService registrationProcessorRestClientService;
@@ -552,6 +558,9 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 		abisInsertRequestDto.setRequestId(id);
 		abisInsertRequestDto.setRequesttime(DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)));
 		abisInsertRequestDto.setVersion(AbisHandlerStageConstant.VERSION);
+		//abisInsertRequestDto.setAgeAtEnrollment(getAgeAtEnrollment(regId, process));
+
+		regProcLogger.info("ABIS Insert Request for id " + regId + " is : " + abisInsertRequestDto);
 		try {
 			String jsonString = JsonUtils.javaObjectToJsonString(abisInsertRequestDto);
 			return jsonString.getBytes();
@@ -639,6 +648,31 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 					response == null ? "Datashare response is null" : response.getErrors().get(0).getMessage());
 
 		return response.getDataShare().getUrl();
+	}
+
+	private String getAgeAtEnrollment(String id, String process) throws Exception {
+		String dateOfBirth = packetManagerService.getField(id, "dateOfBirth", process, ProviderStageName.MANUAL_ADJUDICATION);
+		Map<String, String> metaInfo = packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION);
+
+		String dateOfEnrollment;
+		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
+		else dateOfEnrollment = metaInfo.get("creationDate");
+
+		if (dateOfBirth != null && dateOfEnrollment != null)
+			return calculateAgeInYears(dateOfBirth, dateOfEnrollment);
+
+		return null;
+	}
+
+	private String calculateAgeInYears(String dateOfBirth, String dateOfEnrollment) {
+		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
+		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
+		LocalDate enrollmentDate = LocalDate.parse(dateOfEnrollment.substring(0, 10));
+
+		Period period = Period.between(dob, enrollmentDate);
+		int totalYears = period.getYears();
+
+		return String.valueOf(totalYears);
 	}
 
 	@SuppressWarnings("deprecation")

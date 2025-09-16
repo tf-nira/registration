@@ -32,7 +32,7 @@ import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 		"io.mosip.registration.processor.core.kernel.beans" })
 public class LegacyDataStage extends MosipVerticleAPIManager {
 	
-	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.legacy.data.validator.";
+	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.legacy.data.";
 
 	/** The reg proc logger. */
 	private static Logger regProcLogger = RegProcessorLogger.getLogger(LegacyDataStage.class);

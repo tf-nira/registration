@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -861,11 +860,12 @@ public class RegistrationStatusServiceImpl
 	}
 
 	@Override
-	public List<InternalRegistrationStatusDto> getResumablePackets(Integer fetchSize) {
+	public List<InternalRegistrationStatusDto> getResumablePackets(Integer fetchSize, List<String> excludeStageNames) {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationStatusServiceImpl::getResumablePackets()::entry");
 		try {
-			List<RegistrationStatusEntity> entityList = registrationStatusDao.getResumablePackets(fetchSize);
+			List<RegistrationStatusEntity> entityList = registrationStatusDao.getResumablePackets(fetchSize,
+					excludeStageNames);
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"RegistrationStatusServiceImpl::getResumablePackets()::exit");

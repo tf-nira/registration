@@ -49,6 +49,8 @@ public class StatusNotificationTypeMapUtil {
 		//TODO this is put as a temp fix need to recheck the mapping
 		statusMap.put(NotificationStageStatus.PACKET_REJECTED,
 				NotificationTemplateType.TECHNICAL_ISSUE);
+		statusMap.put(NotificationStageStatus.REG_PACKET_REJECTED,
+				NotificationTemplateType.SUPERVISOR_REJECTION);
 		statusMap.put(NotificationStageStatus.MVS_PACKET_REJECTED,
 				NotificationTemplateType.MVS_PACKET_REJECTED);
 		statusMap.put(NotificationStageStatus.PACKET_FAILED, NotificationTemplateType.TECHNICAL_ISSUE);
@@ -72,3 +74,4 @@ public class StatusNotificationTypeMapUtil {
 	}
 
 }
+
