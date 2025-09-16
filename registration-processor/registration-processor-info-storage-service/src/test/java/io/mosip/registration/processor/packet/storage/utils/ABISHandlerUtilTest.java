@@ -125,14 +125,9 @@ public class ABISHandlerUtilTest {
             when(packetInfoManager.getAbisResponseDetails(dto.getMatchedBioRefId())).thenReturn(Lists.newArrayList(responseDetDto));
         }
         when(packetInfoDao.getAbisRefRegIdsByMatchedRefIds(matchedRids)).thenReturn(matchedRids);
-		List<String> registrationTypes = new ArrayList<String>();
-		registrationTypes.add("UPDATE");
-		registrationTypes.add("RENEWAL");
-		registrationTypes.add("LOST");
-		registrationTypes.add("FIRSTID");
-		when(packetInfoDao.getWithoutStatusCodeAndRegistartionType(matchedRids,
-				RegistrationStatusCode.REJECTED.toString(),
-				registrationTypes))
+		
+		when(packetInfoDao.getWithoutStatusCode(matchedRids,
+				RegistrationStatusCode.REJECTED.toString()))
                 .thenReturn(registrationStatusEntityList);
         when(idRepoService.getUinByRid("10002100820001420210108085103", new String())).thenReturn("123456789");
         when(idRepoService.getUinByRid("10002100820001420210108085102", new String())).thenReturn("987654321");
