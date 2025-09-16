@@ -12,9 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
-import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
-import io.mosip.registration.processor.status.code.RegistrationType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
@@ -85,8 +82,10 @@ import io.mosip.registration.processor.mvs.response.dto.MVSResponseDTO;
 import io.mosip.registration.processor.mvs.service.MVSService;
 import io.mosip.registration.processor.mvs.stage.MVSStage;
 import io.mosip.registration.processor.mvs.util.SaveVerificationRecordUtility;
+import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
 import io.mosip.registration.processor.packet.storage.dto.ApplicantInfoDto;
 import io.mosip.registration.processor.packet.storage.dto.Document;
+import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
 import io.mosip.registration.processor.packet.storage.entity.VerificationEntity;
 import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
@@ -94,6 +93,7 @@ import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketM
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
+import io.mosip.registration.processor.status.code.RegistrationType;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.SyncRegistrationDto;
@@ -233,7 +233,11 @@ public class MVSServiceImpl implements MVSService {
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
+		boolean isResumable=false;
 		try {
+			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
+				isResumable = true;
+			}
 			registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
@@ -296,7 +300,7 @@ public class MVSServiceImpl implements MVSService {
 			} else
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
-					PlatformSuccessMessages.RPR_MVS_SENT);
+					PlatformSuccessMessages.RPR_MVS_SENT, isResumable);
 		}
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -407,7 +411,7 @@ public class MVSServiceImpl implements MVSService {
 			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
-					PlatformSuccessMessages.RPR_MVS_SUCCESS);
+					PlatformSuccessMessages.RPR_MVS_SUCCESS, false);
 			mVSStage.sendMessage(messageDTO);
 		}
 		return isTransactionSuccessful;
@@ -415,7 +419,7 @@ public class MVSServiceImpl implements MVSService {
 
 	private void updateStatus(MessageDTO messageDTO, InternalRegistrationStatusDto registrationStatusDto,
 			boolean isTransactionSuccessful, LogDescription description,
-			PlatformSuccessMessages platformSuccessMessages) {
+			PlatformSuccessMessages platformSuccessMessages, boolean isResumable) {
 		if (messageDTO.getInternalError()) {
 			updateErrorFlags(registrationStatusDto, messageDTO);
 		}
@@ -424,7 +428,12 @@ public class MVSServiceImpl implements MVSService {
 		/** Module-Id can be Both Success/Error code */
 		String moduleId = isTransactionSuccessful ? platformSuccessMessages.getCode() : description.getCode();
 		String moduleName = ModuleName.MVS.toString();
-		registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+		if (isResumable) {
+			registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
+					moduleName);
+		} else {
+			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+		}
 
 		String eventId = isTransactionSuccessful ? EventId.RPR_402.toString() : EventId.RPR_405.toString();
 		String eventName = eventId.equalsIgnoreCase(EventId.RPR_402.toString()) ? EventName.UPDATE.toString()
