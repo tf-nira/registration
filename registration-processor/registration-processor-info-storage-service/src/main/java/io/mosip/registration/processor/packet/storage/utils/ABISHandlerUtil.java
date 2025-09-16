@@ -222,7 +222,8 @@ public class ABISHandlerUtil {
 
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.UPDATE.toString())
 					|| registrationType.equalsIgnoreCase(SyncTypeDto.RENEWAL.toString())
-					|| registrationType.equalsIgnoreCase(SyncTypeDto.FIRSTID.toString())) {
+					|| registrationType.equalsIgnoreCase(SyncTypeDto.FIRSTID.toString())
+					|| registrationType.equalsIgnoreCase(SyncTypeDto.LOST.toString())) {
 				String packetUin = utilities.getUINByHandle(registrationId, registrationType, stageName);
 				if (matchedUin != null && !packetUin.equals(matchedUin)) {
 					filteredRegMap.put(matchedUin, machedRegId);
@@ -232,7 +233,7 @@ public class ABISHandlerUtil {
 				filteredRegMap.put(matchedUin, machedRegId);
 			}
 
-			if (registrationType.equalsIgnoreCase(SyncTypeDto.LOST.toString()) && matchedUin != null) {
+			if (registrationType.equalsIgnoreCase(SyncTypeDto.MIGRATOR.toString()) && matchedUin != null) {
 				filteredRegMap.put(matchedUin, machedRegId);
 			}
 
