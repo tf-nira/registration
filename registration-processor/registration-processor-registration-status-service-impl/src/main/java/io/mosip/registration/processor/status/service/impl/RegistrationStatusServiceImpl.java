@@ -860,11 +860,11 @@ public class RegistrationStatusServiceImpl
 	}
 
 	@Override
-	public List<InternalRegistrationStatusDto> getResumablePackets(Integer fetchSize, List<String> excludeStageNames) {
+	public List<InternalRegistrationStatusDto> getResumablePackets(long elapseTime, Integer fetchSize, List<String> excludeStageNames) {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationStatusServiceImpl::getResumablePackets()::entry");
 		try {
-			List<RegistrationStatusEntity> entityList = registrationStatusDao.getResumablePackets(fetchSize,
+			List<RegistrationStatusEntity> entityList = registrationStatusDao.getResumablePackets(elapseTime, fetchSize,
 					excludeStageNames);
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",

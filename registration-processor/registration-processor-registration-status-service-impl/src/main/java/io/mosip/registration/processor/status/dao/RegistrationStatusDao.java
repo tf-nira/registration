@@ -248,9 +248,9 @@ public class RegistrationStatusDao {
 		return registrationStatusRepositary.getActionablePausedPackets(statusCodes, fetchSize);
 	}
 
-	public List<RegistrationStatusEntity> getResumablePackets(Integer fetchSize, List<String> excludeStageNames) {
-
-		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), fetchSize,
+	public List<RegistrationStatusEntity> getResumablePackets(long elapseTime, Integer fetchSize, List<String> excludeStageNames) {
+		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
+		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), timeDifference, fetchSize,
 				excludeStageNames);
 	}
 	
