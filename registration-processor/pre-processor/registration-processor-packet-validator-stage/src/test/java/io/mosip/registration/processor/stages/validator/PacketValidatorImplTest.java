@@ -63,7 +63,6 @@ import io.mosip.registration.processor.packet.storage.exception.IdRepoAppExcepti
 import io.mosip.registration.processor.packet.storage.exception.IdentityNotFoundException;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
-import io.mosip.registration.processor.stages.utils.ApplicantDocumentValidation;
 import io.mosip.registration.processor.stages.utils.BiometricsXSDValidator;
 import io.mosip.registration.processor.stages.validator.impl.BiometricsSignatureValidator;
 import io.mosip.registration.processor.stages.validator.impl.PacketValidatorImpl;
@@ -110,8 +109,8 @@ public class PacketValidatorImplTest {
 	@Mock
 	private RegistrationExceptionMapperUtil registrationStatusMapperUtil;
 
-	@Mock
-	private ApplicantDocumentValidation applicantDocumentValidation;
+	// @Mock
+	// private ApplicantDocumentValidation applicantDocumentValidation;
 
 	@Mock
 	ObjectMapper mapper;
@@ -213,7 +212,7 @@ public class PacketValidatorImplTest {
 
 
 		byte[] data = "{}".getBytes();
-		when(env.getProperty(anyString())).thenReturn("true").thenReturn("NEW");
+		// when(env.getProperty(anyString())).thenReturn("true").thenReturn("NEW");
 
 		Mockito.when(utility.uinPresentInIdRepo(any())).thenReturn(true);
 		ValidatePacketResponse validatePacketResponse = new ValidatePacketResponse();
@@ -226,7 +225,8 @@ public class PacketValidatorImplTest {
 		doNothing().when(biometricsXSDValidator).validateXSD(any());
 		when(packetManagerService.getBiometricsByMappingJsonKey(anyString(), any(), any(), any()))
 				.thenReturn(biometricRecord);
-		when(applicantDocumentValidation.validateDocument(any(), any())).thenReturn(true);
+		// when(applicantDocumentValidation.validateDocument(any(),
+		// any())).thenReturn(true);
 
 		JSONArray jsonArray = new JSONArray();
 		org.json.JSONObject jsonObject = new org.json.JSONObject();
@@ -249,7 +249,8 @@ public class PacketValidatorImplTest {
 		Mockito.when(packetManagerService.validate(anyString(), anyString(), any())).thenReturn(new ValidatePacketResponse(true));
 
 		// Mock other required methods if necessary
-		Mockito.when(applicantDocumentValidation.validateDocument(any(), any())).thenReturn(true);
+		// Mockito.when(applicantDocumentValidation.validateDocument(any(),
+		// any())).thenReturn(true);
 		doNothing().when(biometricsXSDValidator).validateXSD(any());
 
 		// Perform the validation and assert success
@@ -265,22 +266,22 @@ public class PacketValidatorImplTest {
 		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
 	}
 	
-	@Test
+	/*@Test
 	public void testDocumentValidationFailure() throws PacketValidatorException, ApisResourceAccessException,
 			JsonProcessingException, RegistrationProcessorCheckedException, IOException, PacketManagerException,
 			BiometricSignatureValidationException, JSONException {
 		
 		when(applicantDocumentValidation.validateDocument(any(), any())).thenReturn(false);
 		assertFalse(PacketValidator.validate("123456789", "NEW", packetValidationDto));
-	}
+	}/*
 
-	@Test
+	/*@Test
 	public void testdocumentValidationFailed() throws PacketValidatorException, ApisResourceAccessException,
 			JsonProcessingException, RegistrationProcessorCheckedException, IOException, PacketManagerException,
 			BiometricSignatureValidationException, JSONException {
 		when(applicantDocumentValidation.validateDocument(any(), any())).thenReturn(false);
 		assertFalse(PacketValidator.validate("123456789", "NEW", packetValidationDto));
-	}
+	}*/
 
 	@Test
 	public void testUpdateValidationSuccess() throws PacketValidatorException, ApisResourceAccessException,
@@ -356,7 +357,7 @@ public class PacketValidatorImplTest {
 			BiometricSignatureValidationException, JSONException {
 		Mockito.doNothing().when(biometricsSignatureValidator).validateSignature(anyString(), anyString(), any(),
 				any());
-		when(env.getProperty(VALIDATEAPPLICANTDOCUMENT)).thenReturn("false");
+		// when(env.getProperty(VALIDATEAPPLICANTDOCUMENT)).thenReturn("false");
 		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
 	}
 

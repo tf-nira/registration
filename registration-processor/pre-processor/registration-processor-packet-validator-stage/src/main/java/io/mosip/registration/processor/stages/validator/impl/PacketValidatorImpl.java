@@ -251,12 +251,13 @@ public class PacketValidatorImpl implements PacketValidator {
 	
 
 			// document validation
-			if (!applicantDocumentValidation(id, process, packetValidationDto)) {
-				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), id,
-						"ERROR =======>" + StatusUtil.APPLICANT_DOCUMENT_VALIDATION_FAILED.getMessage());
-				return false;
-			}
+			/*
+			 * if (!applicantDocumentValidation(id, process, packetValidationDto)) {
+			 * regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+			 * LoggerFileConstant.REGISTRATIONID.toString(), id, "ERROR =======>" +
+			 * StatusUtil.APPLICANT_DOCUMENT_VALIDATION_FAILED.getMessage()); return false;
+			 * }
+			 */
 
 
 
