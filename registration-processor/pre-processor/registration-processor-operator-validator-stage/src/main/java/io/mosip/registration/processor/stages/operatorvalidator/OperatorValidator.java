@@ -326,7 +326,7 @@ public class OperatorValidator {
 		officerpathsegments.add(effectiveTimestamp);
 		officerpathsegments.add(registrationCenterId);
 		officerpathsegments.add(machineId);
-		officerpathsegments.add(officerId);
+		officerpathsegments.add(officerId.toLowerCase());
 
 		if (!validateMapping(officerpathsegments, registrationStatusDto)) {
 			throw new ValidationFailedException(StatusUtil.OFFICER_NOT_ACTIVE.getMessage(),
