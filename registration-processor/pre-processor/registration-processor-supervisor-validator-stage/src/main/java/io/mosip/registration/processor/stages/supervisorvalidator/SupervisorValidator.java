@@ -326,7 +326,7 @@ public class SupervisorValidator {
 		supervisorpathsegments.add(effectiveTimestamp);
 		supervisorpathsegments.add(registrationCenterId);
 		supervisorpathsegments.add(machineId);
-		supervisorpathsegments.add(supervisorId);
+		supervisorpathsegments.add(supervisorId.toLowerCase());
 
 		if (!validateMapping(supervisorpathsegments, registrationStatusDto)) {
 			throw new ValidationFailedException(StatusUtil.SUPERVISOR_NOT_ACTIVE.getMessage(),
