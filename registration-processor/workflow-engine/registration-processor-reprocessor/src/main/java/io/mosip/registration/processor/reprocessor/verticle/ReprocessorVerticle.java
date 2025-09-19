@@ -79,7 +79,13 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	/** The fetch size. */
 	@Value("${registration.processor.reprocess.fetchsize}")
 	private Integer fetchSize;
+	
+	@Value("${registration.processor.reprocess.processing.fetchsize}")
+	private Integer processingFetchSize;
 
+	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.processes}')}")
+	private List<String> processes;
+	
 	/** The elapse time. */
 	@Value("${registration.processor.reprocess.elapse.time}")
 	private long elapseTime;
@@ -232,20 +238,9 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		int  totalNumberOfReprocessRecords = 0;
 		try {
 			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
-			reprocessorDtoList = registrationStatusService.getResumablePackets(elapseTime, fetchSize, reprocessExcludeStageNames);
-			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
-				if (reprocessorDtoList.size() < fetchSize) {
-					List<InternalRegistrationStatusDto>  reprocessorPacketList = registrationStatusService.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime,
-							reprocessCount, statusList, reprocessExcludeStageNames);
-					if (!CollectionUtils.isEmpty(reprocessorPacketList)) {
-						reprocessorDtoList.addAll(reprocessorPacketList);
-					}
-				}
-			} else {
-				reprocessorDtoList = registrationStatusService.getUnProcessedPackets(fetchSize, elapseTime,
-						reprocessCount, statusList, reprocessExcludeStageNames);
-			}
-
+			
+			reprocessorDtoList = registrationStatusService.getUnProcessedPackets(processingFetchSize, elapseTime,
+					reprocessCount, statusList, reprocessExcludeStageNames, processes);
 			
 			totalNumberOfReprocessRecords = (!CollectionUtils.isEmpty(reprocessorDtoList)?reprocessorDtoList.size():0);
 			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);			

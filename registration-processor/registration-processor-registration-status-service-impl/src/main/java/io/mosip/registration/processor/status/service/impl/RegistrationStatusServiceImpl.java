@@ -745,13 +745,13 @@ public class RegistrationStatusServiceImpl
 	 * @return the un processed packets
 	 */
 	public List<InternalRegistrationStatusDto> getUnProcessedPackets(Integer fetchSize, long elapseTime,
-			Integer reprocessCount, List<String> status, List<String> excludeStageNames) {
+			Integer reprocessCount, List<String> status, List<String> excludeStageNames, List<String> processes) {
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationStatusServiceImpl::getReprocessPacket()::entry");
 		try {
 			List<RegistrationStatusEntity> entityList = registrationStatusDao.getUnProcessedPackets(fetchSize,
-					elapseTime, reprocessCount, status, excludeStageNames);
+					elapseTime, reprocessCount, status, excludeStageNames, processes);
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"RegistrationStatusServiceImpl::getReprocessPacket()::exit");

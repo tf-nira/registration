@@ -198,7 +198,7 @@ public class RegistrationStatusDao {
 	 * @return the un processed packets
 	 */
 	public List<RegistrationStatusEntity> getUnProcessedPackets(Integer fetchSize, long elapseTime,
-			Integer reprocessCount, List<String> status, List<String> excludeStageNames) {
+			Integer reprocessCount, List<String> status, List<String> excludeStageNames, List<String> processes) {
 
 		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
 		List<String> statusCodes=new ArrayList<>();
@@ -208,9 +208,11 @@ public class RegistrationStatusDao {
 		statusCodes.add(RegistrationStatusCode.REJECTED.toString());
 		statusCodes.add(RegistrationStatusCode.FAILED.toString());
 		statusCodes.add(RegistrationStatusCode.PROCESSED.toString());
+		statusCodes.add(RegistrationStatusCode.ON_HOLD.toString());
+		statusCodes.add("DUPLICATE");
 
 		return registrationStatusRepositary.getUnProcessedPackets(status, reprocessCount, timeDifference, 
-			statusCodes, fetchSize, excludeStageNames);
+			statusCodes, fetchSize, excludeStageNames, processes);
 	}
 
 	public Integer getUnProcessedPacketsCount(long elapseTime, Integer reprocessCount, List<String> status, 
