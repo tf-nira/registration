@@ -396,7 +396,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	}
 
-	private String getDataShareUrl(String id, String process, boolean isBioAuthFailed) throws Exception {
+	private String getDataShareUrl(String id, String process) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -406,9 +406,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		// set demographic
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
 		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
-
-		if (isBioAuthFailed) identity.put("bioAuthFailed", "true");
-		requestDto.setIdentity(identity);
 
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
@@ -669,12 +666,14 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		req.setRequestId(mve.get(0).getRequestId());
 		req.setRequesttime(DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)));
 		req.setReferenceId(mve.get(0).getRegId());
+        req.setBioAuthFailed(isBioAuthFailed);
+
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				mve.get(0).getRegId(), messageDTO.getReg_type(), messageDTO.getIteration(), mve.get(0).getId().getWorkflowInstanceId());
 		try {
 			req.setReferenceURL(
-					getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType(), isBioAuthFailed));
+					getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType()));
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -693,7 +692,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType(), false));
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -800,7 +799,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			referenceURL.setSource(PACKET);
 			referenceURL.setStatus(registrationStatusDto.getStatusCode());
 			referenceURL.setURL(
-					getDataShareUrl(id,registrationStatusDto.getRegistrationType(), false));
+					getDataShareUrl(id,registrationStatusDto.getRegistrationType()));
 			referenceURLs.add(referenceURL);
 			if(registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.UPDATE.name())
 					|| registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.RES_UPDATE.name())
