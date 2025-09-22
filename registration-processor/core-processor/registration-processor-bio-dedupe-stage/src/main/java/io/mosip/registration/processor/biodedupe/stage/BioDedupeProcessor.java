@@ -528,6 +528,11 @@ public class BioDedupeProcessor {
 		Set<String> matchedRegIds = abisHandlerUtil.getUniqueRegIds(registrationStatusDto.getRegistrationId(),
 				registrationType, registrationStatusDto.getIteration(), registrationStatusDto.getWorkflowInstanceId(), ProviderStageName.BIO_DEDUPE);
 		ArrayList<String> matchedRegIdsList = new ArrayList<String>(matchedRegIds);
+		if (matchedRegIds != null && !matchedRegIds.isEmpty()
+				&& matchedRegIds.contains(registrationStatusDto.getRegistrationId())) {
+			matchedRegIds.remove(registrationStatusDto.getRegistrationId());
+			matchedRegIdsList.remove(registrationStatusDto.getRegistrationId());
+		}
 		if (matchedRegIds == null || matchedRegIds.isEmpty()) {
 			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 			object.setIsValid(Boolean.TRUE);
