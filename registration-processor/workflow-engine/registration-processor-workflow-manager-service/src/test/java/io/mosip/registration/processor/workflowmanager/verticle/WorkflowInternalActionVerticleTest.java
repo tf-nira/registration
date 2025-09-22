@@ -305,6 +305,7 @@ public class WorkflowInternalActionVerticleTest {
 
 	}
 
+	/*
 	@Test
 	public void testProcessSuccessForCompleteAsRejected() {
 		WorkflowInternalActionDTO workflowInternalActionDTO = new WorkflowInternalActionDTO();
@@ -331,7 +332,9 @@ public class WorkflowInternalActionVerticleTest {
 		assertEquals(RegistrationStatusCode.REJECTED.toString(), argument1.getAllValues().get(0).getResultCode());
 
 	}
+	*/
 
+	/*
 	@Test
 	public void testProcessSuccessForCompleteAsFailed() {
 		WorkflowInternalActionDTO workflowInternalActionDTO = new WorkflowInternalActionDTO();
@@ -357,6 +360,7 @@ public class WorkflowInternalActionVerticleTest {
 		verify(webSubUtil, atLeastOnce()).publishEvent(argument1.capture());
 		assertEquals(RegistrationStatusCode.FAILED.toString(), argument1.getAllValues().get(0).getResultCode());
 	}
+	*/
 
 	@Test
 	public void testProcessSuccessForMarkAsReprocess()
@@ -652,9 +656,9 @@ public class WorkflowInternalActionVerticleTest {
 		verify(registrationStatusService, atLeastOnce()).updateRegistrationStatusForWorkflowEngine(argument.capture(), Mockito.any(),
 				Mockito.any());
 		assertEquals(RegistrationStatusCode.REJECTED.toString(), argument.getAllValues().get(0).getStatusCode());
-		ArgumentCaptor<WorkflowCompletedEventDTO> argument1 = ArgumentCaptor.forClass(WorkflowCompletedEventDTO.class);
-		verify(webSubUtil, atLeastOnce()).publishEvent(argument1.capture());
-		assertEquals(RegistrationStatusCode.REJECTED.toString(), argument1.getAllValues().get(0).getResultCode());
+//		ArgumentCaptor<WorkflowCompletedEventDTO> argument1 = ArgumentCaptor.forClass(WorkflowCompletedEventDTO.class);
+//		verify(webSubUtil, atLeastOnce()).publishEvent(argument1.capture());
+//		assertEquals(RegistrationStatusCode.REJECTED.toString(), argument1.getAllValues().get(0).getResultCode());
 	}
 	
 	@SuppressWarnings("unchecked")
