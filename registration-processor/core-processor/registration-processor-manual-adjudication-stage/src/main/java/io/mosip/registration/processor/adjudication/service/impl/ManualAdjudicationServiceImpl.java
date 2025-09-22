@@ -406,7 +406,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		// set demographic
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
 		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
-
+		requestDto.setIdentity(identity);
+		
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
 
@@ -1115,3 +1116,4 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return isResendFlow;
 	}
 }
+
