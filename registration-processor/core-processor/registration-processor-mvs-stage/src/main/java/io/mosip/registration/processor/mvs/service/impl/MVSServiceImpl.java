@@ -219,6 +219,7 @@ public class MVSServiceImpl implements MVSService {
 	/** The Constant PROTOCOL. */
 	public static final String PROTOCOL = "https";
 
+	private boolean dupilcateDataFlag=false;
 	/*
 	 * This method will be called from the event bus passing messageDTO object
 	 * containing rid Based o Rid fetch match reference Id and form request which is
@@ -603,6 +604,7 @@ public class MVSServiceImpl implements MVSService {
 		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
 			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
 			verReq.setMatchedRegIds(matchedRegIds);
+			dupilcateDataFlag=true;
 		}
 
 		// set documents
@@ -820,7 +822,9 @@ public class MVSServiceImpl implements MVSService {
 		
 		try {
 			req.setReferenceURL(getDataShareUrl(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req,registrationStatusDto));
-
+			if(dupilcateDataFlag){
+				messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+			}
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					ex.getErrorCode(), ex.getErrorText());
