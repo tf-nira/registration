@@ -70,6 +70,9 @@ import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.workflowmanager.service.WorkflowActionService;
 import io.mosip.registration.processor.workflowmanager.util.WebSubUtil;
 import io.vertx.core.json.JsonObject;
+
+import static io.mosip.registration.processor.core.code.WorkflowInternalActionCode.COMPLETE_AS_PROCESSED;
+
 @Component
 public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
@@ -500,33 +503,34 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		if (registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.MIGRATOR.toString())) {
 			sendWorkflowCompletedWebSubEventForOnDemand(registrationStatusDto, workflowInternalActionDTO);
 		} else {
+			WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
+			workflowCompletedEventDTO.setInstanceId(registrationStatusDto.getRegistrationId());
+			workflowCompletedEventDTO.setResultCode(registrationStatusDto.getStatusCode());
+			workflowCompletedEventDTO.setWorkflowType(registrationStatusDto.getRegistrationType());
+			workflowCompletedEventDTO.setNotificationAttributes(workflowInternalActionDTO.getNotificationAttributes());
+			if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.REJECTED.toString())) {
+				if (registrationStatusDto.getRegistrationStageName().contains(ProviderStageName.MVS.getValue())) {
+					workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.MVS_PACKET_REJECTED.name());
+				}else {
+					workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_REJECTED.name());
+				}
+			}
+			if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.FAILED.toString())) {
 
-		WorkflowCompletedEventDTO workflowCompletedEventDTO = new WorkflowCompletedEventDTO();
-		workflowCompletedEventDTO.setInstanceId(registrationStatusDto.getRegistrationId());
-		workflowCompletedEventDTO.setResultCode(registrationStatusDto.getStatusCode());
-		workflowCompletedEventDTO.setWorkflowType(registrationStatusDto.getRegistrationType());
-		workflowCompletedEventDTO.setNotificationAttributes(workflowInternalActionDTO.getNotificationAttributes());
-		if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.REJECTED.toString())) {
-			if (registrationStatusDto.getRegistrationStageName().contains(ProviderStageName.MVS.getValue())) {
-				workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.MVS_PACKET_REJECTED.name());
-			}else {
-				workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_REJECTED.name());
+					workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
+
+			}
+
+			Map<String, String> notificationAtrributes = workflowInternalActionDTO.getNotificationAttributes();
+
+			if (notificationAtrributes != null) {
+				notificationMessageService.saveNotificationDetails(registrationStatusDto.getRegistrationId(), notificationAtrributes);
+			}
+
+			if (WorkflowInternalActionCode.valueOf(workflowInternalActionDTO.getActionCode()).equals(COMPLETE_AS_PROCESSED)) {
+				webSubUtil.publishEvent(workflowCompletedEventDTO);
 			}
 		}
-		if (registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.FAILED.toString())) {
-
-				workflowCompletedEventDTO.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
-
-		}
-
-		Map<String, String> notificationAtrributes = workflowInternalActionDTO.getNotificationAttributes();
-		
-		if (notificationAtrributes != null) {
-			notificationMessageService.saveNotificationDetails(registrationStatusDto.getRegistrationId(), notificationAtrributes);	
-		}
-		
-		webSubUtil.publishEvent(workflowCompletedEventDTO);
-	}
 	}
 
 	private void sendWorkflowCompletedWebSubEventForOnDemand(InternalRegistrationStatusDto registrationStatusDto,
