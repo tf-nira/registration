@@ -306,7 +306,24 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.setIsValid(true);
 				description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
 				description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
-			} else
+				try {
+					String id = messageDTO.getRid();
+					List<String> tags = new ArrayList<>();
+					tags.add("AGE_GROUP");
+					Map<String, String> tagsPresent = packetService.getTags(id, tags);
+					String ageGroup = tagsPresent.get("AGE_GROUP");
+					if ("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) &&
+							"CHILD".equalsIgnoreCase(ageGroup)) {
+						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+					}
+
+				} catch (Exception e) {
+					regProcLogger.error("Error while processing tags and setting message bus address", e);
+				}
+
+
+			}
+			else
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
 					PlatformSuccessMessages.RPR_MVS_SENT, isResumable);
@@ -505,7 +522,7 @@ public class MVSServiceImpl implements MVSService {
 		return entities;
 	}
 
-	private String getDataShareUrl(MessageDTO messageDTO, String process, VerificationRequestDTO verReq, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
+	private String getDataShareUrl(String id, String process, VerificationRequestDTO verReq, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -518,7 +535,7 @@ public class MVSServiceImpl implements MVSService {
 						&& (!META_INFO.equalsIgnoreCase(e.getValue()) && !AUDITS.equalsIgnoreCase(e.getValue())))
 				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 		requestDto.setIdentity(
-				packetManagerService.getFields(messageDTO.getRid(), demographicMap.values().stream().collect(Collectors.toList()),
+				packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()),
 						process, ProviderStageName.MVS));
 
 		String userServiceTypeValue;
@@ -541,7 +558,7 @@ public class MVSServiceImpl implements MVSService {
 		List<String> tags = new ArrayList<String>();
 		tags.add("AGE_GROUP");
 		tags.add("ID_OBJECT-foundLink");
-		Map<String, String> tagsPresent = packetService.getTags(messageDTO.getRid(), tags);
+		Map<String, String> tagsPresent = packetService.getTags(id, tags);
 		verReq.setFoundLink(tagsPresent.get("ID_OBJECT-foundLink"));
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
 
@@ -604,7 +621,6 @@ public class MVSServiceImpl implements MVSService {
 		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
 			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
 			verReq.setMatchedRegIds(matchedRegIds);
-			messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 		}
 
 		// set documents
@@ -616,7 +632,7 @@ public class MVSServiceImpl implements MVSService {
 						? docmap.get(MappingJsonConstants.VALUE).toString()
 						: null;
 				if (policyMap.containsValue(docName)) {
-					Document document = packetManagerService.getDocument(messageDTO.getRid(), docName, process,
+					Document document = packetManagerService.getDocument(id, docName, process,
 							ProviderStageName.MVS);
 					if (document != null) {
 						if (requestDto.getDocuments() != null)
@@ -636,12 +652,12 @@ public class MVSServiceImpl implements MVSService {
 		// set audits
 		if (policyMap.containsValue(AUDITS))
 			requestDto.setAudits(JsonUtils.javaObjectToJsonString(
-					packetManagerService.getAudits(messageDTO.getRid(), process, ProviderStageName.MVS)));
+					packetManagerService.getAudits(id, process, ProviderStageName.MVS)));
 
 		// set metainfo
 		if (policyMap.containsValue(META_INFO))
 			requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(
-					packetManagerService.getMetaInfo(messageDTO.getRid(), process, ProviderStageName.MVS)));
+					packetManagerService.getMetaInfo(id, process, ProviderStageName.MVS)));
 
 		// set biometrics
 		JSONObject regProcessorIdentityJson = utility
@@ -652,13 +668,13 @@ public class MVSServiceImpl implements MVSService {
 
 		if (policyMap.containsValue(individualBiometricsLabel)) {
 			List<String> modalities = getModalities(policy);
-			BiometricRecord biometricRecord = packetManagerService.getBiometrics(messageDTO.getRid(), individualBiometricsLabel,
+			BiometricRecord biometricRecord = packetManagerService.getBiometrics(id, individualBiometricsLabel,
 					modalities, process, ProviderStageName.MVS);
 			if (biometricRecord != null && biometricRecord.getSegments() != null && !biometricRecord.getSegments().isEmpty()) {
 			    byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
 			    requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
 			} else {
-				regProcLogger.info("BiometricRecord or segments are null/empty for id: {}", messageDTO.getRid());
+				regProcLogger.info("BiometricRecord or segments are null/empty for id: {}", id);
 			    requestDto.setBiometrics(null);
 			}
 		}
@@ -821,7 +837,7 @@ public class MVSServiceImpl implements MVSService {
 		}
 		
 		try {
-			req.setReferenceURL(getDataShareUrl(messageDTO, registrationStatusDto.getRegistrationType(), req,registrationStatusDto));
+			req.setReferenceURL(getDataShareUrl(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req,registrationStatusDto));
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					ex.getErrorCode(), ex.getErrorText());
