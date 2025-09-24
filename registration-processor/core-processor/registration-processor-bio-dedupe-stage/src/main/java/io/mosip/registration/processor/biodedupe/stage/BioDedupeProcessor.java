@@ -547,6 +547,9 @@ public class BioDedupeProcessor {
 			registrationStatusDto.setSubStatusCode(StatusUtil.BIO_DEDUPE_POTENTIAL_MATCH.getCode());
 			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
 			moduleId = PlatformSuccessMessages.RPR_BIO_METRIC_POTENTIAL_MATCH.getCode();
+			packetInfoManager.saveRegLostUinDet(registrationId,
+					object.getWorkflowInstanceId(), matchedRegIds.iterator().next(), moduleId, moduleName);
+			
 			packetInfoManager.saveManualAdjudicationData(matchedRegIds, object,
 					DedupeSourceName.BIO, moduleId, moduleName,null,null);
 			//send message to manual adjudication
@@ -642,3 +645,4 @@ public class BioDedupeProcessor {
 		}
 	}
 }
+
