@@ -256,6 +256,8 @@ public class NotificationServiceImpl implements NotificationService {
 				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
 							object);
 
+				regProcLogger.info("Notification attributes for reg_id " + id + " is " + attributes);
+
 				 isTransactionSuccessful = sendNotification(id, workflowType,
 						attributes, ccEMailList, allNotificationTypes, workflowType, messageSenderDto, description);
 
@@ -744,3 +746,4 @@ public class NotificationServiceImpl implements NotificationService {
 	}
 
 }
+
