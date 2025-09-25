@@ -86,9 +86,19 @@ public class BioSdkUtil {
 					if (null == firstMp.get(entry.getKey())) {
 						status = false;
 
-					} else
+					} else {
+						String reg_id = registrationStatusDto.getRegistrationId();
+						long start = System.currentTimeMillis();
+						regProcLogger
+								.info("BioSdkUtil :: Request to biosdk for authentication rid "
+										+ reg_id + " time " + start + " ms");
 						status = bioProvider.verify(secondMp.get(entry.getKey()),firstMp.get(entry.getKey()),
 								entry.getKey(), null);
+						long end = System.currentTimeMillis();
+						regProcLogger.info("BioSdkUtil :: Response from  biosdk for authentication rid " + reg_id
+								+ " time " + (end - start) + " ms");
+
+					}
 					if (!status) {
 						registrationStatusDto.setLatestTransactionStatusCode(registrationExceptionMapperUtil
 								.getStatusCode(RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION));

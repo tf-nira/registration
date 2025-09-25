@@ -2,7 +2,11 @@ package io.mosip.registration.processor.quality.classifier.stage;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
@@ -468,7 +472,15 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 							BIR[] birArray = new BIR[1];
 							birArray[0] = bir;
 							if(!biometricType.name().equalsIgnoreCase(BiometricType.EXCEPTION_PHOTO.name())) {
+						long start = System.currentTimeMillis();
+						regProcLogger
+								.info("QualityClassifierStage :: Request to biosdk to get score rid " + regId + " time "
+								+ start + " ms");
 								float[] qualityScoreresponse = getBioSdkInstance(biometricType).getSegmentQuality(birArray, null);
+						long end = System.currentTimeMillis();
+						regProcLogger.info("QualityClassifierStage :: Response from  biosdk  for score rid " + regId
+								+ " time " + (end - start) + " ms");
+
 								float score = qualityScoreresponse[0];
 								String bioType = bir.getBdbInfo().getType().get(0).value();
 								regProcLogger.info("SCORE "+String.valueOf(score));
