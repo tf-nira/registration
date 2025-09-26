@@ -108,7 +108,7 @@ public class LegacyDataValidateProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.DATA_MIGRATION_API_FAILED, RegistrationExceptionTypeCode.DATA_MIGRATION_EXCEPTION,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_MIGRATION_API_FAILED, e);
-			attributes.put("FAILURE_COMMENT", "Potential mistyping of NIN at application");
+			attributes.put("FAILURE_REASON", "Potential mistyping of NIN at application");
 			object.setNotificationAttributes(attributes);
 		} catch (LegacyDataValidationException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.LEGACYERROR,
@@ -119,7 +119,7 @@ public class LegacyDataValidateProcessor {
 					StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getCode());
-			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage());
+			attributes.put("FAILURE_REASON", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage());
 			object.setNotificationAttributes(attributes);
 		} catch (PacketManagerException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
@@ -152,7 +152,7 @@ public class LegacyDataValidateProcessor {
 					StatusUtil.LEGACY_DATA_VALIDATION_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_VALIDATION_FAILED, e);
 			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getCode());
-			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage());
+			attributes.put("FAILURE_REASON", StatusUtil.LEGACY_DATA_VALIDATION_FAILED.getMessage());
 			object.setNotificationAttributes(attributes);
 		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
