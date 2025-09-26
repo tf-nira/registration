@@ -15,6 +15,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
@@ -157,26 +158,26 @@ public class NotificationServiceImpl implements NotificationService {
 	private Environment env;
 
 	// sends init subscribe req to hub
-	/*
-	 * @Scheduled(fixedDelayString =
-	 * "${mosip.regproc.websub.resubscription.delay.millisecs:43200000}",
-	 * initialDelayString =
-	 * "${mosip.regproc.websub.subscriptions-delay-on-startup.millisecs:300000}")
-	 * protected void init() { SubscriptionChangeRequest subscriptionRequest = new
-	 * SubscriptionChangeRequest(); subscriptionRequest.setCallbackURL(callbackURL);
-	 * subscriptionRequest.setHubURL(hubURL); subscriptionRequest.setSecret(secret);
-	 * subscriptionRequest.setTopic(topic); sb.subscribe(subscriptionRequest);
-	 * SubscriptionChangeRequest subscriptionRequestPausedForAdditionalInfo = new
-	 * SubscriptionChangeRequest();
-	 * subscriptionRequestPausedForAdditionalInfo.setCallbackURL(
-	 * pausedForAdditonalInfoCallbackURL);
-	 * subscriptionRequestPausedForAdditionalInfo.setHubURL(hubURL);
-	 * subscriptionRequestPausedForAdditionalInfo.setSecret(
-	 * pausedForAdditonalInfoSecret);
-	 * subscriptionRequestPausedForAdditionalInfo.setTopic(
-	 * pausedForAdditonalInfoTopic);
-	 * sb.subscribe(subscriptionRequestPausedForAdditionalInfo); }
-	 */
+	
+	  @Scheduled(fixedDelayString =
+	  "${mosip.regproc.websub.resubscription.delay.millisecs:43200000}",
+	  initialDelayString =
+	  "${mosip.regproc.websub.subscriptions-delay-on-startup.millisecs:300000}")
+	  protected void init() { SubscriptionChangeRequest subscriptionRequest = new
+	  SubscriptionChangeRequest(); subscriptionRequest.setCallbackURL(callbackURL);
+	  subscriptionRequest.setHubURL(hubURL); subscriptionRequest.setSecret(secret);
+	  subscriptionRequest.setTopic(topic); sb.subscribe(subscriptionRequest);
+	  SubscriptionChangeRequest subscriptionRequestPausedForAdditionalInfo = new
+	  SubscriptionChangeRequest();
+	  subscriptionRequestPausedForAdditionalInfo.setCallbackURL(
+	  pausedForAdditonalInfoCallbackURL);
+	  subscriptionRequestPausedForAdditionalInfo.setHubURL(hubURL);
+	  subscriptionRequestPausedForAdditionalInfo.setSecret(
+	  pausedForAdditonalInfoSecret);
+	  subscriptionRequestPausedForAdditionalInfo.setTopic(
+	  pausedForAdditonalInfoTopic);
+	  sb.subscribe(subscriptionRequestPausedForAdditionalInfo); }
+	 
 
 	@Override
 	public ResponseEntity<Void> process(@RequestBody WorkflowCompletedEventDTO object) {
@@ -370,6 +371,19 @@ public class NotificationServiceImpl implements NotificationService {
 		}
 		if (allNotificationTypes != null) {
 			for (String notificationType : allNotificationTypes) {
+				regProcLogger.info("Setting the value for service for notification templates, process: {}",process);
+				
+				String displayService = env.getProperty(process);
+				regProcLogger.info("Fetched service from environment for the process: {} , is: {}", process, displayService);
+				
+				if(displayService == null || displayService.trim().isEmpty()) {
+					displayService = process;
+					regProcLogger.info("Fetched servce from properties is null thus adding process: {} in template", process);
+				}
+				attributes.put("service", displayService);
+				regProcLogger.info("The attributes added for the notification template for id: {}, are: {}",
+						id, attributes);
+				
 				if (notificationType.equalsIgnoreCase(NotificationTypeEnum.SMS.name())
 						&& isTemplateAvailable(messageSenderDto)) {
 					String countryCodeVal = packetManagerService.getField(id, "CountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
