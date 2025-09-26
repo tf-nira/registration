@@ -17,6 +17,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 import org.junit.Before;
@@ -224,6 +226,9 @@ public class BiometricAuthenticationStageTest {
 	@Mock
 	RegistrationExceptionMapperUtil registrationStatusMapperUtil;
 
+	@Mock
+	private BasePacketRepository<ManualVerificationEntity, String> manualVerficationRepository;
+
 	private SyncRegistrationEntity regentity = Mockito.mock(SyncRegistrationEntity.class);
 
 	/**
@@ -378,6 +383,8 @@ public class BiometricAuthenticationStageTest {
 		when(packetManagerService.getBiometricsByMappingJsonKey(any(),
 				any(), any(),any())).thenReturn(null);
 
+		when(manualVerficationRepository.save(any())).thenReturn(null);
+
 		MessageDTO messageDto = biometricAuthenticationStage.process(dto);
 		assertFalse(messageDto.getIsValid());
 		assertFalse(messageDto.getInternalError());
@@ -389,6 +396,8 @@ public class BiometricAuthenticationStageTest {
 
 		when(packetManagerService.getBiometricsByMappingJsonKey(any(),
 				any(), any(),any())).thenReturn(null);
+
+		when(manualVerficationRepository.save(any())).thenReturn(null);
 		
 		MessageDTO messageDto = biometricAuthenticationStage.process(dto);
 		assertFalse(messageDto.getIsValid());
