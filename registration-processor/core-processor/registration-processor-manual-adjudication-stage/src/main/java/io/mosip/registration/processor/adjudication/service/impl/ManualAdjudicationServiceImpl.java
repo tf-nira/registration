@@ -996,7 +996,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformSuccessMessages.RPR_MANUAL_VERIFICATION_APPROVED.getCode());
 
 			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
-				messageDTO.setMessageBusAddress(MessageBusAddress.BIO_DEDUPE_BUS_IN);
+				messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
 			}
 
 		} else if (statusCode != null && statusCode.equalsIgnoreCase(ManualVerificationStatus.REJECTED.name())) {
@@ -1116,4 +1116,5 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return isResendFlow;
 	}
 }
+
 
