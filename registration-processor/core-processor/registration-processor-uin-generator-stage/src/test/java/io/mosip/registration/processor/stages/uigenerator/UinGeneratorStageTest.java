@@ -73,6 +73,7 @@ import io.mosip.registration.processor.core.code.EventType;
 import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
 import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
+import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.constant.RegistrationType;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
@@ -100,6 +101,7 @@ import io.mosip.registration.processor.packet.storage.entity.IndividualDemograph
 import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
 import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.IdSchemaUtil;
+import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
@@ -1514,7 +1516,8 @@ public class UinGeneratorStageTest {
 		defaultFields.add("gender");
 		defaultFields.add("UIN");
 
-		
+		PacketManagerService packetManagerService = Mockito.mock(PacketManagerService.class);
+	    when(utility.getPacketManagerService()).thenReturn(packetManagerService);
 		when(packetManagerService.getFieldByMappingJsonKey(anyString(),anyString(),any(),any())).thenReturn("0.1");
 		when(packetManagerService.getFields(anyString(),anyList(),anyString(),any())).thenReturn(fieldMap);
 		when(idSchemaUtil.getDefaultFields(anyDouble())).thenReturn(defaultFields);
@@ -1567,7 +1570,8 @@ public class UinGeneratorStageTest {
 		defaultFields.add("UIN");
 		when(idRepoService.getUinByRid(anyString(), anyString())).thenReturn("9403107397");
 
-
+		PacketManagerService packetManagerService = Mockito.mock(PacketManagerService.class);
+	    when(utility.getPacketManagerService()).thenReturn(packetManagerService);
 		when(packetManagerService.getFieldByMappingJsonKey(anyString(),anyString(),any(),any())).thenReturn("0.1");
 		when(packetManagerService.getFields(anyString(),anyList(),anyString(),any())).thenReturn(fieldMap);
 		when(idSchemaUtil.getDefaultFields(anyDouble())).thenReturn(defaultFields);
@@ -1692,6 +1696,14 @@ public class UinGeneratorStageTest {
 		JSONObject j1 = new JSONObject(map);
 
 		Mockito.when(idRepoService.getIdJsonFromIDRepo(any(), any())).thenReturn(j1);
+		PacketManagerService packetManagerService = Mockito.mock(PacketManagerService.class);
+	    when(utility.getPacketManagerService()).thenReturn(packetManagerService);
+	    Map<String, String> mockFields = new HashMap<>();
+	    mockFields.put("NIN", "NI123456");
+	    when(packetManagerService.getFields(
+	            anyString(), anyList(), anyString(), any(ProviderStageName.class)))
+	            .thenReturn(mockFields);
+	    
 		MessageDTO result = uinGeneratorStage.process(messageDTO);
 		assertFalse(result.getIsValid());
 		assertFalse(result.getInternalError());
@@ -1733,6 +1745,15 @@ public class UinGeneratorStageTest {
 		JSONObject j1 = new JSONObject(map);
 
 		Mockito.when(idRepoService.getIdJsonFromIDRepo(any(), any())).thenReturn(j1);
+		
+		PacketManagerService packetManagerService = Mockito.mock(PacketManagerService.class);
+	    when(utility.getPacketManagerService()).thenReturn(packetManagerService);
+
+	    Map<String, String> mockFields = new HashMap<>();
+	    mockFields.put("NIN", "NI123456");
+	    when(packetManagerService.getFields(
+	            anyString(), anyList(), anyString(), any(ProviderStageName.class)))
+	            .thenReturn(mockFields);
 
 		MessageDTO result = uinGeneratorStage.process(messageDTO);
 		assertFalse(result.getIsValid());

@@ -812,9 +812,16 @@ public class MVSServiceImpl implements MVSService {
 		req.setRefId(refId);
 
 		if ((RegistrationType.LOST.toString()).equalsIgnoreCase(messageDTO.getReg_type())) {
-			String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(messageDTO.getWorkflowInstanceId());
-
-			JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId, utility.getGetRegProcessorDemographicIdentity());
+			
+			String registrationId = messageDTO.getRid();
+			List<String> fieldsToFetch = new ArrayList<>(List.of(MappingJsonConstants.NIN));
+			regProcLogger.info("Sending API request for registration ID: {}", registrationId);
+			
+			Map<String, String> applicantFields = utility.getPacketManagerService().getFields(registrationId,
+					fieldsToFetch, messageDTO.getReg_type(), ProviderStageName.MVS);
+			String lostPacketNin = applicantFields.get(MappingJsonConstants.NIN);
+			
+			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
 			if (jsonObject.get(MappingJsonConstants.DISTRICT) != null) {
 				LinkedHashMap districtObject = (LinkedHashMap) ((ArrayList<?>) jsonObject.get(MappingJsonConstants.DISTRICT)).get(0);
 				String districtValue = (String) districtObject.get(MappingJsonConstants.VALUE);
