@@ -683,7 +683,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		req.setRequestId(mve.get(0).getRequestId());
 		req.setRequesttime(DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)));
 		req.setReferenceId(mve.get(0).getRegId());
-		// req.setBioAuthFailed(isBioAuthFailed);
 
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		registrationStatusDto = registrationStatusService.getRegistrationStatus(
@@ -703,6 +702,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ReferenceIds r = new ReferenceIds();
 
 			if (!isBioAuthFailed) {
+				req.setBioAuthFailed("false");
 				InternalRegistrationStatusDto registrationStatusDto1 = null;
 				registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
 						e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
@@ -722,6 +722,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 			else {
 				try {
+					req.setBioAuthFailed("true");
 					r.setReferenceId(e.getId().getMatchedRefId());
 					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
 					referenceIds.add(r);
