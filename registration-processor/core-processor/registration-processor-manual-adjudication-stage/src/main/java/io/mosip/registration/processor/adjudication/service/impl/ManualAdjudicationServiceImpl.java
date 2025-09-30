@@ -4,14 +4,21 @@ import static io.mosip.registration.processor.adjudication.constants.ManualAdjud
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.mosip.registration.processor.core.code.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.codehaus.jackson.node.ObjectNode;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +63,15 @@ import io.mosip.registration.processor.adjudication.stage.ManualAdjudicationStag
 import io.mosip.registration.processor.adjudication.util.ManualVerificationUpdateUtility;
 import io.mosip.registration.processor.core.abstractverticle.MessageBusAddress;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
+import io.mosip.registration.processor.core.code.ApiName;
+import io.mosip.registration.processor.core.code.DedupeSourceName;
+import io.mosip.registration.processor.core.code.EventId;
+import io.mosip.registration.processor.core.code.EventName;
+import io.mosip.registration.processor.core.code.EventType;
+import io.mosip.registration.processor.core.code.ModuleName;
+import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
+import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
+import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.PolicyConstant;
@@ -667,7 +683,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		req.setRequestId(mve.get(0).getRequestId());
 		req.setRequesttime(DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)));
 		req.setReferenceId(mve.get(0).getRegId());
-		req.setBioAuthFailed(isBioAuthFailed);
 
 		InternalRegistrationStatusDto registrationStatusDto = null;
 		registrationStatusDto = registrationStatusService.getRegistrationStatus(
@@ -687,6 +702,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ReferenceIds r = new ReferenceIds();
 
 			if (!isBioAuthFailed) {
+				req.setBioAuthFailed("false");
 				InternalRegistrationStatusDto registrationStatusDto1 = null;
 				registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
 						e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
@@ -706,6 +722,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 			else {
 				try {
+					req.setBioAuthFailed("true");
 					r.setReferenceId(e.getId().getMatchedRefId());
 					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
 					referenceIds.add(r);
