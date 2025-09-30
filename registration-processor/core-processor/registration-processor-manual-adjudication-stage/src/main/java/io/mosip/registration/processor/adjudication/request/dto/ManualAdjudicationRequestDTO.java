@@ -23,6 +23,6 @@ public class ManualAdjudicationRequestDTO {
 	
 	private Gallery gallery;
 
-	private boolean bioAuthFailed;
+	// private boolean bioAuthFailed;
 
 }
