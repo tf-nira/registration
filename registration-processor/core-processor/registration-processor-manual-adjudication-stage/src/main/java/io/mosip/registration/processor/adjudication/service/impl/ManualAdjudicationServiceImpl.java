@@ -698,7 +698,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}
 
 		List<ReferenceIds> referenceIds = new ArrayList<>();
-		mve.forEach(e -> {
+		for (var e : mve) {
 			ReferenceIds r = new ReferenceIds();
 
 			if (!isBioAuthFailed) {
@@ -714,8 +714,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
-					r.setReferenceURL(null);
-					referenceIds.add(r);
+//					r.setReferenceURL(null);
+//					referenceIds.add(r);
+					throw new DataShareException("Unable to construct datashare url");
 				} catch (Exception exp) {
 					regProcLogger.error(ExceptionUtils.getStackTrace(exp));
 				}
@@ -729,14 +730,14 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
-					r.setReferenceURL(null);
-					referenceIds.add(r);
+//					r.setReferenceURL(null);
+//					referenceIds.add(r);
+					throw new DataShareException("Unable to construct datashare url");
 				} catch (Exception exp) {
 					regProcLogger.error(ExceptionUtils.getStackTrace(exp));
 				}
 			}
-
-		});
+		}
 		Gallery g = new Gallery();
 		g.setReferenceIds(referenceIds);
 		req.setGallery(g);
@@ -882,12 +883,21 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			registrationStatusDto.setRegistrationStageName(stageName);
 
 		} catch (DataShareException de) {
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
-			registrationStatusDto.setStatusComment(trimExceptionMessage
-					.trimExceptionMessage(StatusUtil.MANUAL_ADJUDICATION_FAILED.getMessage() + de.getMessage()));
-			registrationStatusDto.setSubStatusCode(StatusUtil.MANUAL_ADJUDICATION_FAILED.getCode());
-			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationExceptionMapperUtil.getStatusCode(RegistrationExceptionTypeCode.MANUAL_VERIFICATION_FAILED));
+			if (de.getMessage().equalsIgnoreCase("Unable to construct datashare url")) {
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.REPROCESS.name());
+				registrationStatusDto.setStatusComment(trimExceptionMessage
+						.trimExceptionMessage(StatusUtil.MANUAL_ADJUDICATION_FAILED.getMessage() + de.getMessage()));
+				registrationStatusDto.setSubStatusCode(StatusUtil.MANUAL_ADJUDICATION_FAILED.getCode());
+				registrationStatusDto.setLatestTransactionStatusCode(RegistrationStatusCode.REPROCESS.name());
+			} else {
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
+				registrationStatusDto.setStatusComment(trimExceptionMessage
+						.trimExceptionMessage(StatusUtil.MANUAL_ADJUDICATION_FAILED.getMessage() + de.getMessage()));
+				registrationStatusDto.setSubStatusCode(StatusUtil.MANUAL_ADJUDICATION_FAILED.getCode());
+				registrationStatusDto.setLatestTransactionStatusCode(
+						registrationExceptionMapperUtil.getStatusCode(RegistrationExceptionTypeCode.MANUAL_VERIFICATION_FAILED));
+			}
+			
 			description.setCode(PlatformErrorMessages.MANUAL_VERIFICATION_FAILED.getCode());
 			description.setMessage(PlatformErrorMessages.MANUAL_VERIFICATION_FAILED.getMessage());
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), description.getCode(), object.getRid(),
