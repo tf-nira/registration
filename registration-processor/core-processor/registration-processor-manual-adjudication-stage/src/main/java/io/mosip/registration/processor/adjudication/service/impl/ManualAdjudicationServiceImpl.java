@@ -883,7 +883,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			registrationStatusDto.setRegistrationStageName(stageName);
 
 		} catch (DataShareException de) {
-			if (de.getMessage().equalsIgnoreCase("Unable to construct datashare url")) {
+			if (de.getMessage() != null && de.getMessage().contains("Unable to construct datashare url")) {
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.REPROCESS.name());
 				registrationStatusDto.setStatusComment(trimExceptionMessage
 						.trimExceptionMessage(StatusUtil.MANUAL_ADJUDICATION_FAILED.getMessage() + de.getMessage()));
