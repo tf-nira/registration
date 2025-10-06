@@ -449,7 +449,7 @@ public class NotificationServiceImpl implements NotificationService {
 			// if only one notification type is set and that is successful
 			isNotificationSuccess = true;
 		} else if (!isEmailSuccess || !isSMSSuccess) {
-			isNotificationSuccess = false;
+			isNotificationSuccess = true;
 			String failedMessage = "Failed to send Notification for type : "
 					+ (isEmailSuccess ? NotificationTypeEnum.SMS.name() : NotificationTypeEnum.EMAIL.name());
 			description.setMessage(failedMessage);
@@ -744,6 +744,141 @@ public class NotificationServiceImpl implements NotificationService {
 		}
 
 		return responseEntity;
+	}
+
+	@Override
+	public boolean sendNotificationProcess(WorkflowCompletedEventDTO object) {
+		TrimExceptionMessage trimExceptionMessage = new TrimExceptionMessage();
+		boolean isTransactionSuccessful = false;
+		LogDescription description = new LogDescription();
+		MessageSenderDto messageSenderDto = new MessageSenderDto();
+		String id = object.getInstanceId();
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+				"NotificationServiceImpl::process()::entry");
+
+		try {
+
+			String resultCode = object.getResultCode();
+			String workflowType = object.getWorkflowType();
+
+			NotificationTemplateType type = null;
+			StatusNotificationTypeMapUtil map = new StatusNotificationTypeMapUtil();
+
+			if (resultCode.equals(ResultCode.PROCESSED.toString())) {
+				type = setNotificationTemplateType(workflowType);
+			} else {
+				type = map.getTemplateType(object.getErrorCode());
+
+				if (NotificationTemplateType.TECHNICAL_ISSUE.equals(type) &&
+						object.getNotificationAttributes() != null && !object.getNotificationAttributes().isEmpty()) {
+					type = NotificationTemplateType.TECHNICAL_ISSUE_WITH_ERROR;
+				}
+			}
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+					type);
+
+			if (!NotificationTemplateType.TECHNICAL_ISSUE.equals(type)) {
+
+				if (NotificationTemplateType.DUPLICATE_UIN.equals(type)
+						&& workflowType.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+					isTransactionSuccessful = false;
+					description.setStatusComment(StatusUtil.NOTIFICATION_FAILED_FOR_LOST.getMessage());
+					description.setSubStatusCode(StatusUtil.NOTIFICATION_FAILED_FOR_LOST.getCode());
+					description.setMessage(PlatformErrorMessages.RPR_NOTIFICATION_FAILED_FOR_LOST.getMessage());
+					description.setCode(PlatformErrorMessages.RPR_NOTIFICATION_FAILED_FOR_LOST.getCode());
+				} else {
+					if (type != null) {
+						setTemplateAndSubject(type, workflowType, messageSenderDto);
+					}
+
+					Map<String, Object> attributes = new HashMap<>();
+
+					if (object.getNotificationAttributes() != null && !object.getNotificationAttributes().isEmpty()) {
+						attributes.putAll(object.getNotificationAttributes());
+					}
+
+					attributes.put("service", workflowType);
+
+					String[] ccEMailList = null;
+
+					if (isNotificationTypesEmpty()) {
+						description.setStatusComment(StatusUtil.TEMPLATE_CONFIGURATION_NOT_FOUND.getMessage());
+						description.setSubStatusCode(StatusUtil.TEMPLATE_CONFIGURATION_NOT_FOUND.getCode());
+						description.setMessage(PlatformErrorMessages.RPR_TEMPLATE_CONFIGURATION_NOT_FOUND.getMessage());
+						description.setCode(PlatformErrorMessages.RPR_TEMPLATE_CONFIGURATION_NOT_FOUND.getCode());
+						regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), object.getInstanceId(),
+								PlatformErrorMessages.RPR_TEM_CONFIGURATION_NOT_FOUND.getMessage());
+						throw new ConfigurationNotFoundException(
+								PlatformErrorMessages.RPR_TEM_CONFIGURATION_NOT_FOUND.getCode());
+					}
+					String[] allNotificationTypes = notificationTypes.split("\\|");
+
+					if (isNotificationEmailsEmpty()) {
+						ccEMailList = notificationEmails.split("\\|");
+					}
+
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+							messageSenderDto);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
+							object);
+
+					isTransactionSuccessful = sendNotification(id, workflowType,
+							attributes, ccEMailList, allNotificationTypes, workflowType, messageSenderDto, description);
+
+				}
+			}
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, "MessageSenderStage::success");
+		} catch (EmailIdNotFoundException | PhoneNumberNotFoundException | TemplateGenerationFailedException |
+
+				 ConfigurationNotFoundException e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, e.getMessage() + ExceptionUtils.getStackTrace(e));
+			description.setStatusComment(trimExceptionMessage.trimExceptionMessage(
+					StatusUtil.EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getMessage() + e.getMessage()));
+			description.setSubStatusCode(StatusUtil.EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getCode());
+			description.setMessage(PlatformErrorMessages.RPR_EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getMessage());
+			description.setCode(PlatformErrorMessages.RPR_EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getCode());
+			isTransactionSuccessful = false;
+
+		} catch (TemplateNotFoundException tnf) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, tnf.getMessage() + ExceptionUtils.getStackTrace(tnf));
+			description.setStatusComment(trimExceptionMessage.trimExceptionMessage(
+					StatusUtil.EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getMessage() + tnf.getMessage()));
+			description.setSubStatusCode(StatusUtil.EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getCode());
+			description.setMessage(PlatformErrorMessages.RPR_EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getMessage());
+			description.setCode(PlatformErrorMessages.RPR_EMAIL_PHONE_TEMPLATE_NOTIFICATION_MISSING.getCode());
+			isTransactionSuccessful = false;
+
+		} catch (Exception ex) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, ex.getMessage() + ExceptionUtils.getStackTrace(ex));
+			description.setStatusComment(trimExceptionMessage
+					.trimExceptionMessage(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getMessage() + ex.getMessage()));
+			description.setSubStatusCode(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getCode());
+			description.setMessage(PlatformErrorMessages.RPR_MESSAGE_SENDER_STAGE_FAILED.getMessage());
+			description.setCode(PlatformErrorMessages.RPR_MESSAGE_SENDER_STAGE_FAILED.getCode());
+			isTransactionSuccessful = false;
+
+		} finally {
+
+			String eventId = isTransactionSuccessful ? EventId.RPR_402.toString() : EventId.RPR_405.toString();
+			String eventName = eventId.equalsIgnoreCase(EventId.RPR_402.toString()) ? EventName.UPDATE.toString()
+					: EventName.EXCEPTION.toString();
+			String  eventType = eventId.equalsIgnoreCase(EventId.RPR_402.toString()) ? EventType.BUSINESS.toString()
+					: EventType.SYSTEM.toString();
+			/** Module-Id can be Both Success/Error code */
+			String moduleId = isTransactionSuccessful
+					? PlatformSuccessMessages.RPR_MESSAGE_SENDER_STAGE_SUCCESS.getCode()
+					: description.getCode();
+			String moduleName = ModuleName.MESSAGE_SENDER.toString();
+			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
+					moduleId, moduleName, id);
+		}
+
+		return isTransactionSuccessful;
 	}
 
 	private void setTemplateAndSubjectForPausedForAdditionalInfo(MessageSenderDto messageSenderDto) {
