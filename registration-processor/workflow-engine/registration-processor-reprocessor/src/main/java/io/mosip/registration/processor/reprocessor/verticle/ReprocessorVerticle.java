@@ -80,6 +80,9 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Value("${registration.processor.reprocess.fetchsize}")
 	private Integer fetchSize;
 
+	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.exclude.processes}')}")
+	private List<String> excludeProcesses;
+	
 	/** The elapse time. */
 	@Value("${registration.processor.reprocess.elapse.time}")
 	private long elapseTime;
@@ -236,14 +239,14 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
 				if (reprocessorDtoList.size() < fetchSize) {
 					List<InternalRegistrationStatusDto>  reprocessorPacketList = registrationStatusService.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime,
-							reprocessCount, statusList, reprocessExcludeStageNames);
+							reprocessCount, statusList, reprocessExcludeStageNames, excludeProcesses);
 					if (!CollectionUtils.isEmpty(reprocessorPacketList)) {
 						reprocessorDtoList.addAll(reprocessorPacketList);
 					}
 				}
 			} else {
 				reprocessorDtoList = registrationStatusService.getUnProcessedPackets(fetchSize, elapseTime,
-						reprocessCount, statusList, reprocessExcludeStageNames);
+						reprocessCount, statusList, reprocessExcludeStageNames, excludeProcesses);
 			}
 
 			
