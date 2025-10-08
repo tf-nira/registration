@@ -353,9 +353,14 @@ public class NotificationUtility {
 					registrationId, "NotificationUtility::sendSms():: SMSNOTIFIER POST service started with request : "
 							+ JsonUtil.objectMapperObjectToJson(requestWrapper));
 
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+					registrationId,
+					"NotificationUtility::sendSms():: SMSNOTIFIER POST service started with request : ");
 			responseWrapper = (ResponseWrapper<?>) restClientService.postApi(ApiName.SMSNOTIFIER, "", "",
 					requestWrapper, ResponseWrapper.class);
 			response = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()), SmsResponseDto.class);
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+					registrationId, "NotificationUtility::sendSms():: SMSNOTIFIER POST service ended with response : ");
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 					registrationId, "NotificationUtility::sendSms():: SMSNOTIFIER POST service ended with response : "
 							+ JsonUtil.objectMapperObjectToJson(response));
