@@ -827,7 +827,7 @@ public class MVSServiceImpl implements MVSService {
 			    JSONObject districtObject = (JSONObject) districtArray.get(0);
 			    String districtValue = (String) districtObject.get(MappingJsonConstants.VALUE);
 			    regProcLogger.info("District Value: {}", districtValue);
-			    if (districtValue != null) {
+			    if (districtValue != null && !districtValue.isEmpty()){
 			        req.setApplicantPlaceOfResidenceDistrict(districtValue);
 			    }
 			} else {
