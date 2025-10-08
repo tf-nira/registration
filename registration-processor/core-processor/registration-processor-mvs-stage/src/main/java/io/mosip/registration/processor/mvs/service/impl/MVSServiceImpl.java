@@ -832,7 +832,7 @@ public class MVSServiceImpl implements MVSService {
 			        req.setApplicantPlaceOfResidenceDistrict(districtValue);
 			    }
 			} else {
-			    regProcLogger.info("Extracted applicant place of residence district is null for NIN: {}", lostPacketNin);
+			    regProcLogger.info("Extracted applicant place of residence district is null for NIN");
 			}
 		}
 		
