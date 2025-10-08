@@ -667,8 +667,13 @@ public class MVSServiceImpl implements MVSService {
 			List<String> modalities = getModalities(policy);
 			BiometricRecord biometricRecord = packetManagerService.getBiometrics(id, individualBiometricsLabel,
 					modalities, process, ProviderStageName.MVS);
-			byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
-			requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+			if (biometricRecord != null && biometricRecord.getSegments() != null && !biometricRecord.getSegments().isEmpty()) {
+			    byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+			    requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+			} else {
+				regProcLogger.info("BiometricRecord or segments are null/empty for id: {}", id);
+			    requestDto.setBiometrics(null);
+			}
 		}
 
 		String req = JsonUtils.javaObjectToJsonString(requestDto);
