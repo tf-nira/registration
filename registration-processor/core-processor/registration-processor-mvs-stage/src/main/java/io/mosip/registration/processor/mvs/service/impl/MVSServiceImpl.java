@@ -822,14 +822,17 @@ public class MVSServiceImpl implements MVSService {
 			String lostPacketNin = applicantFields.get(MappingJsonConstants.NIN);
 			
 			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
-			JSONArray districtArray = (JSONArray) jsonObject.get(MappingJsonConstants.DISTRICT);
-			if (districtArray != null) {
-			    JSONObject districtObject = (JSONObject) districtArray.get(0);
-			    String districtValue = (String) districtObject.get(MappingJsonConstants.VALUE);
+
+			if (jsonObject.get(MappingJsonConstants.DISTRICT) != null) {
+			    JSONArray districtArray = new JSONArray(jsonObject.get(MappingJsonConstants.DISTRICT));
+			    String districtValue = districtArray.getJSONObject(0).getString(MappingJsonConstants.VALUE);
 			    regProcLogger.info("District Value: {}", districtValue);
-			    if (districtValue != null) {
+
+			    if (districtValue != null && !districtValue.isEmpty()) {
 			        req.setApplicantPlaceOfResidenceDistrict(districtValue);
 			    }
+			} else {
+			    regProcLogger.info("Extracted applicant place of residence district is null for NIN: {}", lostPacketNin);
 			}
 		}
 		
