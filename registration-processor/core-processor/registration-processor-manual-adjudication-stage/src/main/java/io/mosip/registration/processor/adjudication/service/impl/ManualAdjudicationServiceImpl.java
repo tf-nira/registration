@@ -983,9 +983,17 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 								LogDescription description) throws com.fasterxml.jackson.core.JsonProcessingException {
 
 		boolean isTransactionSuccessful = false;
-		String statusCode = manualVerificationDTO.getReturnValue() == 1 &&
-				CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
-				ManualVerificationStatus.APPROVED.name() : ManualVerificationStatus.REJECTED.name();
+		String statusCode = "";
+
+		if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
+			statusCode = manualVerificationDTO.getReturnValue() == 1 &&
+					CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
+					ManualVerificationStatus.REJECTED.name() : ManualVerificationStatus.APPROVED.name();
+		} else {
+			statusCode = manualVerificationDTO.getReturnValue() == 1 &&
+					CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
+					ManualVerificationStatus.APPROVED.name() : ManualVerificationStatus.REJECTED.name();
+		}
 
 		for (int i = 0; i < entities.size(); i++) {
 			byte[] responsetext = mapper.writeValueAsBytes(manualVerificationDTO);
