@@ -447,6 +447,7 @@ public class MessageNotificationServiceImpl
 		if (idType.toString().equalsIgnoreCase(UIN)) {
 
 			try {
+				regProcLogger.info("Calling idrepo");
 				JSONObject jsonObject = utility.idrepoRetrieveIdentityByRid(id);
 				uin = JsonUtil.getJSONValue(jsonObject, UIN);
 
@@ -467,7 +468,7 @@ public class MessageNotificationServiceImpl
 
 				attributes.put("RID", id);
 				attributes.put("UIN", uin);
-				attributes.put("VID", getVid(uin));
+				// attributes.put("VID", getVid(uin));
 
 			} catch (IdRepoAppException e) {
 				idType = IdType.RID;
@@ -776,3 +777,4 @@ public class MessageNotificationServiceImpl
 		return vid;
 	}
 	}
+
