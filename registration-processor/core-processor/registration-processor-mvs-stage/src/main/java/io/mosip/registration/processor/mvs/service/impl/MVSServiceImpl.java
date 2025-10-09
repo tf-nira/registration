@@ -808,14 +808,31 @@ public class MVSServiceImpl implements MVSService {
 		req.setRefId(refId);
 
 		if ((RegistrationType.LOST.toString()).equalsIgnoreCase(messageDTO.getReg_type())) {
-			String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(messageDTO.getWorkflowInstanceId());
+			
+			String registrationId = messageDTO.getRid();
+			List<String> fieldsToFetch = new ArrayList<>(List.of(MappingJsonConstants.NIN));
+			regProcLogger.info("Sending API request for registration ID: {}", registrationId);
+			
+			Map<String, String> applicantFields = utility.getPacketManagerService().getFields(registrationId,
+					fieldsToFetch, messageDTO.getReg_type(), ProviderStageName.MVS);
+			String lostPacketNin = applicantFields.get(MappingJsonConstants.NIN);
+			
+			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
+			
+			Object JsonDistrictObj = jsonObject.get(MappingJsonConstants.DISTRICT);
 
-			JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId, utility.getGetRegProcessorDemographicIdentity());
-			if (jsonObject.get(MappingJsonConstants.DISTRICT) != null) {
-				LinkedHashMap districtObject = (LinkedHashMap) ((ArrayList<?>) jsonObject.get(MappingJsonConstants.DISTRICT)).get(0);
-				String districtValue = (String) districtObject.get(MappingJsonConstants.VALUE);
-
-				if(districtValue != null) req.setApplicantPlaceOfResidenceDistrict(districtValue);
+			if (JsonDistrictObj instanceof List<?>) {
+			    List<?> districtList = (List<?>) JsonDistrictObj;
+			    if (!districtList.isEmpty() && districtList.get(0) instanceof Map<?, ?>) {
+			        Map<?, ?> firstMap = (Map<?, ?>) districtList.get(0);
+			        String districtValue = (String) firstMap.get(MappingJsonConstants.VALUE);
+			        regProcLogger.info("District Value for Lost flow: {}", districtValue);
+			        if (districtValue != null && !districtValue.isEmpty()) {
+			            req.setApplicantPlaceOfResidenceDistrict(districtValue);
+			        }
+			    }
+			} else {
+			    regProcLogger.info("Extracted applicant place of residence district is null for NIN");
 			}
 		}
 		
