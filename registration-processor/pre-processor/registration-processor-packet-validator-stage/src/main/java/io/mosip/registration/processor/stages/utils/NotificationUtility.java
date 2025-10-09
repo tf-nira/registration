@@ -87,7 +87,6 @@ public class NotificationUtility {
 	@Autowired
 	private RegistrationProcessorRestClientService<Object> restClientService;
 
-	String registrationId = null;
 
 	/** The primary language. */
 	@Value("${mosip.default.template-languages:#{null}}")
@@ -158,7 +157,7 @@ public class NotificationUtility {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 				"", "NotificationUtility::sendNotification()::entry");
 
-		registrationId = regEntity.getRegistrationId();
+		String registrationId = regEntity.getRegistrationId();
 		LogDescription description = new LogDescription();
 		String regType = regEntity.getRegistrationType();
 		MessageSenderDTO messageSenderDTO = new MessageSenderDTO();
@@ -232,11 +231,13 @@ public class NotificationUtility {
 							regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 									LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
 									"enteredenableEmailForOtherProcess" + enableEmailForOtherProcess);
-							sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
+							sendEmailNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes,
+									description, preferredLanguage, registrationId);
 						}
 					} else if (notificationType.equalsIgnoreCase("SMS") && (registrationAdditionalInfoDTO.getPhone() != null
 							&& !registrationAdditionalInfoDTO.getPhone().isEmpty()) && "Uganda (256)".equals(countryCode)) {
-						sendSMSNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,preferredLanguage);
+						sendSMSNotification(registrationAdditionalInfoDTO, messageSenderDTO, attributes, description,
+								preferredLanguage, registrationId);
 					}
 				}
 			}
@@ -300,10 +301,11 @@ public class NotificationUtility {
 	}
 
 	private void sendSMSNotification(RegistrationAdditionalInfoDTO registrationAdditionalInfoDTO,
-			MessageSenderDTO messageSenderDTO, Map<String, Object> attributes, LogDescription description,String preferedLanguage) {
+			MessageSenderDTO messageSenderDTO, Map<String, Object> attributes, LogDescription description,
+			String preferedLanguage, String registrationId) {
 		try {
 			SmsResponseDto smsResponse = sendSMS(registrationAdditionalInfoDTO,
-					messageSenderDTO.getSmsTemplateCode(), attributes,preferedLanguage);
+					messageSenderDTO.getSmsTemplateCode(), attributes, preferedLanguage, registrationId);
 
 			if (smsResponse.getStatus().equals("success")) {
 				description.setCode(PlatformSuccessMessages.RPR_MESSAGE_SENDER_STAGE_SUCCESS.getCode());
@@ -327,7 +329,8 @@ public class NotificationUtility {
 	}
 
 	private SmsResponseDto sendSMS(RegistrationAdditionalInfoDTO registrationAdditionalInfoDTO, String templateTypeCode,
-			Map<String, Object> attributes,String preferedLanguage) throws ApisResourceAccessException, IOException, JSONException {
+			Map<String, Object> attributes, String preferedLanguage, String registrationId)
+			throws ApisResourceAccessException, IOException, JSONException {
 		SmsResponseDto response;
 		SmsRequestDto smsDto = new SmsRequestDto();
 		RequestWrapper<SmsRequestDto> requestWrapper = new RequestWrapper<>();
@@ -380,12 +383,14 @@ public class NotificationUtility {
 	}
 
 	private void sendEmailNotification(RegistrationAdditionalInfoDTO registrationAdditionalInfoDTO,
-			MessageSenderDTO messageSenderDTO, Map<String, Object> attributes, LogDescription description,String preferedLanguage) {
+			MessageSenderDTO messageSenderDTO, Map<String, Object> attributes, LogDescription description,
+			String preferedLanguage, String registrationId) {
 		try {
 			String subjectTemplateCode = messageSenderDTO.getSubjectTemplateCode();
 			
 			ResponseDto emailResponse = sendEmail(registrationAdditionalInfoDTO,
-					messageSenderDTO.getEmailTemplateCode(), subjectTemplateCode, attributes,preferedLanguage);
+					messageSenderDTO.getEmailTemplateCode(), subjectTemplateCode, attributes, preferedLanguage,
+					registrationId);
 			if (emailResponse.getStatus().equals("success")) {
 				description.setCode(PlatformSuccessMessages.RPR_MESSAGE_SENDER_STAGE_SUCCESS.getCode());
 				description.setMessage(StatusUtil.MESSAGE_SENDER_EMAIL_SUCCESS.getMessage());
@@ -408,7 +413,8 @@ public class NotificationUtility {
 	}
 
 	private ResponseDto sendEmail(RegistrationAdditionalInfoDTO registrationAdditionalInfoDTO, String templateTypeCode,
-			String subjectTypeCode, Map<String, Object> attributes,String preferedLanguage) throws Exception {
+			String subjectTypeCode, Map<String, Object> attributes, String preferedLanguage, String registrationId)
+			throws Exception {
 		ResponseDto response = null;
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
