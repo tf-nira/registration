@@ -994,6 +994,20 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			manualVerificationEntity.setStatusComment(statusCode.equalsIgnoreCase(ManualVerificationStatus.APPROVED.name()) ?
 					StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage() :
 					StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
+
+			String operatorId = null;
+			if (manualVerificationDTO != null
+					&& manualVerificationDTO.getCandidateList() != null
+					&& manualVerificationDTO.getCandidateList().getCandidates() != null
+					&& !manualVerificationDTO.getCandidateList().getCandidates().isEmpty()
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0) != null
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics() != null
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics().get("primaryOperatorID") != null) {
+
+				operatorId = manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics().get("primaryOperatorID").toString();
+			}
+
+			manualVerificationEntity.setMvUsrId(operatorId);
 			entities.set(i, manualVerificationEntity);
 		}
 		isTransactionSuccessful = true;
