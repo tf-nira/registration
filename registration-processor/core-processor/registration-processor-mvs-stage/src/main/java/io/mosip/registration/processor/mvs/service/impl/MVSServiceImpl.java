@@ -246,7 +246,6 @@ public class MVSServiceImpl implements MVSService {
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
 				isResumable = true;
 			}
-			registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
@@ -851,6 +850,8 @@ public class MVSServiceImpl implements MVSService {
 										registrationStatusDto.getStatusComment();
 
 			req.setStatusComment(formattedComment);
+			regProcLogger.info("The updated status comment for regId:{} is: {}",
+					registrationStatusDto.getRegistrationId(), formattedComment);
 		}
 		
 		try {
