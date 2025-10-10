@@ -12,4 +12,6 @@ public interface NotificationService {
 
 	ResponseEntity<Void> process(WorkflowPausedForAdditionalInfoEventDTO object);
 
+	boolean sendNotificationProcess(WorkflowCompletedEventDTO object);
+
 }
