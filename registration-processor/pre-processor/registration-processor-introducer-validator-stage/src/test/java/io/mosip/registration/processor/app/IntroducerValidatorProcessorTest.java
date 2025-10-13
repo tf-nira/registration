@@ -4,11 +4,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,6 +93,9 @@ public class IntroducerValidatorProcessorTest {
 	@Mock
 	RegistrationExceptionMapperUtil registrationStatusMapperUtil;
 
+	@Mock
+	private BasePacketRepository<ManualVerificationEntity, String> manualVerficationRepository;
+
 	/**
 	 * Sets the up.
 	 *
@@ -160,6 +166,8 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new ValidationFailedException("id", "message")).when(introducerValidator).validate(anyString(),
 				any());
+		when(packetManagerService.getField(any(), any(), any(), any())).thenReturn(null);
+		when(manualVerficationRepository.save(any())).thenReturn(null);
 
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());
