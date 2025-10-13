@@ -419,11 +419,12 @@ public class NotificationUtility {
 		params.add("mailTo", mailTo);
 		params.add("mailSubject", subjectArtifact);
 		params.add("mailContent", artifact);
+		params.add("attachments", null);
 		AsyncRequestDTO request = new AsyncRequestDTO();
 		request.setUri(env.getProperty(ApiName.EMAILNOTIFIER.name()));
 		request.setHttpMethod(HttpMethod.POST);
 		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 		request.setHeaders(headers);
 		request.setParams(params);
 		request.setResponseType(ResponseWrapper.class);
