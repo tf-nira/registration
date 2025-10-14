@@ -29,7 +29,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -45,6 +45,7 @@ import io.mosip.registration.processor.core.exception.ApisResourceAccessExceptio
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.TemplateProcessingFailureException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
+import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
 import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
@@ -386,10 +387,22 @@ public class NotificationUtility {
 		try {
 			String subjectTemplateCode = messageSenderDTO.getSubjectTemplateCode();
 			
-			 sendEmail(registrationAdditionalInfoDTO,
+			ResponseDto emailResponse = sendEmail(registrationAdditionalInfoDTO,
 					messageSenderDTO.getEmailTemplateCode(), subjectTemplateCode, attributes, preferedLanguage,
 					registrationId);
-			
+			if (emailResponse.getStatus().equals("success")) {
+				description.setCode(PlatformSuccessMessages.RPR_MESSAGE_SENDER_STAGE_SUCCESS.getCode());
+				description.setMessage(StatusUtil.MESSAGE_SENDER_EMAIL_SUCCESS.getMessage());
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+						LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+						description.getCode() + description.getMessage());
+			} else {
+				description.setCode(PlatformErrorMessages.RPR_MESSAGE_SENDER_EMAIL_FAILED.getCode());
+				description.setMessage(StatusUtil.MESSAGE_SENDER_EMAIL_FAILED.getMessage());
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+						LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+						description.getCode() + description.getMessage());
+			}
 		} catch (Exception e) {
 			description.setCode(PlatformErrorMessages.RPR_MESSAGE_SENDER_EMAIL_FAILED.getCode());
 			description.setMessage(PlatformErrorMessages.RPR_MESSAGE_SENDER_EMAIL_FAILED.getMessage());
@@ -414,7 +427,7 @@ public class NotificationUtility {
 
 			String mailTo = registrationAdditionalInfoDTO.getEmail();
 
-			sendEmail(mailTo, subjectArtifact, artifact, registrationId);
+			response = sendEmail(mailTo, subjectArtifact, artifact, registrationId);
 
 		} catch (TemplateNotFoundException | TemplateProcessingFailureException e) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -434,23 +447,33 @@ public class NotificationUtility {
 		return response;
 	}
 
-	private void sendEmail(String mailTo, String subjectArtifact, String artifact, String registrationId)
+	private ResponseDto sendEmail(String mailTo, String subjectArtifact, String artifact, String registrationId)
 			throws Exception {
-		MultiValueMap<String, String>  params = new LinkedMultiValueMap<>();
-		params.add("mailTo", mailTo);
-		params.add("mailSubject", subjectArtifact);
-		params.add("mailContent", artifact);
-		AsyncRequestDTO request = new AsyncRequestDTO();
-		request.setUri(env.getProperty(ApiName.EMAILNOTIFIER.name()));
-		request.setHttpMethod(HttpMethod.POST);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		request.setHeaders(headers);
-		request.setParams(params);
-		request.setResponseType(ResponseWrapper.class);
+		LinkedMultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
+		ResponseWrapper<?> responseWrapper;
+		ResponseDto responseDto = null;
+		String apiHost = env.getProperty(ApiName.EMAILNOTIFIER.name());
+		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(apiHost);
+
+		builder.queryParam("mailTo", mailTo);
+
+		builder.queryParam("mailSubject", subjectArtifact);
+		builder.queryParam("mailContent", artifact);
+
+		params.add("attachments", null);
+
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"NotificationUtility::sendEmail():: EMAILNOTIFIER POST service started");
-		restHelper.requestFireAndForget(request);
+
+		responseWrapper = (ResponseWrapper<?>) resclient.postApi(builder.build().toUriString(),
+				MediaType.MULTIPART_FORM_DATA, params, ResponseWrapper.class);
+
+		responseDto = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()), ResponseDto.class);
+		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
+				"NotificationUtility::sendEmail():: EMAILNOTIFIER POST service ended with in response : "
+						+ JsonUtil.objectMapperObjectToJson(responseDto));
+
+		return responseDto;
 
 	}
 

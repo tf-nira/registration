@@ -628,6 +628,13 @@ public class PacketValidateProcessor {
 					notificationUtility.sendNotification(registrationAdditionalInfoDTO, registrationStatusDto,
 							regEntity, allNotificationTypes, isProcessingSuccess,isValidSupervisorStatus);
 				}
+				boolean isDeleted = syncRegistrationService.deleteAdditionalInfo(regEntity);
+				if (isDeleted) {
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+							PlatformSuccessMessages.RPR_PKR_ADDITIONAL_INFO_DELETED.getCode()
+									+ PlatformSuccessMessages.RPR_PKR_ADDITIONAL_INFO_DELETED.getMessage());
+				}
 
 			}
 		} catch (Exception e) {
