@@ -39,7 +39,6 @@ import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.code.ApiName;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
-import io.mosip.registration.processor.core.constant.PacketFiles;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
@@ -52,7 +51,6 @@ import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.notification.template.generator.dto.ResponseDto;
 import io.mosip.registration.processor.core.notification.template.generator.dto.SmsRequestDto;
-import io.mosip.registration.processor.core.packet.dto.AuditRespDTO;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.util.JsonUtil;
@@ -60,7 +58,6 @@ import io.mosip.registration.processor.core.util.LanguageUtility;
 import io.mosip.registration.processor.message.sender.exception.TemplateGenerationFailedException;
 import io.mosip.registration.processor.message.sender.exception.TemplateNotFoundException;
 import io.mosip.registration.processor.message.sender.template.TemplateGenerator;
-import io.mosip.registration.processor.packet.storage.dto.FieldResponseDto;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.utils.RestApiClient;
@@ -563,24 +560,4 @@ public class NotificationUtility {
 		}
 	}
 
-	public AsyncRequestDTO buildSMSRequest(FieldResponseDto req) {
-		RequestWrapper<Map<String, String>> auditRequest = new RequestWrapper<>();
-
-		auditRequest.setRequest(req.getFields());
-		auditRequest.setId("String");
-		auditRequest.setVersion("1.0");
-		auditRequest.setRequesttime(LocalDateTime.now());
-		AsyncRequestDTO request = new AsyncRequestDTO();
-
-		request.setUri(env.getProperty(PacketFiles.AUDIT.name()));
-		request.setHttpMethod(HttpMethod.POST);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		request.setHeaders(headers);
-
-		request.setRequestBody(auditRequest);
-		request.setResponseType(AuditRespDTO.class);
-
-		return request;
-	}
 }
