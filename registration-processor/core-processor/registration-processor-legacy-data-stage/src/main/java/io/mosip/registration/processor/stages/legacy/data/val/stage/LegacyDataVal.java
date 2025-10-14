@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -22,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
@@ -128,42 +131,63 @@ public class LegacyDataVal {
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
 			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			String NIN = checkNINAVailableInLegacy(registrationId, positionAndWsqMap);
-			if (NIN != null) {
-				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
-						registrationId);
-					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-					migrationRequestDto.setNin(NIN.toUpperCase());
-					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-					requestWrapper.setRequest(migrationRequestDto);
-					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
-									ResponseWrapper.class,
-									null);
-					regProcLogger.info("Response from migration api : {}{}", registrationId,
-							JsonUtils.javaObjectToJsonString(responseWrapper));
-					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
-						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
-					}
-					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
-							.readValue(
-							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-									MigrationOnDemandResponse.class);
+			List<String> nins = checkNINAVailableInLegacy(registrationId, positionAndWsqMap);
+			if (nins != null) {
+				if (nins.size() == 1) {
+					regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
+							registrationId);
+					String NIN = nins.get(0);
+					MigrationOnDemandResponse migrationOnDemandResponse = migrateNin(NIN, registrationId);
 					if (migrationOnDemandResponse != null) {
 						regProcLogger.info(
 								"ondemand migration happended for registration id  and migration rid is  : {} {}",
 								registrationId, migrationOnDemandResponse.getRid());
-						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_FAILED.getCode());
+						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
+								StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNIN " + NIN + " migration rid " + migrationOnDemandResponse.getRid());
 					} else {
 						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
 								registrationId);
 						throw new DataMigrationPacketCreationException(
-								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode(),
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage() + " matchedNIN " + NIN);
 					}
-
+				} else {
+					regProcLogger.info("Multiple NINs are present in legacy system and call for ondemand migration : {}",
+							registrationId);
+					Map<String, String> migrationData = new HashMap<>();
+					boolean anyMigrated = false;
+					for(int i=0;i<nins.size();i++) {
+						String nin = nins.get(i);
+						try {
+							MigrationOnDemandResponse migrationOnDemandResponse = migrateNin(nin, registrationId);
+							if (migrationOnDemandResponse != null) {
+								regProcLogger.info(
+										"ondemand migration happended for registration id  and migration rid is  : {} {}",
+										registrationId, migrationOnDemandResponse.getRid());
+								migrationData.put(nin, migrationOnDemandResponse.getRid());
+								anyMigrated = true;
+							} else {
+								migrationData.put(nin, "migration response null");
+								regProcLogger.info("ondemand migration api response is null  for registration id : {}",
+										registrationId);
+							}
+						} catch (DataMigrationPacketCreationException e) {
+							migrationData.put(nin, e.getErrorCode() + e.getMessage());
+						}
+					}
+					
+					String migrationDataStr = migrationData.entrySet().stream()
+							.map(e -> e.getKey() + ": " + e.getValue()).collect(Collectors.joining(", "));
+					
+					if (anyMigrated) {
+						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
+								StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNINs " + migrationDataStr);
+					} else {
+						throw new DataMigrationPacketCreationException(
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode(),
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage() + " matchedNINs " + migrationDataStr);
+					}
+				}
 			} else {
 				regProcLogger.info("NIN is not present in legacy system so proceed for new registration: {}",
 						registrationId);
@@ -180,6 +204,30 @@ public class LegacyDataVal {
 
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
+	}
+	
+	private MigrationOnDemandResponse migrateNin(String NIN, String registrationId) throws ApisResourceAccessException, JsonProcessingException, 
+		DataMigrationPacketCreationException, JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException, ValidationFailedException {
+		MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
+		migrationRequestDto.setNin(NIN.toUpperCase());
+		RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
+		requestWrapper.setRequest(migrationRequestDto);
+		ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
+				.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper,
+						ResponseWrapper.class,
+						null);
+		regProcLogger.info("Response from migration api : {}{}", registrationId,
+				JsonUtils.javaObjectToJsonString(responseWrapper));
+		if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
+			ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
+			throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
+		}
+		MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
+				.readValue(
+				JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+						MigrationOnDemandResponse.class);
+		
+		return migrationOnDemandResponse;
 	}
 
 	private Map<String, String> getBiometricsWSQFormat(String registrationId,
@@ -231,10 +279,10 @@ public class LegacyDataVal {
 		return wsqFormatBiometrics;
 	}
 
-	private String checkNINAVailableInLegacy(String registrationId, Map<String, String> positionAndWsqMap)
+	private List<String> checkNINAVailableInLegacy(String registrationId, Map<String, String> positionAndWsqMap)
 			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
 			ValidationFailedException, LegacyDataValidationException {
-		String NIN = null;
+		List<String> nins = null;
 		Envelope requestEnvelope = createIdentifyPersonRequest(positionAndWsqMap);
 		String request = marshalToXml(requestEnvelope);
 		regProcLogger.debug("Request to legacy system : {}", request);
@@ -251,13 +299,16 @@ public class LegacyDataVal {
 		if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Ok")) {
 			List<Person> persons = identifyPersonResponse.getReturnElement().getPersons();
 			if (persons != null && !persons.isEmpty()) {
+				nins = new ArrayList<>();
 				if (persons.size() == 1) {
 					regProcLogger.info("Single nin returned from legacy : {}", registrationId);
-					NIN = persons.get(0).getNationalId();
+					nins.add(persons.get(0).getNationalId());
 				} else {
-					regProcLogger.error("Mulitple nins returned from legacy : {}", registrationId);
-					throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-							StatusUtil.LEGACY_DATA_FAILED.getCode());
+					nins = persons.stream().map(Person::getNationalId).filter(Objects::nonNull)
+							.collect(Collectors.toList());
+					regProcLogger.error("Multiple NINs returned from legacy for regId {} : {}", registrationId, nins);
+//					throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
+//							StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNINs " + nins);
 				}
 			} else {
 				regProcLogger.info("No  nins returned from legacy : {}", registrationId);
@@ -272,7 +323,7 @@ public class LegacyDataVal {
 			throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
 					transactionStatus.getError().getMessage());
 		}
-		return NIN;
+		return nins;
 	}
 
 	private Envelope createIdentifyPersonRequest(Map<String, String> positionAndWsqMap)
