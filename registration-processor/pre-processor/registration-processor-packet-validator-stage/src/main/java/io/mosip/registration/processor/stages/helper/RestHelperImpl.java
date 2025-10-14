@@ -1,45 +1,27 @@
 package io.mosip.registration.processor.stages.helper;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLException;
 import javax.validation.Valid;
 
-import io.mosip.registration.processor.rest.client.utils.RestApiClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodyUriSpec;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import brave.http.HttpRuleSampler.Builder;
-import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.logger.spi.Logger;
-import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.kernel.core.util.EmptyCheckUtils;
-import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
-import io.mosip.registration.processor.core.token.validation.dto.TokenResponseDTO;
-import io.mosip.registration.processor.core.util.JsonUtil;
+import io.mosip.registration.processor.rest.client.utils.RestApiClient;
 import io.mosip.registration.processor.stages.dto.AsyncRequestDTO;
 import io.mosip.registration.processor.stages.exception.RestServiceException;
 import io.netty.handler.ssl.SslContext;
@@ -126,4 +108,19 @@ public class RestHelperImpl implements RestHelper {
 		return monoResponse;
 	}
 
+	@Override
+	public CompletableFuture<Void> requestFireAndForget(AsyncRequestDTO request) {
+		try {
+			Mono<Object> mono = (Mono<Object>) request(request, getSslContext());
+
+			// Convert Mono to CompletableFuture and ignore the result
+			return mono.then() // converts Mono<Object> -> Mono<Void>
+					.toFuture();
+
+		} catch (RestServiceException | IOException e) {
+			CompletableFuture<Void> failed = new CompletableFuture<>();
+			failed.completeExceptionally(e);
+			return failed;
+		}
+	}
 }
