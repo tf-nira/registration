@@ -975,14 +975,26 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		boolean isTransactionSuccessful = false;
 		String statusCode = "";
 
-		if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) || Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
-			statusCode = manualVerificationDTO.getReturnValue() == 1 &&
-					CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
-					ManualVerificationStatus.REJECTED.name() : ManualVerificationStatus.APPROVED.name();
-		} else {
-			statusCode = manualVerificationDTO.getReturnValue() == 1 &&
-					CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
-					ManualVerificationStatus.APPROVED.name() : ManualVerificationStatus.REJECTED.name();
+		if (manualVerificationDTO.getCandidateList() != null &&
+				manualVerificationDTO.getCandidateList().getCandidates() != null &&
+				!manualVerificationDTO.getCandidateList().getCandidates().isEmpty()) {
+
+			JSONObject analytics = manualVerificationDTO.getCandidateList()
+					.getCandidates().get(0).getAnalytics();
+			String comments = (analytics != null && analytics.get("primaryOperatorComments") != null)
+					? analytics.get("primaryOperatorComments").toString() : "";
+
+			boolean isTrnType = Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
+					Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
+
+			boolean isMatched = "MATCHED".equalsIgnoreCase(comments);
+
+			// For trn types, MATCHED = APPROVED, else MATCHED = REJECTED
+			if (isMatched == isTrnType) {
+				statusCode = ManualVerificationStatus.APPROVED.name();
+			} else {
+				statusCode = ManualVerificationStatus.REJECTED.name();
+			}
 		}
 
 		for (int i = 0; i < entities.size(); i++) {
