@@ -675,7 +675,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
-		boolean isBioAuthFailed = Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString());
+		boolean isBioAuthFailed = Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
+									Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
 
         ManualAdjudicationRequestDTO req = new ManualAdjudicationRequestDTO();
 		req.setId(ManualAdjudicationConstants.MANUAL_ADJUDICATION_ID);
