@@ -4,11 +4,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,6 +93,9 @@ public class IntroducerValidatorProcessorTest {
 	@Mock
 	RegistrationExceptionMapperUtil registrationStatusMapperUtil;
 
+	@Mock
+	private BasePacketRepository<ManualVerificationEntity, String> manualVerficationRepository;
+
 	/**
 	 * Sets the up.
 	 *
@@ -98,8 +104,8 @@ public class IntroducerValidatorProcessorTest {
 	@Before
 	public void setUp() throws Exception {
 
-		Mockito.when(utility.getDefaultSource(any(), any())).thenReturn("reg-client");
-		Mockito.when(packetManagerService.getMetaInfo(anyString(), anyString(), any())).thenReturn(new HashMap<>());
+		when(utility.getDefaultSource(any(), any())).thenReturn("reg-client");
+		when(packetManagerService.getMetaInfo(anyString(), anyString(), any())).thenReturn(new HashMap<>());
 
 		@SuppressWarnings("unchecked")
 		RegistrationProcessorRestClientService<Object> mockObj = Mockito
@@ -121,7 +127,7 @@ public class IntroducerValidatorProcessorTest {
 		registrationStatusDto = new InternalRegistrationStatusDto();
 		registrationStatusDto.setRegistrationId("123456789");
 		registrationStatusDto.setRegistrationId("reg1234");
-		Mockito.when(registrationStatusService.getRegistrationStatus(anyString(), any(), any(), any())).thenReturn(registrationStatusDto);
+		when(registrationStatusService.getRegistrationStatus(anyString(), any(), any(), any())).thenReturn(registrationStatusDto);
 	}
 
 	/**
@@ -148,7 +154,7 @@ public class IntroducerValidatorProcessorTest {
 
 		registrationStatusDto.setRetryCount(1);
 		Mockito.doThrow(new IOException()).when(introducerValidator).validate(anyString(), any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.IOEXCEPTION)).thenReturn("ERROR");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());
@@ -161,6 +167,9 @@ public class IntroducerValidatorProcessorTest {
 		Mockito.doThrow(new ValidationFailedException("id", "message")).when(introducerValidator).validate(anyString(),
 				any());
 
+		when(packetManagerService.getField(any(), any(), any(), any())).thenReturn(null);
+		when(manualVerficationRepository.save(any())).thenReturn(null);
+
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());
 		assertFalse(object.getInternalError());
@@ -170,7 +179,7 @@ public class IntroducerValidatorProcessorTest {
 	public void exceptionTest() throws Exception {
 
 		Mockito.doThrow(new NullPointerException("")).when(introducerValidator).validate(anyString(), any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.EXCEPTION)).thenReturn("ERROR");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());
@@ -187,7 +196,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new DataAccessException("") {
 		}).when(introducerValidator).validate(anyString(), any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.DATA_ACCESS_EXCEPTION)).thenReturn("REPROCESS");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertTrue(object.getIsValid());
@@ -199,7 +208,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new AuthSystemException(StatusUtil.AUTH_SYSTEM_EXCEPTION.getMessage()))
 				.when(introducerValidator).validate(anyString(), any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.AUTH_SYSTEM_EXCEPTION)).thenReturn("REPROCESS");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertTrue(object.getIsValid());
@@ -211,7 +220,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new PacketManagerException("id", "message")).when(introducerValidator).validate(anyString(),
 				any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION)).thenReturn("REPROCESS");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertTrue(object.getIsValid());
@@ -223,7 +232,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new ParsingException()).when(introducerValidator).validate(anyString(),
 				any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.PARSE_EXCEPTION)).thenReturn("FAILED");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());
@@ -235,7 +244,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new TablenotAccessibleException()).when(introducerValidator).validate(anyString(),
 				any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.TABLE_NOT_ACCESSIBLE_EXCEPTION)).thenReturn("REPROCESS");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertTrue(object.getIsValid());
@@ -247,7 +256,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new BaseUncheckedException()).when(introducerValidator).validate(anyString(),
 				any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION)).thenReturn("ERROR");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());
@@ -259,7 +268,7 @@ public class IntroducerValidatorProcessorTest {
 
 		Mockito.doThrow(new BaseCheckedException()).when(introducerValidator).validate(anyString(),
 				any());
-		Mockito.when(registrationStatusMapperUtil
+		when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.BASE_CHECKED_EXCEPTION)).thenReturn("ERROR");
 		MessageDTO object = introducerValidationProcessor.process(dto, stageName);
 		assertFalse(object.getIsValid());

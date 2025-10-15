@@ -1,10 +1,22 @@
 package io.mosip.registration.processor.stages.introducervalidator;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.kernel.core.dataaccess.exception.DataAccessLayerException;
+import io.mosip.registration.processor.core.code.*;
+import io.mosip.registration.processor.core.constant.LoggerFileConstant;
+import io.mosip.registration.processor.core.constant.ProviderStageName;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationPKEntity;
+import io.mosip.registration.processor.packet.storage.exception.UnableToInsertData;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
+import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
+import io.mosip.registration.processor.status.exception.RegStatusAppException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -17,13 +29,6 @@ import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.abstractverticle.MessageBusAddress;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
-import io.mosip.registration.processor.core.code.EventId;
-import io.mosip.registration.processor.core.code.EventName;
-import io.mosip.registration.processor.core.code.EventType;
-import io.mosip.registration.processor.core.code.ModuleName;
-import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.exception.AuthSystemException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
 import io.mosip.registration.processor.core.exception.IntroducerOnHoldException;
@@ -69,6 +74,12 @@ public class IntroducerValidationProcessor {
 	@Autowired
 	private IntroducerValidator introducerValidator;
 
+	@Autowired
+	private PriorityBasedPacketManagerService packetManagerService;
+
+	@Autowired
+	private BasePacketRepository<ManualVerificationEntity, String> manualVerficationRepository;
+
 	public MessageDTO process(MessageDTO object, String stageName) {
 
 		LogDescription description = new LogDescription();
@@ -87,8 +98,10 @@ public class IntroducerValidationProcessor {
 		registrationStatusDto
 				.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTRODUCER_VALIDATION.toString());
 		registrationStatusDto.setRegistrationStageName(stageName);
-		try {
 
+		String nin = "";
+		try {
+			nin = packetManagerService.getField(registrationId, "introducerNIN", object.getReg_type(), ProviderStageName.INTRODUCER_VALIDATOR);
 			introducerValidator.validate(registrationId, registrationStatusDto);
 
 			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
@@ -150,7 +163,15 @@ public class IntroducerValidationProcessor {
 			Map<String, String> notificationAttributes = new HashMap<>();
         	notificationAttributes.put("FAILURE_REASON", e.getErrorText());
         	object.setNotificationAttributes(notificationAttributes);
-        	
+
+			try {
+				saveManualAdjudicationData(object, nin);
+				object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
+			} catch (RegStatusAppException ex) {
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", e.getMessage() + io.mosip.kernel.core.exception.ExceptionUtils.getStackTrace(e));
+			}
+
 			object.setInternalError(Boolean.FALSE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.VALIDATION_FAILED_EXCEPTION, RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION,
@@ -234,4 +255,70 @@ public class IntroducerValidationProcessor {
 		}
 	}
 
+	private void saveManualAdjudicationData(MessageDTO messageDTO, String nin) throws RegStatusAppException {
+		boolean isTransactionSuccessful = false;
+		LogDescription description = new LogDescription();
+		String registrationId = messageDTO.getRid();
+
+		try {
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+					registrationId, "IntroducerValidationStage::saveManualAdjudicationData()::entry");
+
+			ManualVerificationEntity manualVerificationEntity = new ManualVerificationEntity();
+			ManualVerificationPKEntity manualVerificationPKEntity = new ManualVerificationPKEntity();
+			ObjectMapper mapper = new ObjectMapper();
+			byte[] ninBytes = mapper.writeValueAsBytes(nin);
+			String base64String = Base64.getEncoder().encodeToString(ninBytes);
+			manualVerificationPKEntity.setMatchedRefId(base64String);
+			manualVerificationPKEntity.setMatchedRefType("NIN");
+			manualVerificationPKEntity.setWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
+
+			manualVerificationEntity.setRegId(registrationId);
+			manualVerificationEntity.setId(manualVerificationPKEntity);
+			manualVerificationEntity.setLangCode("eng");
+			manualVerificationEntity.setRequestId(UUID.randomUUID().toString());
+			manualVerificationEntity.setReponseText(null);
+			manualVerificationEntity.setRequestId(null);
+			manualVerificationEntity.setTransactionId(null);
+			manualVerificationEntity.setMvUsrId(null);
+			manualVerificationEntity.setReasonCode("Potential Match");
+			manualVerificationEntity.setStatusCode("PENDING");
+			manualVerificationEntity.setStatusComment("Assigned to manual Adjudication");
+			manualVerificationEntity.setIsActive(true);
+			manualVerificationEntity.setIsDeleted(false);
+			manualVerificationEntity.setCrBy("SYSTEM");
+			manualVerificationEntity.setCrDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+			manualVerificationEntity.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+			manualVerificationEntity.setTrnTypCode(DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
+			manualVerficationRepository.save(manualVerificationEntity);
+			isTransactionSuccessful = true;
+			description.setMessage("Manual Adjudication data saved successfully");
+
+
+		} catch (DataAccessLayerException e) {
+			description.setMessage("DataAccessLayerException while saving Manual Adjudication data for rid"
+					+ registrationId + "::" + e.getMessage());
+
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", e.getMessage() + ExceptionUtils.getStackTrace(e));
+
+			throw new UnableToInsertData(
+					PlatformErrorMessages.RPR_PIS_UNABLE_TO_INSERT_DATA.getMessage() + registrationId, e);
+		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			throw new RuntimeException(e);
+		} finally {
+
+			String eventId = isTransactionSuccessful ? EventId.RPR_407.toString() : EventId.RPR_405.toString();
+			String eventName = eventId.equalsIgnoreCase(EventId.RPR_407.toString()) ? EventName.ADD.toString()
+					: EventName.EXCEPTION.toString();
+			String eventType = eventId.equalsIgnoreCase(EventId.RPR_407.toString()) ? EventType.BUSINESS.toString()
+					: EventType.SYSTEM.toString();
+
+			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
+					PlatformErrorMessages.INTRODUCER_VALIDATION_FAILED.getCode(), ModuleName.INTRODUCER_VALIDATOR.toString(), registrationId);
+
+		}
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				registrationId, "IntroducerValidationStage::saveManualAdjudicationData()::exit");
+	}
 }
