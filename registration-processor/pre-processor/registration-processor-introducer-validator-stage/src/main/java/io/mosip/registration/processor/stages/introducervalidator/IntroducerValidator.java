@@ -288,7 +288,7 @@ public class IntroducerValidator {
 	private void validateUserBiometric(String registrationId, String userId, List<BIR> list, String individualType,
 			InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		regProcLogger.info("validateUserBiometric call started for registrationId {}", registrationId);
-		bioUtil.authenticateBiometrics(userId, individualType, list, registrationStatusDto,StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getCode(),StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getCode());
+		bioUtil.authenticateBiometrics(userId, individualType, list, registrationStatusDto,StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getMessage(),StatusUtil.INTRODUCER_AUTHENTICATION_FAILED.getCode());
 		regProcLogger.debug("validateUserBiometric call ended for registrationId {}", registrationId);
 	}
 

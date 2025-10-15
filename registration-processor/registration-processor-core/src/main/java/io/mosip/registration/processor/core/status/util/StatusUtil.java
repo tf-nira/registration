@@ -156,7 +156,7 @@ public enum StatusUtil {
 	INTRODUCER_VALIDATION_SUCCESS(StatusConstants.IVM_VALIDAOR_MODULE_SUCCESS + "001",
 			"INTRODUCER Validation is Successful"),
 	INTRODUCER_AUTHENTICATION_FAILED(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "001",
-			"INTRODUCER Biometric Authentication Failed - "),
+			"Introducer Biometric Authentication Failed"),
 	UIN_RID_NOT_FOUND(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "002",
 			"NIN of Introducer Not Found in Packet"),
 	INTRODUCER_UIN_NOT_FOUND(StatusConstants.IVM_VALIDAOR_MODULE_FAILED + "003",

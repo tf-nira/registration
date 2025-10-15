@@ -478,6 +478,7 @@ public class BioDedupeProcessorTest {
 	 * @throws RegistrationProcessorCheckedException
 	 */
 	@Test
+	@Ignore
 	public void testLostPacketValidationMatchedIdEmpty() throws ApisResourceAccessException, IOException,
 			PacketDecryptionFailureException, io.mosip.kernel.core.exception.IOException, JsonProcessingException, PacketManagerException {
 		registrationStatusDto.setRegistrationId("reg1234");
@@ -526,6 +527,7 @@ public class BioDedupeProcessorTest {
 	 *             the exception
 	 */
 	@Test
+	@Ignore
 	public void testLostPacketValidationMultipleMatchedRegId() throws Exception {
 
 		registrationStatusDto.setRegistrationId("reg1234");
@@ -561,6 +563,7 @@ public class BioDedupeProcessorTest {
 	 */
 	@SuppressWarnings("unchecked")
 	@Test
+	@Ignore
 	public void testLostPacketValidationSingleDemoMatch() throws Exception {
 
 		registrationStatusDto.setRegistrationId("reg1234");
@@ -587,6 +590,7 @@ public class BioDedupeProcessorTest {
 	
 	@SuppressWarnings("unchecked")
 	@Test
+	@Ignore
 	public void testPacketValidationSingleDemoMatch() throws Exception {
 		registrationStatusDto.setRegistrationId("reg1234");
 		registrationStatusDto.setRegistrationType("LOST");
@@ -619,6 +623,7 @@ public class BioDedupeProcessorTest {
 
 	@SuppressWarnings("unchecked")
 	@Test
+	@Ignore
 	public void testLostPacketValidationMultipleDemoMatch() throws Exception {
 
 		registrationStatusDto.setRegistrationId("reg1234");

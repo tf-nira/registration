@@ -121,7 +121,7 @@ public class LegacyDataProcessor {
 					RegistrationExceptionTypeCode.LEGACY_FAILED, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getCode());
-			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage());
+			attributes.put("FAILURE_REASON", StatusUtil.LEGACY_DATA_BIOMETRIC_FAILED.getMessage());
 			object.setNotificationAttributes(attributes);
 		} catch (PacketManagerException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
@@ -154,7 +154,7 @@ public class LegacyDataProcessor {
 					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_FAILED.getCode());
-			attributes.put("FAILURE_COMMENT", StatusUtil.LEGACY_DATA_FAILED.getMessage());
+			attributes.put("FAILURE_REASON", StatusUtil.LEGACY_DATA_FAILED.getMessage());
 			object.setNotificationAttributes(attributes);
 		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
