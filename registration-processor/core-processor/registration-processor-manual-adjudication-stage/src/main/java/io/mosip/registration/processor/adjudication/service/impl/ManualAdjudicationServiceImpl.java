@@ -675,7 +675,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
-		boolean isBioAuthFailed = Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString());
+		boolean isBioAuthFailed = Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
+				Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
 
 		ManualAdjudicationRequestDTO req = new ManualAdjudicationRequestDTO();
 		req.setId(ManualAdjudicationConstants.MANUAL_ADJUDICATION_ID);
@@ -985,14 +986,26 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		boolean isTransactionSuccessful = false;
 		String statusCode = "";
 
-		if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
-			statusCode = manualVerificationDTO.getReturnValue() == 1 &&
-					CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
-					ManualVerificationStatus.REJECTED.name() : ManualVerificationStatus.APPROVED.name();
-		} else {
-			statusCode = manualVerificationDTO.getReturnValue() == 1 &&
-					CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
-					ManualVerificationStatus.APPROVED.name() : ManualVerificationStatus.REJECTED.name();
+		if (manualVerificationDTO.getCandidateList() != null &&
+				manualVerificationDTO.getCandidateList().getCandidates() != null &&
+				!manualVerificationDTO.getCandidateList().getCandidates().isEmpty()) {
+
+			JSONObject analytics = manualVerificationDTO.getCandidateList()
+					.getCandidates().get(0).getAnalytics();
+			String comments = (analytics != null && analytics.get("primaryOperatorComments") != null)
+					? analytics.get("primaryOperatorComments").toString() : "";
+
+			boolean isTrnType = Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
+					Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
+
+			boolean isMatched = "MATCHED".equalsIgnoreCase(comments);
+
+			// For trn types, MATCHED = APPROVED, else MATCHED = REJECTED
+			if (isMatched == isTrnType) {
+				statusCode = ManualVerificationStatus.APPROVED.name();
+			} else {
+				statusCode = ManualVerificationStatus.REJECTED.name();
+			}
 		}
 
 		for (int i = 0; i < entities.size(); i++) {
@@ -1004,6 +1017,20 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			manualVerificationEntity.setStatusComment(statusCode.equalsIgnoreCase(ManualVerificationStatus.APPROVED.name()) ?
 					StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage() :
 					StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
+
+			String operatorId = null;
+			if (manualVerificationDTO != null
+					&& manualVerificationDTO.getCandidateList() != null
+					&& manualVerificationDTO.getCandidateList().getCandidates() != null
+					&& !manualVerificationDTO.getCandidateList().getCandidates().isEmpty()
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0) != null
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics() != null
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics().get("primaryOperatorID") != null) {
+
+				operatorId = manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics().get("primaryOperatorID").toString();
+			}
+
+			manualVerificationEntity.setMvUsrId(operatorId);
 			entities.set(i, manualVerificationEntity);
 		}
 		isTransactionSuccessful = true;
@@ -1032,6 +1059,12 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
 				messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
+					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
+				} else {
+					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+				}
 			}
 
 		} else if (statusCode != null && statusCode.equalsIgnoreCase(ManualVerificationStatus.REJECTED.name())) {
@@ -1045,7 +1078,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformErrorMessages.RPR_MANUAL_VERIFICATION_REJECTED.getCode());
 			messageDTO.setIsValid(Boolean.FALSE);
 			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", "Application rejected during the Manual Adujudication");
+			notificationAttributes.put("FAILURE_REASON", "Application rejected during the Manual Adjudication");
 			messageDTO.setNotificationAttributes(notificationAttributes);
 		} else {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
