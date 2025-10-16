@@ -1,5 +1,6 @@
 package io.mosip.registration.processor.stages.helper;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import io.mosip.registration.processor.stages.dto.AsyncRequestDTO;
@@ -18,4 +19,6 @@ public interface RestHelper {
 	 */
 
 	Supplier<Object> requestAsync(AsyncRequestDTO request);
+
+	CompletableFuture<Void> requestFireAndForget(AsyncRequestDTO request);
 }

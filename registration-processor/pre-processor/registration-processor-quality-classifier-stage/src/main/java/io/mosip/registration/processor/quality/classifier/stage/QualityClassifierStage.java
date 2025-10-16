@@ -525,14 +525,14 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		if (fingerScoreList != null && !fingerScoreList.isEmpty())
 			bioTypeMinScoreMap.put(BiometricType.FINGER.value(), getFingerMedianScore(fingerScoreList));
 		
-		//Check Minimum Score for Each Modality
+		// Check Maximum Score for Each Modality
 		for (Map.Entry<String, List<Float>> entry : bioTypeScoreMap.entrySet()) {
 			String bioType = entry.getKey();
 			List<Float> scores = entry.getValue();
 
 			if (scores != null && !scores.isEmpty()) {
-				float min = Collections.min(scores);
-				bioTypeMinScoreMap.put(bioType, min);
+				float max = Collections.max(scores);
+				bioTypeMinScoreMap.put(bioType, max);
 			}
 		}
 
