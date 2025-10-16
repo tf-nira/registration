@@ -9,6 +9,10 @@ public enum DedupeSourceName {
 		BIO,	
 		
 
-		ALL
+		ALL,
+
+		BIO_AUTH_FAILURE,
+
+		INTRODUCER_VALIDATION_FAILURE
 	}
 
