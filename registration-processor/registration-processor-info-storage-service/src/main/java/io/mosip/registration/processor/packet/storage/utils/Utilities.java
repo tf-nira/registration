@@ -967,7 +967,7 @@ public class Utilities {
 	 * @return
 	 * @throws ApisResourceAccessException
 	 */
-	private ResponseDTO retrieveIdrepoResponseObjWithNIN(String nin, boolean isBioNeeded)
+	public ResponseDTO retrieveIdrepoResponseObjWithNIN(String nin, boolean isBioNeeded)
 			throws ApisResourceAccessException {
 		if (nin != null) {
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), "",

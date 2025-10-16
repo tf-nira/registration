@@ -22,6 +22,6 @@ public class ManualAdjudicationRequestDTO {
 	private List<Addtional> addtional;
 	
 	private Gallery gallery;
-	
 
+	private String bioAuthFailed;
 }

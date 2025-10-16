@@ -4,17 +4,11 @@ import static io.mosip.registration.processor.adjudication.constants.ManualAdjud
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.core.code.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONObject;
@@ -61,14 +55,6 @@ import io.mosip.registration.processor.adjudication.stage.ManualAdjudicationStag
 import io.mosip.registration.processor.adjudication.util.ManualVerificationUpdateUtility;
 import io.mosip.registration.processor.core.abstractverticle.MessageBusAddress;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
-import io.mosip.registration.processor.core.code.ApiName;
-import io.mosip.registration.processor.core.code.EventId;
-import io.mosip.registration.processor.core.code.EventName;
-import io.mosip.registration.processor.core.code.EventType;
-import io.mosip.registration.processor.core.code.ModuleName;
-import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
-import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.PolicyConstant;
@@ -451,14 +437,21 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return CreateDataShareUrl(requestDto, policy);
 	}
 
-	private String getDataShareUrlfromIdRepo(String id) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
+	private String getDataShareUrlfromIdRepo(String id, String idType) throws DataShareException, ApisResourceAccessException, JsonProcessingException, IOException, PacketManagerException  {
 
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 		LinkedHashMap<String, Object> policy = getPolicy();
 		Map<String, String> policyMap = getPolicyMap(policy);
 		Map<String, String> demographicMap  = getDemographicMap(policyMap);
 
-		ResponseDTO responseDTO=idRepoService.getIdResponseFromIDRepo(id);
+		ResponseDTO responseDTO;
+		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
+		else {
+			byte[] decodedBytes = Base64.getDecoder().decode(id);
+			String nin = mapper.readValue(decodedBytes, String.class);
+
+			responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin, true);
+		}
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
 		Map<String,String> identity=new HashMap<>();
@@ -475,16 +468,19 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		String individualBiometricsLabel = JsonUtil.getJSONValue(
 				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
 				MappingJsonConstants.VALUE);
-		for(Documents docs:documents) {
-			for(Entry<String,String> entry: policyMap.entrySet()) {
-				if(entry.getValue().contains(individualBiometricsLabel) && docs.getCategory().equalsIgnoreCase(individualBiometricsLabel)){
-					requestDto.setBiometrics(docs.getValue() != null ? docs.getValue() : null);
-				}
-				if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
-					requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
-				}
-				if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
-					requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
+
+		if (documents != null) {
+			for(Documents docs:documents) {
+				for(Entry<String,String> entry: policyMap.entrySet()) {
+					if(entry.getValue().contains(individualBiometricsLabel) && docs.getCategory().equalsIgnoreCase(individualBiometricsLabel)){
+						requestDto.setBiometrics(docs.getValue() != null ? docs.getValue() : null);
+					}
+					if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
+						requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
+					}
+					if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
+						requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
+					}
 				}
 			}
 		}
@@ -492,6 +488,58 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return CreateDataShareUrl(requestDto, policy);
 
 	}
+
+	private String getDataShareUrlForIntroducer(String rid, String introducerNinBytes, String process) throws Exception {
+		DataShareRequestDto requestDto = new DataShareRequestDto();
+		LinkedHashMap<String, Object> policy = getPolicy();
+		Map<String, String> policyMap = getPolicyMap(policy);
+		Map<String, String> demographicMap  = getDemographicMap(policyMap);
+
+		ResponseDTO responseDTO;
+		byte[] decodedBytes = Base64.getDecoder().decode(introducerNinBytes);
+		String introducerNin = mapper.readValue(decodedBytes, String.class);
+
+		responseDTO = utility.retrieveIdrepoResponseObjWithNIN(introducerNin, false);
+
+		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+		Map<String,String> identity=new HashMap<>();
+
+		for(Entry<String,String> entry:demographicMap.entrySet()) {
+			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
+		}
+		requestDto.setIdentity(identity);
+		List<Documents> documents=responseDTO.getDocuments();
+		requestDto=setDocuments(policyMap, requestDto, null, null, documents);
+
+		JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+		String individualBiometricsLabel = JsonUtil.getJSONValue(
+				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
+				MappingJsonConstants.VALUE);
+
+		if (documents != null) {
+			for(Documents docs:documents) {
+				for(Entry<String,String> entry: policyMap.entrySet()) {
+					if (entry.getValue().contains(individualBiometricsLabel)) {
+						List<String> modalities = getModalities(policy);
+						BiometricRecord biometricRecord = packetManagerService.getBiometrics(
+								rid, "introducerBiometrics", modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
+						byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+						requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+					}
+					if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
+						requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
+					}
+					if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
+						requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
+					}
+				}
+			}
+		}
+
+		return CreateDataShareUrl(requestDto, policy);
+	}
+
 
 	@SuppressWarnings("rawtypes")
 	private String CreateDataShareUrl(DataShareRequestDto requestDto, LinkedHashMap<String, Object> policy) throws JsonProcessingException, MalformedURLException, ApisResourceAccessException, DataShareException {
@@ -661,6 +709,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
+		boolean isBioAuthFailed = Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
+				Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
+
 		ManualAdjudicationRequestDTO req = new ManualAdjudicationRequestDTO();
 		req.setId(ManualAdjudicationConstants.MANUAL_ADJUDICATION_ID);
 		req.setVersion(ManualAdjudicationConstants.VERSION);
@@ -681,31 +732,57 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}
 
 		List<ReferenceIds> referenceIds = new ArrayList<>();
-		mve.forEach(e -> {
+		for (var e : mve) {
 			ReferenceIds r = new ReferenceIds();
-			InternalRegistrationStatusDto registrationStatusDto1 = null;
-			registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
-					e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
 
-			try {
-				r.setReferenceId(e.getId().getMatchedRefId());
-				r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
-				referenceIds.add(r);
-			} catch (PacketManagerException | ApisResourceAccessException ex) {
-				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
-				r.setReferenceURL(null);
-				referenceIds.add(r);
-			} catch (Exception exp) {
-				regProcLogger.error(ExceptionUtils.getStackTrace(exp));
+			if (!isBioAuthFailed) {
+				req.setBioAuthFailed("false");
+				InternalRegistrationStatusDto registrationStatusDto1 = null;
+				registrationStatusDto1 = registrationStatusService.getRegistrationStatus(
+						e.getId().getMatchedRefId(),messageDTO.getReg_type(), messageDTO.getIteration(),null);
+
+				try {
+					r.setReferenceId(e.getId().getMatchedRefId());
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					referenceIds.add(r);
+				} catch (PacketManagerException | ApisResourceAccessException ex) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
+//					r.setReferenceURL(null);
+//					referenceIds.add(r);
+					throw new DataShareException("Unable to construct datashare url");
+				} catch (Exception exp) {
+					regProcLogger.error(ExceptionUtils.getStackTrace(exp));
+				}
 			}
+			else {
+				try {
+					req.setBioAuthFailed("true");
+					r.setReferenceId(e.getId().getMatchedRefId());
 
-		});
+					if (Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+						r.setReferenceURL(getDataShareUrlForIntroducer(messageDTO.getRid(), e.getId().getMatchedRefId(), messageDTO.getReg_type()));
+					} else {
+						r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
+					}
+					referenceIds.add(r);
+				} catch (PacketManagerException | ApisResourceAccessException ex) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), ex.getErrorCode(), ex.getErrorText());
+//					r.setReferenceURL(null);
+//					referenceIds.add(r);
+					throw new DataShareException("Unable to construct datashare url");
+				} catch (Exception exp) {
+					regProcLogger.error(ExceptionUtils.getStackTrace(exp));
+				}
+			}
+		}
 		Gallery g = new Gallery();
 		g.setReferenceIds(referenceIds);
 		req.setGallery(g);
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
+		regProcLogger.info("Manual Adjudication Request : " + req);
 
 		return req;
 	}
@@ -772,7 +849,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ReferenceURL referenceURL=new ReferenceURL();
 			referenceURL.setSource(ID_REPO);
 			referenceURL.setStatus(registrationStatusDto.getStatusCode());
-			referenceURL.setURL(getDataShareUrlfromIdRepo(id));
+			referenceURL.setURL(getDataShareUrlfromIdRepo(id, "RID"));
 			referenceURLs.add(referenceURL);
 		}
 		else{
@@ -794,7 +871,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				referenceURL1.setSource(ID_REPO);
 				referenceURL1.setStatus(PROCESSED);
 				referenceURL1.setURL(
-						getDataShareUrlfromIdRepo(uinField));
+						getDataShareUrlfromIdRepo(uinField, "RID"));
 				referenceURLs.add(referenceURL1);
 			}
 		}
@@ -936,9 +1013,29 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 								LogDescription description) throws com.fasterxml.jackson.core.JsonProcessingException {
 
 		boolean isTransactionSuccessful = false;
-		String statusCode = manualVerificationDTO.getReturnValue() == 1 &&
-				CollectionUtils.isEmpty(manualVerificationDTO.getCandidateList().getCandidates()) ?
-				ManualVerificationStatus.APPROVED.name() : ManualVerificationStatus.REJECTED.name();
+		String statusCode = "";
+
+		if (manualVerificationDTO.getCandidateList() != null &&
+				manualVerificationDTO.getCandidateList().getCandidates() != null &&
+				!manualVerificationDTO.getCandidateList().getCandidates().isEmpty()) {
+
+			JSONObject analytics = manualVerificationDTO.getCandidateList()
+					.getCandidates().get(0).getAnalytics();
+			String comments = (analytics != null && analytics.get("primaryOperatorComments") != null)
+					? analytics.get("primaryOperatorComments").toString() : "";
+
+			boolean isTrnType = Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
+					Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
+
+			boolean isMatched = "MATCHED".equalsIgnoreCase(comments);
+
+			// For trn types, MATCHED = APPROVED, else MATCHED = REJECTED
+			if (isMatched == isTrnType) {
+				statusCode = ManualVerificationStatus.APPROVED.name();
+			} else {
+				statusCode = ManualVerificationStatus.REJECTED.name();
+			}
+		}
 
 		for (int i = 0; i < entities.size(); i++) {
 			byte[] responsetext = mapper.writeValueAsBytes(manualVerificationDTO);
@@ -949,6 +1046,20 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			manualVerificationEntity.setStatusComment(statusCode.equalsIgnoreCase(ManualVerificationStatus.APPROVED.name()) ?
 					StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage() :
 					StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
+
+			String operatorId = null;
+			if (manualVerificationDTO != null
+					&& manualVerificationDTO.getCandidateList() != null
+					&& manualVerificationDTO.getCandidateList().getCandidates() != null
+					&& !manualVerificationDTO.getCandidateList().getCandidates().isEmpty()
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0) != null
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics() != null
+					&& manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics().get("primaryOperatorID") != null) {
+
+				operatorId = manualVerificationDTO.getCandidateList().getCandidates().get(0).getAnalytics().get("primaryOperatorID").toString();
+			}
+
+			manualVerificationEntity.setMvUsrId(operatorId);
 			entities.set(i, manualVerificationEntity);
 		}
 		isTransactionSuccessful = true;
@@ -975,6 +1086,16 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setMessage(PlatformSuccessMessages.RPR_MANUAL_VERIFICATION_APPROVED.getMessage());
 			description.setCode(PlatformSuccessMessages.RPR_MANUAL_VERIFICATION_APPROVED.getCode());
 
+			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
+				messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
+					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
+				} else {
+					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+				}
+			}
+
 		} else if (statusCode != null && statusCode.equalsIgnoreCase(ManualVerificationStatus.REJECTED.name())) {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 			registrationStatusDto.setStatusComment(StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
@@ -986,7 +1107,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformErrorMessages.RPR_MANUAL_VERIFICATION_REJECTED.getCode());
 			messageDTO.setIsValid(Boolean.FALSE);
 			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", "Application rejected in manual verification");
+			notificationAttributes.put("FAILURE_REASON", "Application rejected during the Manual Adjudication");
 			messageDTO.setNotificationAttributes(notificationAttributes);
 		} else {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
