@@ -507,6 +507,57 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	}
 
+	private String getDataShareUrlForIntroducer(String rid, String introducerNinBytes, String process) throws Exception {
+		DataShareRequestDto requestDto = new DataShareRequestDto();
+		LinkedHashMap<String, Object> policy = getPolicy();
+		Map<String, String> policyMap = getPolicyMap(policy);
+		Map<String, String> demographicMap  = getDemographicMap(policyMap);
+
+		ResponseDTO responseDTO;
+		byte[] decodedBytes = Base64.getDecoder().decode(introducerNinBytes);
+		String introducerNin = mapper.readValue(decodedBytes, String.class);
+
+		responseDTO = utility.retrieveIdrepoResponseObjWithNIN(introducerNin);
+
+		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+		Map<String,String> identity=new HashMap<>();
+
+		for(Entry<String,String> entry:demographicMap.entrySet()) {
+			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
+		}
+		requestDto.setIdentity(identity);
+		List<Documents> documents=responseDTO.getDocuments();
+		requestDto=setDocuments(policyMap, requestDto, null, null, documents);
+
+		JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+		String individualBiometricsLabel = JsonUtil.getJSONValue(
+				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
+				MappingJsonConstants.VALUE);
+
+		if (documents != null) {
+			for(Documents docs:documents) {
+				for(Entry<String,String> entry: policyMap.entrySet()) {
+					if (entry.getValue().contains(individualBiometricsLabel)) {
+						List<String> modalities = getModalities(policy);
+						BiometricRecord biometricRecord = packetManagerService.getBiometrics(
+								rid, "introducerBiometrics", modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
+						byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+						requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+					}
+					if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
+						requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
+					}
+					if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
+						requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
+					}
+				}
+			}
+		}
+
+		return CreateDataShareUrl(requestDto, policy);
+	}
+
 	@SuppressWarnings("rawtypes")
 	private String CreateDataShareUrl(DataShareRequestDto requestDto, LinkedHashMap<String, Object> policy) throws JsonProcessingException, MalformedURLException, ApisResourceAccessException, DataShareException {
 		String req = JsonUtils.javaObjectToJsonString(requestDto);
@@ -725,7 +776,12 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
                 try {
 					req.setBioAuthFailed("true");
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
+
+					if (Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+						r.setReferenceURL(getDataShareUrlForIntroducer(messageDTO.getRid(), e.getId().getMatchedRefId(), messageDTO.getReg_type()));
+					} else {
+						r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
+					}
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
