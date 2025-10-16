@@ -157,7 +157,7 @@ public class NotificationScheduler {
 					notificationsSent.incrementAndGet();
 					packet.setNotificationSent(true);
 					packet.setUpdatedBy(USER);
-					packet.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+//					packet.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 					RegistrationStatusEntity entity = convertDtoToEntity(packet);
 					registrationStatusDao.save(entity);
 				} else {

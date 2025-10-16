@@ -203,7 +203,7 @@ public class AnonymousProfileScheduler {
 			registrationStatusEntity.setCreateDateTime(dto.getCreateDateTime());
 		}
 		registrationStatusEntity.setUpdatedBy("anonymous");
-		registrationStatusEntity.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+//		registrationStatusEntity.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 		registrationStatusEntity.setIsDeleted(dto.isDeleted());
 
 		if (registrationStatusEntity.isDeleted() != null && registrationStatusEntity.isDeleted()) {
