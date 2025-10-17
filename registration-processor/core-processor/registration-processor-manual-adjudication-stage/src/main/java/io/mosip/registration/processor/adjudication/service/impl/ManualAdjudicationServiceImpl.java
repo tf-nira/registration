@@ -1092,7 +1092,12 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
 				} else {
-					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+					if (Objects.equals(messageDTO.getTags().get("AGE_GROUP"), "INFANT") ||
+							Objects.equals(messageDTO.getTags().get("AGE_GROUP"), "MINOR")) {
+						messageDTO.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
+					} else {
+						messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+					}
 				}
 			}
 
