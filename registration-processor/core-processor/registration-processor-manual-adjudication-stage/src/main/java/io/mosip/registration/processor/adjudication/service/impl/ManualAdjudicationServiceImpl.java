@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import io.mosip.registration.processor.core.code.*;
+import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONObject;
@@ -161,6 +162,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	@Autowired
 	private PriorityBasedPacketManagerService packetManagerService;
+
+	@Autowired
+	private PacketManagerService packetManagerServiceNew;
 
 	/** The audit log request builder. */
 	@Autowired
@@ -1010,7 +1014,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 	private boolean successFlow(ManualVerificationEntity entity, ManualAdjudicationResponseDTO manualVerificationDTO,
 								List<ManualVerificationEntity> entities,
 								InternalRegistrationStatusDto registrationStatusDto, MessageDTO messageDTO,
-								LogDescription description) throws com.fasterxml.jackson.core.JsonProcessingException {
+								LogDescription description) throws Exception {
 
 		boolean isTransactionSuccessful = false;
 		String statusCode = "";
@@ -1092,7 +1096,22 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
 				} else {
-					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+					List<String> tags = new ArrayList<String>();
+					tags.add("AGE_GROUP");
+                    try {
+						Map<String, String> tagsPresent = packetManagerServiceNew.getTags(messageDTO.getRid(), tags);
+
+						if (Objects.equals(tagsPresent.get("AGE_GROUP"), "INFANT") ||
+								Objects.equals(tagsPresent.get("AGE_GROUP"), "MINOR")) {
+							messageDTO.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
+						} else {
+							messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+						}
+						
+                    } catch (ApisResourceAccessException | PacketManagerException | JsonProcessingException |
+                             IOException e) {
+                        throw new Exception(e);
+                    }
 				}
 			}
 
