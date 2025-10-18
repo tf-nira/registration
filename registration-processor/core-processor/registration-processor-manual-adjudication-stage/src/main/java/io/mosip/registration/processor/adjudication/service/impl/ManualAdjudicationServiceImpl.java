@@ -521,14 +521,23 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
 				MappingJsonConstants.VALUE);
 
+		List<String> modalities = getModalities(policy);
+		BiometricRecord biometricRecord = packetManagerService.getBiometrics(
+				rid, "introducerBiometrics", modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
+		byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+
+		if (content != null) {
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), rid,
+					"ManualVerificationServiceImpl::getDataShareUrlForIntroducer()::individualBiometrics received");
+		} else {
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), rid,
+					"ManualVerificationServiceImpl::getDataShareUrlForIntroducer()::individualBiometrics not received");
+		}
+
 		if (documents != null) {
 			for(Documents docs:documents) {
 				for(Entry<String,String> entry: policyMap.entrySet()) {
 					if (entry.getValue().contains(individualBiometricsLabel)) {
-						List<String> modalities = getModalities(policy);
-						BiometricRecord biometricRecord = packetManagerService.getBiometrics(
-								rid, "introducerBiometrics", modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
-						byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
 						requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
 					}
 					if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
