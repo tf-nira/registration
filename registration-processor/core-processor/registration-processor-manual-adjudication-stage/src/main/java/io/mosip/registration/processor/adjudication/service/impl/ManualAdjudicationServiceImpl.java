@@ -1101,16 +1101,10 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
 				if (Objects.equals(messageDTO.getReg_type(), "LOST")) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.BIO_DEDUPE_BUS_IN);
-				} else {
-					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
-				}
-			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
-				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
-					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
-				} else {
+				} else if (Objects.equals(messageDTO.getReg_type(), "UPDATE")) {
 					List<String> tags = new ArrayList<String>();
 					tags.add("AGE_GROUP");
-                    try {
+					try {
 						Map<String, String> tagsPresent = packetManagerServiceNew.getTags(messageDTO.getRid(), tags);
 
 						if (Objects.equals(tagsPresent.get("AGE_GROUP"), "INFANT") ||
@@ -1119,9 +1113,17 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 						} else {
 							messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
 						}
-                    } catch (ApisResourceAccessException | PacketManagerException | JsonProcessingException | IOException e) {
-                        throw new Exception(e);
-                    }
+					} catch (ApisResourceAccessException | PacketManagerException | JsonProcessingException | IOException e) {
+						throw new Exception(e);
+					}
+				} else {
+					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
+				}
+			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
+					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
+				} else {
+					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
 				}
 			}
 
