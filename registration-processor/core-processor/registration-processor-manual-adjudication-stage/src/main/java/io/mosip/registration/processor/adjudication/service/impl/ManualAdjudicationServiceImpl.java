@@ -503,7 +503,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		byte[] decodedBytes = Base64.getDecoder().decode(introducerNinBytes);
 		String introducerNin = mapper.readValue(decodedBytes, String.class);
 
-		responseDTO = utility.retrieveIdrepoResponseObjWithNIN(introducerNin, false);
+		responseDTO = utility.retrieveIdrepoResponseObjWithNIN(introducerNin, true);
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
 		Map<String,String> identity=new HashMap<>();
@@ -1243,3 +1243,4 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return isResendFlow;
 	}
 }
+
