@@ -735,8 +735,12 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				mve.get(0).getRegId(), messageDTO.getReg_type(), messageDTO.getIteration(), mve.get(0).getId().getWorkflowInstanceId());
 		try {
-			req.setReferenceURL(
-					getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType()));
+			if (Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				req.setReferenceURL(getDataShareUrlForIntroducer(messageDTO.getRid(), mve.get(0).getId().getMatchedRefId(), messageDTO.getReg_type()));
+			} else {
+				req.setReferenceURL(
+						getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType()));
+			}
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -772,12 +776,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				try {
 					req.setBioAuthFailed("true");
 					r.setReferenceId(e.getId().getMatchedRefId());
-
-					if (Objects.equals(mve.get(0).getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
-						r.setReferenceURL(getDataShareUrlForIntroducer(messageDTO.getRid(), e.getId().getMatchedRefId(), messageDTO.getReg_type()));
-					} else {
-						r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
-					}
+					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
