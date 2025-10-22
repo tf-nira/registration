@@ -497,56 +497,39 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 		LinkedHashMap<String, Object> policy = getPolicy();
 		Map<String, String> policyMap = getPolicyMap(policy);
-		Map<String, String> demographicMap  = getDemographicMap(policyMap);
 
-		ResponseDTO responseDTO;
-		byte[] decodedBytes = Base64.getDecoder().decode(introducerNinBytes);
-		String introducerNin = mapper.readValue(decodedBytes, String.class);
+		// set demographic
+		Map<String, String> demographicMap = Map.of(
+				"declarantgivenName", "declarantgivenName",
+				"declarantGender", "declarantGender"
+		);
+		requestDto.setIdentity(packetManagerService.getFields(rid, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
 
-		responseDTO = utility.retrieveIdrepoResponseObjWithNIN(introducerNin, true);
+		// set documents
+		requestDto=setDocuments(policyMap, requestDto, rid, process, null);
 
-		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
-		Map<String,String> identity=new HashMap<>();
+		// set audits
+		for(Entry<String,String> entry: policyMap.entrySet()) {
+			if (entry.getValue().contains(AUDITS))
+				requestDto.setAudits(JsonUtils.javaObjectToJsonString(packetManagerService.getAudits(rid, process, ProviderStageName.MANUAL_ADJUDICATION)));
 
-		for(Entry<String,String> entry:demographicMap.entrySet()) {
-			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
-			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
-		}
-		requestDto.setIdentity(identity);
-		List<Documents> documents=responseDTO.getDocuments();
-		requestDto=setDocuments(policyMap, requestDto, null, null, documents);
+			// set metainfo
+			if (entry.getValue().contains(META_INFO))
+				requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(packetManagerService.getMetaInfo(rid, process, ProviderStageName.MANUAL_ADJUDICATION)));
 
-		JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
-		String individualBiometricsLabel = JsonUtil.getJSONValue(
-				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
-				MappingJsonConstants.VALUE);
 
-		List<String> modalities = getModalities(policy);
-		BiometricRecord biometricRecord = packetManagerService.getBiometrics(
-				rid, "introducerBiometrics", modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
-		byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+			// set biometrics
+			JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+			String individualBiometricsLabel = JsonUtil.getJSONValue(
+					JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
+					MappingJsonConstants.VALUE);
 
-		if (content != null) {
-			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), rid,
-					"ManualVerificationServiceImpl::getDataShareUrlForIntroducer()::individualBiometrics received");
-		} else {
-			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), rid,
-					"ManualVerificationServiceImpl::getDataShareUrlForIntroducer()::individualBiometrics not received");
-		}
-
-		if (documents != null) {
-			for(Documents docs:documents) {
-				for(Entry<String,String> entry: policyMap.entrySet()) {
-					if (entry.getValue().contains(individualBiometricsLabel)) {
-						requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
-					}
-					if(entry.getValue().contains(AUDITS) && docs.getCategory().equalsIgnoreCase(AUDITS)){
-						requestDto.setAudits(docs.getValue() != null ? docs.getValue() : null);
-					}
-					if(entry.getValue().contains(META_INFO) && docs.getCategory().equalsIgnoreCase(META_INFO)){
-						requestDto.setMetaInfo(docs.getValue() != null ? docs.getValue() : null);
-					}
-				}
+			if (entry.getValue().contains(individualBiometricsLabel)) {
+				List<String> modalities = getModalities(policy);
+				BiometricRecord biometricRecord = packetManagerService.getBiometrics(
+						rid, "introducerBiometrics", modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
+				byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+				requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
 			}
 		}
 
