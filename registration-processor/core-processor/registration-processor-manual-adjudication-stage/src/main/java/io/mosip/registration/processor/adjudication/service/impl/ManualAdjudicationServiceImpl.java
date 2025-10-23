@@ -500,8 +500,11 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		// set demographic
 		Map<String, String> demographicMap = Map.of(
+				"declarantGender", "declarantGender",
 				"declarantgivenName", "declarantgivenName",
-				"declarantGender", "declarantGender"
+				"declarantSurname", "declarantSurname",
+				"declarantAge", "declarantAge"
+				
 		);
 		requestDto.setIdentity(packetManagerService.getFields(rid, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
 
@@ -1227,4 +1230,5 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return isResendFlow;
 	}
 }
+
 
