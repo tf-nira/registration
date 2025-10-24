@@ -2,16 +2,10 @@ package io.mosip.registration.processor.abis.handler.stage;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import io.mosip.registration.processor.packet.storage.entity.EnrollmentDataEntity;
@@ -667,7 +661,10 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 			if (dateOfEnrollment == null) {
 				List<EnrollmentDataEntity> enrollData = basePacketRepository.getEnrollmentData(id);
 				if (enrollData.get(0) != null) {
-					dateOfEnrollment = enrollData.get(0).getEnrollmentDate();
+					DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MMM-yy hh.mm.ss.SSSSSSSSS a", Locale.ENGLISH);
+					LocalDateTime ldt = LocalDateTime.parse(enrollData.get(0).getEnrollmentDate(), dateTimeFormatter);
+					DateTimeFormatter targetFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+					dateOfEnrollment = ldt.format(targetFormatter);
 					regProcLogger.info("Enrollment Date fetched from db {} for rid {}", dateOfEnrollment, id);
 				}
 			}
