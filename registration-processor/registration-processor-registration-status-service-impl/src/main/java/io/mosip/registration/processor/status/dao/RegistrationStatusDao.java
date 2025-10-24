@@ -113,13 +113,36 @@ public class RegistrationStatusDao {
 	 * @return the registration status entity
 	 */
 	public RegistrationStatusEntity find(String rid, String process, Integer iteration, String workflowInstanceId) {
-		List<RegistrationStatusEntity> registrationStatusEntityList =null;
-		if (workflowInstanceId != null) {
-			registrationStatusEntityList=registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
-		} else {
-			registrationStatusEntityList=registrationStatusRepositary.findByRegId(rid);
-		}
-		return !registrationStatusEntityList.isEmpty() ? registrationStatusEntityList.get(0) : null;
+		List<RegistrationStatusEntity> registrationStatusEntityList = null;
+
+	    if (workflowInstanceId != null) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
+	    } else {
+	       registrationStatusEntityList = registrationStatusRepositary.findByRegId(rid);
+	    }
+
+	    return registrationStatusEntityList.isEmpty() ? null : registrationStatusEntityList.get(0);
+	}
+
+	/**
+	 * Find by id.
+	 *
+	 * @param rid
+	 *            the enrolment id
+	 * @return the registration status entity
+	 */
+	public RegistrationStatusEntity findMVS(String rid, String process, Integer iteration, String workflowInstanceId) {
+		List<RegistrationStatusEntity> registrationStatusEntityList = null;
+
+	    if (workflowInstanceId != null) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
+	    } else if (process != null) {
+	        registrationStatusEntityList = registrationStatusRepositary.findByProcessANDRegId(rid, process);
+	    } else {
+	       registrationStatusEntityList = registrationStatusRepositary.findByRegId(rid);
+	    }
+
+	    return registrationStatusEntityList.isEmpty() ? null : registrationStatusEntityList.get(0);
 	}
 
 	public List<RegistrationStatusEntity> findAll(String rid) {

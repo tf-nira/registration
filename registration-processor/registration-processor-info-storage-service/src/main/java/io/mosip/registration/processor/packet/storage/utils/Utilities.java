@@ -245,21 +245,18 @@ public class Utilities {
 	 *                                               exception
 	 * @throws RegistrationProcessorCheckedException
 	 */
-	public int getApplicantAge(String id, String process, ProviderStageName stageName)
+	public double getApplicantAge(String id, String process, ProviderStageName stageName)
 			throws IOException, ApisResourceAccessException, JsonProcessingException, PacketManagerException {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
 				"Utilities::getApplicantAge()::entry");
-
-		String applicantDob = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.DOB, process,
-				stageName);
-		String applicantAge = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.AGE, process,
-				stageName);
+		String applicantDob = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.DOB, process, stageName);
+		String applicantAge = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.AGE, process,stageName);
 		if (applicantDob != null) {
 			return calculateAge(applicantDob);
 		} else if (applicantAge != null) {
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
 					"Utilities::getApplicantAge()::exit when applicantAge is not null");
-			return Integer.valueOf(applicantAge);
+			return Double.valueOf(applicantAge);
 		} else {
 			String nin = getNIN(id, process, stageName);
 			JSONObject identityJSONOject = getIdentityJSONObjectByHandle(nin);
@@ -274,10 +271,10 @@ public class Utilities {
 						"Utilities::getApplicantAge()::exit when ID REPO applicantDob is not null");
 				return calculateAge(idRepoApplicantDob);
 			}
-			Integer idRepoApplicantAge = JsonUtil.getJSONValue(identityJSONOject, ageKey);
+			String  idRepoApplicantAge = JsonUtil.getJSONValue(identityJSONOject, ageKey);
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
 					"Utilities::getApplicantAge()::exit when ID REPO applicantAge is not null");
-			return idRepoApplicantAge != null ? idRepoApplicantAge : -1;
+			return idRepoApplicantAge != null ? Double.valueOf(idRepoApplicantAge) : -1;
 
 		}
 
@@ -783,7 +780,7 @@ public class Utilities {
 	 * @param applicantDob the applicant dob
 	 * @return the int
 	 */
-	private int calculateAge(String applicantDob) {
+	private double calculateAge(String applicantDob) {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"Utilities::calculateAge():: entry");
 
@@ -800,10 +797,20 @@ public class Utilities {
 		}
 		LocalDate ld = new java.sql.Date(birthDate.getTime()).toLocalDate();
 		Period p = Period.between(ld, LocalDate.now());
+
+		int ageInYears = p.getYears();
+		int ageInMonths = (ageInYears * 12) + p.getMonths();
+		int ageIndays = p.getDays();
+		if (ageInMonths == 9 && ageIndays > 0) {
+			ageInMonths += 1;
+		}
+
+		double currentAgeInYears = (ageInMonths / 12.0);
+
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"Utilities::calculateAge():: exit");
 
-		return p.getYears();
+		return currentAgeInYears;
 
 	}
 

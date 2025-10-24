@@ -249,7 +249,7 @@ public class BioDedupeProcessorTest {
 		Mockito.when(bioDedupeService.getFileByRegId(anyString(),anyString())).thenReturn(null);
 		ReflectionTestUtils.setField(bioDedupeProcessor, "infantDedupe", "N");
 		Mockito.when(restClientService.getApi(any(), any(), anyString(), any(), any())).thenReturn(null);
-		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(2);
+		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(2.0);
 		MessageDTO messageDto = bioDedupeProcessor.process(dto, stageName);
 
 		assertTrue(messageDto.getIsValid());
@@ -268,7 +268,7 @@ public class BioDedupeProcessorTest {
 		Mockito.doThrow(new CbeffNotFoundException("Exception")).when(cbeffValidateAndVerificatonService).validateBiometrics(any(), any());
 		Mockito.when(bioDedupeService.getFileByRegId(anyString(),anyString())).thenReturn(null);
 		Mockito.when(restClientService.getApi(any(), any(), anyString(), any(), any())).thenReturn(null);
-		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(12);
+		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(12.0);
 		Mockito.when(registrationStatusMapperUtil
 				.getStatusCode(RegistrationExceptionTypeCode.CBEFF_NOT_PRESENT_EXCEPTION)).thenReturn("FAILED");
 		MessageDTO messageDto = bioDedupeProcessor.process(dto, stageName);
@@ -288,7 +288,7 @@ public class BioDedupeProcessorTest {
 
 		ReflectionTestUtils.setField(bioDedupeProcessor, "ageLimit", "age");
 		Mockito.when(restClientService.getApi(any(), any(), anyString(), any(), any())).thenReturn(null);
-		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(12);
+		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(12.0);
 		MessageDTO messageDto = bioDedupeProcessor.process(dto, stageName);
 		assertTrue(messageDto.getInternalError());
 		assertFalse(messageDto.getIsValid());
@@ -546,7 +546,7 @@ public class BioDedupeProcessorTest {
 		JSONObject j1 = new JSONObject(map);
 
 		Mockito.when(idRepoService.getIdJsonFromIDRepo(any(), any())).thenReturn(j1);
-		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(12);
+		Mockito.when(utility.getApplicantAge(any(),any(),any())).thenReturn(12.0);
 		MessageDTO messageDto = bioDedupeProcessor.process(dto, stageName);
 
 		assertFalse(messageDto.getIsValid());

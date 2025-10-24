@@ -93,7 +93,7 @@ public class LegacyValidationUtility {
 			ValidationFailedException {
 
 			String ageGroup = "";
-			int age = utility.getApplicantAge(registrationId, process, ProviderStageName.CLASSIFICATION);
+			double age = utility.getApplicantAge(registrationId, process, ProviderStageName.CLASSIFICATION);
 
 			if (age == -1) {
 				ageGroup = notAvailableTagValue;
@@ -141,7 +141,7 @@ public class LegacyValidationUtility {
 
 	public boolean validateAgeToRenewal(String id, String process)
 			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
-		int age = utility.getApplicantAge(id, process, ProviderStageName.PACKET_VALIDATOR);
+		double age = utility.getApplicantAge(id, process, ProviderStageName.PACKET_VALIDATOR);
 		int ageThreshold = Integer.parseInt(RenewalAgelimit);
 		if (age < ageThreshold) {
 
