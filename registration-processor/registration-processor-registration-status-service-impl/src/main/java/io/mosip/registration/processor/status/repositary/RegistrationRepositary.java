@@ -38,6 +38,9 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId IN :regIds AND registration.isDeleted =false AND registration.isActive=true")
 	public List<RegistrationStatusEntity> findByRegIds(@Param("regIds") List<String> regIds);
+
+	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.registrationType = :registrationType AND registration.isDeleted =false AND registration.isActive=true")
+	public List<RegistrationStatusEntity> findByProcessANDRegId(@Param("regId") String regId, @Param("registrationType") String registrationType);
 	
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId IN :regIds AND registration.isDeleted =false AND registration.isActive=true order by registration.createDateTime")
 	public List<RegistrationStatusEntity> findByRegIdsOrderbyCreatedDateTime(@Param("regIds") List<String> regIds);
@@ -71,4 +74,5 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(@Param("fetchSize") Integer fetchSize);
 	
 }
+
 
