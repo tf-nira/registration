@@ -263,8 +263,20 @@ public class DemodedupeProcessor {
 
 			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
 			try {
+				boolean isDataSavedsucces=false;
 				if (isMatchFound) {
-					saveDuplicateDtoList(duplicateDtos, registrationStatusDto, object);
+					isDataSavedsucces=saveDuplicateDtoList(duplicateDtos, registrationStatusDto, object);
+				}
+				if(isDataSavedsucces){
+					Map<String, String> tags = new HashMap<>();
+					tags = object.getTags();
+					if(tags!=null){
+						if (tags.get("AGE_GROUP").equalsIgnoreCase("CHILD")) {
+							object.setMessageBusAddress(MessageBusAddress.MVS_BUS_IN);
+							regProcLogger.debug("Changed message bus address to MVS_BUS_IN for registrationId: {}",
+									registrationStatusDto.getRegistrationId());
+						}
+					}
 				}
 			} catch (Exception e) {
 				registrationStatusDto.setRegistrationStageName(stageName);
@@ -371,7 +383,7 @@ public class DemodedupeProcessor {
 		if (packetStatus.equalsIgnoreCase(AbisConstant.PRE_ABIS_IDENTIFICATION)) {
 			packetInfoManager.saveIndividualDemographicDedupeUpdatePacket(demographicData, registrationId, moduleId,
 					registrationStatusDto.getRegistrationType(),moduleName,registrationStatusDto.getIteration(), registrationStatusDto.getWorkflowInstanceId());
-			int age = utility.getApplicantAge(registrationId, registrationStatusDto.getRegistrationType(), ProviderStageName.DEMO_DEDUPE);
+			double age = utility.getApplicantAge(registrationId, registrationStatusDto.getRegistrationType(), ProviderStageName.DEMO_DEDUPE);
 			int ageThreshold = Integer.parseInt(ageLimit);
 			if (age < ageThreshold) {
 				if (infantDedupe.equalsIgnoreCase(GLOBAL_CONFIG_TRUE_VALUE)) {

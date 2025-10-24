@@ -397,7 +397,7 @@ public class PacketValidatorImpl implements PacketValidator {
 
 	private boolean validateAgeToGetCard(String id, String process, PacketValidationDto packetValidationDto)
 			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
-			int age = utility.getApplicantAge(id, process,
+			double age = utility.getApplicantAge(id, process,
 					ProviderStageName.PACKET_VALIDATOR);
 			int ageThreshold = Integer.parseInt(firstIdAgelimit);
 			if (age < ageThreshold) {
@@ -410,7 +410,7 @@ public class PacketValidatorImpl implements PacketValidator {
 
 	private boolean validateAgeToRenewal(String id, String process, PacketValidationDto packetValidationDto)
 			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
-		int age = utility.getApplicantAge(id, process,
+		double age = utility.getApplicantAge(id, process,
 				ProviderStageName.PACKET_VALIDATOR);
 		int ageThreshold = Integer.parseInt(RenewalAgelimit);
 		if (age < ageThreshold) {
