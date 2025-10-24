@@ -57,7 +57,7 @@ public class LegacyValidationUtility {
 
 	private static String RANGE_DELIMITER = "-";
 
-	private Map<String, int[]> parsedAgeGroupRangemap;
+	private Map<String, double[]> parsedAgeGroupRangemap;
 
 	@Value("${mosip.regproc.introducer-validator.renewal.age.limit:16}")
 	private String RenewalAgelimit;
@@ -70,9 +70,9 @@ public class LegacyValidationUtility {
 		parsedAgeGroupRangemap = new HashMap<>();
 		for (Map.Entry<String, String> entry : ageGroupRangeMap.entrySet()) {
 			String[] range = entry.getValue().split(RANGE_DELIMITER);
-			int[] rangeArray = new int[2];
-			rangeArray[0] = Integer.parseInt(range[0]);
-			rangeArray[1] = Integer.parseInt(range[1]);
+			double[] rangeArray = new double[2];
+			rangeArray[0] = Double.parseDouble(range[0]);
+			rangeArray[1] = Double.parseDouble(range[1]);
 			parsedAgeGroupRangemap.put(entry.getKey(), rangeArray);
 		}
 	}
@@ -98,7 +98,7 @@ public class LegacyValidationUtility {
 			if (age == -1) {
 				ageGroup = notAvailableTagValue;
 			} else {
-				for (Map.Entry<String, int[]> entry : parsedAgeGroupRangemap.entrySet()) {
+				for (Map.Entry<String, double[]> entry : parsedAgeGroupRangemap.entrySet()) {
 					if (age >= entry.getValue()[0] && age <= entry.getValue()[1]) {
 						ageGroup = entry.getKey();
 						break;
