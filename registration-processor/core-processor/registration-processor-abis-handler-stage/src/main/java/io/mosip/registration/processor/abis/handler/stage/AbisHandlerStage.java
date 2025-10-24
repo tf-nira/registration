@@ -661,10 +661,7 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 			if (dateOfEnrollment == null) {
 				List<EnrollmentDataEntity> enrollData = basePacketRepository.getEnrollmentData(id);
 				if (enrollData.get(0) != null) {
-					DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MMM-yy hh.mm.ss.SSSSSSSSS a", Locale.ENGLISH);
-					LocalDateTime ldt = LocalDateTime.parse(enrollData.get(0).getEnrollmentDate(), dateTimeFormatter);
-					DateTimeFormatter targetFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-					dateOfEnrollment = ldt.format(targetFormatter);
+					dateOfEnrollment = enrollData.get(0).getEnrollmentDate();
 					regProcLogger.info("Enrollment Date fetched from db {} for rid {}", dateOfEnrollment, id);
 				}
 			}
