@@ -490,6 +490,6 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	@Query(value = "SELECT t FROM TransactionTypeEntity t WHERE t.id.code =:code")
 	public List<TransactionTypeEntity> getTransactionTypeByCode(@Param("code") String code);
 
-	@Query(value = "SELECT e FROM EnrollmentDataEntity e WHERE e.id.reg_id =:reg_id")
-	public List<EnrollmentDataEntity> getEnrollmentData(@Param("reg_id") String regId);
+	@Query(value = "SELECT e FROM EnrollmentDataEntity e WHERE e.id.regId =:regId")
+	public List<EnrollmentDataEntity> getEnrollmentData(@Param("regId") String regId);
 }
