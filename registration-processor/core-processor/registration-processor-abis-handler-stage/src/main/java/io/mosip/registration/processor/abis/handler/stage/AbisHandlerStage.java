@@ -660,9 +660,12 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 
 			if (dateOfEnrollment == null) {
 				List<EnrollmentDataEntity> enrollData = basePacketRepository.getEnrollmentData(id);
-				if (enrollData.get(0) != null) {
+				if (enrollData != null && !enrollData.isEmpty()) {
 					dateOfEnrollment = enrollData.get(0).getEnrollmentDate();
 					regProcLogger.info("Enrollment Date fetched from db {} for rid {}", dateOfEnrollment, id);
+				} else {
+					regProcLogger.info("No Enrollment Data found for rid {}", id);
+					// You can decide how to handle missing enrollment (set to null, throw custom exception, etc.)
 				}
 			}
 		}
