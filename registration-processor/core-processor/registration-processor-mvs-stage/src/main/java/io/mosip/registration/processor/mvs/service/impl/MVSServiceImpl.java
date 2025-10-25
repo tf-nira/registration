@@ -562,7 +562,7 @@ public class MVSServiceImpl implements MVSService {
     	tagsPresent.get("AGE_GROUP")
 		);
 
-		if(tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
+		if("CHILD".equalsIgnoreCase(tagsPresent.get("AGE_GROUP"))){
 			regProcLogger.info("matched rid check started id: {}", id);
 			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
 			if (matchedRegIds != null && !matchedRegIds.isEmpty()) {
