@@ -555,8 +555,16 @@ public class MVSServiceImpl implements MVSService {
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
 
 		//duplicate's data
+		regProcLogger.info("matched rid condition check started id: {}", id);
 		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
+			regProcLogger.info("matched rid check started id: {}", id);
 			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
+			if (matchedRegIds != null && !matchedRegIds.isEmpty()) {
+    			regProcLogger.info("Matched RID check started for ID: {} | Matched RIDs: {}", id, matchedRegIds);
+			} 
+			else {
+    			regProcLogger.info("Matched RID check started for ID: {} | No matched RIDs found", id);
+			}
 			verReq.setMatchedRegIds(matchedRegIds);
 		}
 
