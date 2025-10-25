@@ -301,6 +301,20 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.setIsValid(true);
 				description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
 				description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
+				try {
+					String id = messageDTO.getRid();
+					List<String> tags = new ArrayList<>();
+					tags.add("AGE_GROUP");
+					Map<String, String> tagsPresent = packetService.getTags(id, tags);
+					String ageGroup = tagsPresent.get("AGE_GROUP");
+					if ("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) &&
+							"CHILD".equalsIgnoreCase(ageGroup)) {
+						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+					}
+
+				} catch (Exception e) {
+					regProcLogger.error("Error while processing tags and setting message bus address", e);
+				}
 			} else
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
@@ -593,8 +607,13 @@ public class MVSServiceImpl implements MVSService {
 			List<String> modalities = getModalities(policy);
 			BiometricRecord biometricRecord = packetManagerService.getBiometrics(id, individualBiometricsLabel,
 					modalities, process, ProviderStageName.MVS);
-			byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
-			requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+			if (biometricRecord != null && biometricRecord.getSegments() != null && !biometricRecord.getSegments().isEmpty()) {
+			    byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+			    requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+			} else {
+				regProcLogger.info("BiometricRecord or segments are null/empty for id: {}", id);
+			    requestDto.setBiometrics(null);
+			}
 		}
 
 		String req = JsonUtils.javaObjectToJsonString(requestDto);
