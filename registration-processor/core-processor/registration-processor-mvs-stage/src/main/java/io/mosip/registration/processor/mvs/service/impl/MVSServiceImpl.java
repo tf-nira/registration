@@ -226,7 +226,6 @@ public class MVSServiceImpl implements MVSService {
 		messageDTO.setInternalError(false);
 		messageDTO.setIsValid(false);
 		messageDTO.setMessageBusAddress(MessageBusAddress.VERIFICATION_BUS_IN);
-
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 				messageDTO.getRid(), "VerificationServiceImpl::process()::entry");
 
@@ -237,6 +236,7 @@ public class MVSServiceImpl implements MVSService {
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
+		String previousRegStageName=registrationStatusDto.getRegistrationStageName();
 		boolean isResumable=false;
 		try {
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
@@ -308,7 +308,7 @@ public class MVSServiceImpl implements MVSService {
 					tags.add("AGE_GROUP");
 					Map<String, String> tagsPresent = packetService.getTags(id, tags);
 					String ageGroup = tagsPresent.get("AGE_GROUP");
-					if ("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) &&
+					if ("DemoDedupeStage".equals(previousRegStageName) &&
 							"CHILD".equalsIgnoreCase(ageGroup)) {
 						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 					}
