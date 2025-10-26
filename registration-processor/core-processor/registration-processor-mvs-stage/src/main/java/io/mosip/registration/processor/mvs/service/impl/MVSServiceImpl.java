@@ -242,11 +242,12 @@ public class MVSServiceImpl implements MVSService {
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
 				isResumable = true;
 			}
-			registrationStatusDto.setRegistrationStageName(stageName);
+			//registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
 			VerificationRequestDTO mar = prepareVerificationRequest(messageDTO, registrationStatusDto, regEntity.getReferenceId());
+			registrationStatusDto.setRegistrationStageName(stageName);
 			//saveVerificationRecordUtility.saveVerificationRecord(messageDTO, mar.getRequestId(), description);
 			regProcLogger.debug("Request : " + JsonUtils.javaObjectToJsonString(mar));
 
@@ -773,9 +774,19 @@ public class MVSServiceImpl implements MVSService {
 				if(districtValue != null) req.setApplicantPlaceOfResidenceDistrict(districtValue);
 			}
 		}
-		
-		if (registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty()) {
-			req.setStatusComment(registrationStatusDto.getStatusComment());
+		if (("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName()) ||
+				"BIO_DEDUPE".equals(registrationStatusDto.getRegistrationStageName())) &&
+				(registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty())) {
+
+			//Format: STAGE_NAME::Status Comment
+
+			String formattedComment = registrationStatusDto.getRegistrationStageName() +
+										"::" +
+										registrationStatusDto.getStatusComment();
+
+			req.setStatusComment(formattedComment);
+			regProcLogger.info("The updated status comment for regId:{} is: {}",
+					registrationStatusDto.getRegistrationId(), formattedComment);
 		}
 		
 		try {
