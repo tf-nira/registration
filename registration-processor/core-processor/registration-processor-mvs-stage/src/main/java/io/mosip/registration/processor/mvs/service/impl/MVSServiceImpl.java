@@ -231,12 +231,29 @@ public class MVSServiceImpl implements MVSService {
 
 		boolean isTransactionSuccessful = true;
 		LogDescription description = new LogDescription();
-
+		boolean sendRecordToCVS = false;
+		
 		SyncRegistrationEntity regEntity = syncRegistrationService.findByWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
+		
+		String id = messageDTO.getRid();
+		List<String> tags = new ArrayList<>();
+		tags.add("AGE_GROUP");
+		Map<String, String> tagsPresent = packetService.getTags(id, tags);
+		String ageGroup = tagsPresent.get("AGE_GROUP");
+
+		regProcLogger.info("Extracted values for id : {}, tagsPresent : {}, ageGroup : {}", id, tagsPresent, ageGroup);
+		
 		String previousRegStageName=registrationStatusDto.getRegistrationStageName();
+		regProcLogger.info("Extracted Previous stage name is : {} for reg id : {}", previousRegStageName,  messageDTO.getRid());
+		regProcLogger.info("Value for the Flag sendRecordToCVS is : {}", sendRecordToCVS);
+		if ("DemoDedupeStage".equals(previousRegStageName) &&
+							"CHILD".equalsIgnoreCase(ageGroup)) {
+			sendRecordToCVS = true;
+			regProcLogger.info("Conditional check satisfied for previous stage as DemoDedupe and Age group as Child. Value for flag sendRecordToCVS : {}", sendRecordToCVS);
+		}
 		boolean isResumable=false;
 		try {
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
@@ -303,14 +320,11 @@ public class MVSServiceImpl implements MVSService {
 				description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
 				description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
 				try {
-					String id = messageDTO.getRid();
-					List<String> tags = new ArrayList<>();
-					tags.add("AGE_GROUP");
-					Map<String, String> tagsPresent = packetService.getTags(id, tags);
-					String ageGroup = tagsPresent.get("AGE_GROUP");
-					if ("DemoDedupeStage".equals(previousRegStageName) &&
-							"CHILD".equalsIgnoreCase(ageGroup)) {
+					regProcLogger.info("Conditional check for sending record to CVS for reg id : {}, flag value sendRecordToCVS : {}", id, sendRecordToCVS);
+					if (sendRecordToCVS) {
 						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+						regProcLogger.info("Meassge Bus Out set to : {}", MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+						sendRecordToCVS = false;
 					}
 
 				} catch (Exception e) {
