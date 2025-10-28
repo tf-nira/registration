@@ -231,7 +231,6 @@ public class MVSServiceImpl implements MVSService {
 
 		boolean isTransactionSuccessful = true;
 		LogDescription description = new LogDescription();
-		boolean sendRecordToCVS = false;
 		String id = messageDTO.getRid();
 		
 		SyncRegistrationEntity regEntity = syncRegistrationService.findByWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
@@ -250,11 +249,15 @@ public class MVSServiceImpl implements MVSService {
 			
 			String previousRegStageName=registrationStatusDto.getRegistrationStageName();
 			regProcLogger.info("Extracted Previous stage name is : {} for reg id : {}", previousRegStageName,  messageDTO.getRid());
-			regProcLogger.info("Value for the Flag sendRecordToCVS is : {}", sendRecordToCVS);
+			
 			if ("DemoDedupeStage".equals(previousRegStageName) &&
 								"CHILD".equalsIgnoreCase(ageGroup)) {
-				sendRecordToCVS = true;
-				regProcLogger.info("Conditional check satisfied for previous stage as DemoDedupe and Age group as Child. Value for flag sendRecordToCVS : {}", sendRecordToCVS);
+				Map<String, String> additionalTags = new HashMap<>();
+				additionalTags.put("ROUTE_TO_CVS_AFTER_MVS", "true");
+				packetService.addOrUpdateTags(id, additionalTags);
+				
+				regProcLogger.info("Marked packet for CVS routing after MVS approval for reg id: {}", id);
+			
 			}
 			
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
@@ -320,17 +323,6 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.setIsValid(true);
 				description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
 				description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
-				try {
-					regProcLogger.info("Conditional check for sending record to CVS for reg id : {}, flag value sendRecordToCVS : {}", id, sendRecordToCVS);
-					if (sendRecordToCVS) {
-						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
-						regProcLogger.info("Meassge Bus Out set to : {}", MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
-						sendRecordToCVS = false;
-					}
-
-				} catch (Exception e) {
-					regProcLogger.error("Error while processing tags and setting message bus address", e);
-				}
 			} else
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
@@ -848,6 +840,25 @@ public class MVSServiceImpl implements MVSService {
 
 			description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
 			description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
+
+			try {
+				List<String> tags = new ArrayList<>();
+				tags.add("ROUTE_TO_CVS_AFTER_MVS");
+				Map<String, String> tagsPresent = packetService.getTags(registrationStatusDto.getRegistrationId(), tags);
+				String routeToCVS = tagsPresent.get("ROUTE_TO_CVS_AFTER_MVS");
+				
+				regProcLogger.info("Checking CVS routing flag for reg id : {}, routeToCVS : {}",
+						registrationStatusDto.getRegistrationId(), routeToCVS);
+				if("true".equalsIgnoreCase(routeToCVS)) {
+					messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+					regProcLogger.info("MVS APPROVED - Routing to CVS as per stored flag for reg id : {}", registrationStatusDto.getRegistrationId());
+				} else {
+					regProcLogger.info("MVS APPROVED - Normal routing for reg id : {}", registrationStatusDto.getRegistrationId());
+				}
+				
+			} catch (Exception e) {
+				regProcLogger.error("Error while checking for CVS routing flag for reg id : {}", registrationStatusDto.getRegistrationId(), e);
+			}
 
 		} else if (statusCode.equalsIgnoreCase(MVSStatus.REJECTED.name())) {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
