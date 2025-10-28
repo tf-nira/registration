@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServletRequest;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import io.mosip.registration.processor.status.repositary.RegistrationRepositary;
-import io.mosip.registration.processor.transaction.api.dto.ResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
