@@ -226,7 +226,6 @@ public class MVSServiceImpl implements MVSService {
 		messageDTO.setInternalError(false);
 		messageDTO.setIsValid(false);
 		messageDTO.setMessageBusAddress(MessageBusAddress.VERIFICATION_BUS_IN);
-
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 				messageDTO.getRid(), "VerificationServiceImpl::process()::entry");
 
@@ -237,16 +236,18 @@ public class MVSServiceImpl implements MVSService {
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				messageDTO.getRid(), messageDTO.getReg_type(), messageDTO.getIteration(),
 				messageDTO.getWorkflowInstanceId());
+		String previousRegStageName=registrationStatusDto.getRegistrationStageName();
 		boolean isResumable=false;
 		try {
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
 				isResumable = true;
 			}
-			registrationStatusDto.setRegistrationStageName(stageName);
+			//registrationStatusDto.setRegistrationStageName(stageName);
 			if (null == messageDTO.getRid() || messageDTO.getRid().isEmpty())
 				throw new InvalidRidException(PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getCode(),
 						PlatformErrorMessages.RPR_MVS_NO_RID_SHOULD_NOT_EMPTY_OR_NULL.getMessage());
 			VerificationRequestDTO mar = prepareVerificationRequest(messageDTO, registrationStatusDto, regEntity.getReferenceId());
+			registrationStatusDto.setRegistrationStageName(stageName);
 			//saveVerificationRecordUtility.saveVerificationRecord(messageDTO, mar.getRequestId(), description);
 			regProcLogger.debug("Request : " + JsonUtils.javaObjectToJsonString(mar));
 
@@ -307,7 +308,7 @@ public class MVSServiceImpl implements MVSService {
 					tags.add("AGE_GROUP");
 					Map<String, String> tagsPresent = packetService.getTags(id, tags);
 					String ageGroup = tagsPresent.get("AGE_GROUP");
-					if ("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) &&
+					if ("DemoDedupeStage".equals(previousRegStageName) &&
 							"CHILD".equalsIgnoreCase(ageGroup)) {
 						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 					}
@@ -555,8 +556,22 @@ public class MVSServiceImpl implements MVSService {
 		verReq.setAgeGroup(tagsPresent.get("AGE_GROUP"));
 
 		//duplicate's data
-		if("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) && tagsPresent.get("AGE_GROUP").equalsIgnoreCase("CHILD")){
+		regProcLogger.info("matched rid condition check started id: {}", id);
+		regProcLogger.info("DemoDedupeStage CHILD case triggered for ID: {} | Stage: {} | Age Group: {}",
+    	id,
+    	registrationStatusDto.getRegistrationStageName(),
+    	tagsPresent.get("AGE_GROUP")
+		);
+
+		if("CHILD".equalsIgnoreCase(tagsPresent.get("AGE_GROUP"))){
+			regProcLogger.info("matched rid check started id: {}", id);
 			List<String> matchedRegIds = regDemoDedupeListRepository.findMatchedRegIdsByRegId(registrationStatusDto.getRegistrationId());
+			if (matchedRegIds != null && !matchedRegIds.isEmpty()) {
+    			regProcLogger.info("Matched RID check started for ID: {} | Matched RIDs: {}", id, matchedRegIds);
+			} 
+			else {
+    			regProcLogger.info("Matched RID check started for ID: {} | No matched RIDs found", id);
+			}
 			verReq.setMatchedRegIds(matchedRegIds);
 		}
 
@@ -759,9 +774,19 @@ public class MVSServiceImpl implements MVSService {
 				if(districtValue != null) req.setApplicantPlaceOfResidenceDistrict(districtValue);
 			}
 		}
-		
-		if (registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty()) {
-			req.setStatusComment(registrationStatusDto.getStatusComment());
+		if (("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName()) ||
+				"BIO_DEDUPE".equals(registrationStatusDto.getRegistrationStageName())) &&
+				(registrationStatusDto.getStatusComment() != null && !registrationStatusDto.getStatusComment().isEmpty())) {
+
+			//Format: STAGE_NAME::Status Comment
+
+			String formattedComment = registrationStatusDto.getRegistrationStageName() +
+										"::" +
+										registrationStatusDto.getStatusComment();
+
+			req.setStatusComment(formattedComment);
+			regProcLogger.info("The updated status comment for regId:{} is: {}",
+					registrationStatusDto.getRegistrationId(), formattedComment);
 		}
 		
 		try {
