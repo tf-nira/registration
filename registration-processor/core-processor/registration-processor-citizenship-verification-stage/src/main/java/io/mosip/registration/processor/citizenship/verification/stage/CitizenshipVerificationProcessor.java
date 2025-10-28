@@ -382,19 +382,18 @@ public class CitizenshipVerificationProcessor {
 					registrationStatusDto, description, parentFoundDTO);
 	    }
 		if (parentFoundDTO.isParentNINFoundInMosip() == false && isParentInfoValid == false) {
-			boolean isOnDemandValid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
+			String migrationRid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
 			String fatherOrMother = "";
 			if (fatherNIN != null) {
 				fatherOrMother = "Father";
 			} else {
 				fatherOrMother = "Mother";
 			}
-			if (isOnDemandValid == true) {
+			if (migrationRid != null) {
 				registrationStatusDto.setLatestTransactionStatusCode(
 						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
 				registrationStatusDto.setStatusComment(
-						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage() + fatherOrMother
-								+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
+						StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " for " + fatherOrMother + " and rid is " + migrationRid);
 				registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 				regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
@@ -441,24 +440,24 @@ public class CitizenshipVerificationProcessor {
 	    return isParentInfoValid;
 	}
 
-	private boolean validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
+	private String validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
 			String fatherNIN) throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException,
 			UnsupportedEncodingException, JsonProcessingException, JsonMappingException,
 			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException,
 			LegacyDataValidationException {
-		boolean isValid = false;
+		String migrationRid = null;
 		if (fatherNIN != null) {
 			regProcLogger.info("On demand migration of father NIN for rid {} {}", fatherNIN,
 					registrationStatusDto.getRegistrationId());
-			isValid = migrationUtil
+			migrationRid = migrationUtil
 					.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(), fatherNIN);
 		} else if (motherNIN != null) {
 			regProcLogger.info("On demand migration of mother NIN for rid {} {}", motherNIN,
 					registrationStatusDto.getRegistrationId());
-			isValid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
+			migrationRid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
 					motherNIN);
 		}
-		return isValid;
+		return migrationRid;
 	}
 
 
@@ -743,16 +742,15 @@ public class CitizenshipVerificationProcessor {
 			else {
 				regProcLogger.info("On demand migration of guardian NIN for rid {} {}", guardianNin,
 						registrationStatusDto.getRegistrationId());
-				boolean isValid = migrationUtil
+				String migrationRid = migrationUtil
 						.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
 						guardianNin);
-				if (isValid) {
+				if (migrationRid != null) {
 					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
 							.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
 					registrationStatusDto
-							.setStatusComment(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage()
-									+ guardianRelationValue
-									+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
+							.setStatusComment(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " for "
+									+ guardianRelationValue + " and rid is " + migrationRid);
 					registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
 					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 					regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
