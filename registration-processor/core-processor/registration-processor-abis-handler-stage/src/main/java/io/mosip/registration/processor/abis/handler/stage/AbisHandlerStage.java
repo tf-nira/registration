@@ -2,18 +2,15 @@ package io.mosip.registration.processor.abis.handler.stage;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.packet.storage.entity.EnrollmentDataEntity;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -214,6 +211,9 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 
 	@Value("#{T(java.util.Arrays).asList('${mosip.regproc.common.before-cbeff-others-attibute.reg-client-versions:}')}")
 	private List<String> regClientVersionsBeforeCbeffOthersAttritube;
+
+	@Autowired
+	private BasePacketRepository<EnrollmentDataEntity, String> basePacketRepository;
 
 	/**
 	 * Deploy verticle.
@@ -655,7 +655,20 @@ public class AbisHandlerStage extends MosipVerticleAPIManager {
 		Map<String, String> metaInfo = packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION);
 
 		String dateOfEnrollment;
-		if (process.equalsIgnoreCase("MIGRATOR")) dateOfEnrollment = metaInfo.get("enrollmentDate");
+		if (process.equalsIgnoreCase("MIGRATOR")) {
+			dateOfEnrollment = metaInfo.get("enrollmentDate");
+
+			if (dateOfEnrollment == null) {
+				List<EnrollmentDataEntity> enrollData = basePacketRepository.getEnrollmentData(id);
+				if (enrollData != null && !enrollData.isEmpty()) {
+					dateOfEnrollment = enrollData.get(0).getEnrollmentDate();
+					regProcLogger.info("Enrollment Date fetched from db {} for rid {}", dateOfEnrollment, id);
+				} else {
+					regProcLogger.info("No Enrollment Data found for rid {}", id);
+					// You can decide how to handle missing enrollment (set to null, throw custom exception, etc.)
+				}
+			}
+		}
 		else dateOfEnrollment = metaInfo.get("creationDate");
 
 		if (dateOfBirth != null && dateOfEnrollment != null)

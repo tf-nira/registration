@@ -2,6 +2,7 @@ package io.mosip.registration.processor.packet.storage.repository;
 
 import java.util.List;
 
+import io.mosip.registration.processor.packet.storage.entity.*;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,15 +10,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.mosip.kernel.core.dataaccess.spi.repository.BaseRepository;
-import io.mosip.registration.processor.packet.storage.entity.AbisRequestEntity;
-import io.mosip.registration.processor.packet.storage.entity.AbisResponseDetEntity;
-import io.mosip.registration.processor.packet.storage.entity.AbisResponseEntity;
-import io.mosip.registration.processor.packet.storage.entity.BasePacketEntity;
-import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
-import io.mosip.registration.processor.packet.storage.entity.RegBioRefEntity;
-import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
-import io.mosip.registration.processor.packet.storage.entity.TransactionTypeEntity;
-import io.mosip.registration.processor.packet.storage.entity.VerificationEntity;
 
 /**
  * The Interface BasePacketRepository.
@@ -498,4 +490,6 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	@Query(value = "SELECT t FROM TransactionTypeEntity t WHERE t.id.code =:code")
 	public List<TransactionTypeEntity> getTransactionTypeByCode(@Param("code") String code);
 
+	@Query(value = "SELECT e FROM EnrollmentDataEntity e WHERE e.id.regId =:regId")
+	public List<EnrollmentDataEntity> getEnrollmentData(@Param("regId") String regId);
 }
