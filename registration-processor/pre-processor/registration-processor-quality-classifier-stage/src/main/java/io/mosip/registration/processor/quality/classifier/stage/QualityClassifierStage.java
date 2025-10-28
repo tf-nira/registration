@@ -483,7 +483,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 
 								float score = qualityScoreresponse[0];
 								String bioType = bir.getBdbInfo().getType().get(0).value();
-								regProcLogger.info("SCORE "+String.valueOf(score));
+								regProcLogger.info("SDK Score: {}, Packet SDK Score: {}", String.valueOf(score), bir.getOthers().get("SDK_SCORE"));
 								regProcLogger.info("biotype "+bioType);
 								if (bioType.equalsIgnoreCase("Face") || bioType.equalsIgnoreCase("Iris")) {
 									bioTypeScoreMap
