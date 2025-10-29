@@ -152,23 +152,43 @@ public class RegistrationTransactionController {
 	}
 
 	public String processing(String rid) {
-		String response=null ;
-		List<RegistrationStatusEntity> records=registrationRepositary.findByRegId(rid);
-		if(records==null && records.isEmpty()){
-			response="Application not present";
-		}
-		else{
-			RegistrationStatusEntity recordEntity=records.get(0);
-			if(recordEntity!=null && recordEntity.getRegistrationStageName().equalsIgnoreCase("SecurezoneNotificationStage")){
-				recordEntity.setStatusCode("RESUMABLE");
-				registrationRepositary.save(recordEntity);
-				response="Successfully updated";
+		String response = "null";
+		List<RegistrationStatusEntity> records = registrationRepositary.findByRegId(rid);
+
+		if (records == null || records.isEmpty()) {
+			response = "Application not present";
+		} else {
+			boolean updated = false;
+
+			for (RegistrationStatusEntity recordEntity : records) {
+				if (recordEntity != null &&
+						"SecurezoneNotificationStage".equalsIgnoreCase(recordEntity.getRegistrationStageName())) {
+
+					if ("PROCESSING".equalsIgnoreCase(recordEntity.getStatusCode()) &&
+							"SUCCESS".equalsIgnoreCase(recordEntity.getLatestTransactionStatusCode())) {
+
+						recordEntity.setStatusCode("RESUMABLE");
+						registrationRepositary.save(recordEntity);
+						response = "Successfully updated";
+						updated = true;
+						break;
+					} else {
+						response = "Application can't be resumed";
+					}
+				} else {
+					response = "Application not present in securezone stage";
+				}
 			}
-			else
-				response="Application not present in securezone stage";
+
+			if (!updated && response == null) {
+				response = "Application not present";
+			}
 		}
+
 		return response;
+
 	}
+
 
 
 
