@@ -235,6 +235,7 @@ public class MVSServiceImpl implements MVSService {
 
 		boolean isTransactionSuccessful = true;
 		LogDescription description = new LogDescription();
+		String id = messageDTO.getRid();
 
 		SyncRegistrationEntity regEntity = syncRegistrationService.findByWorkflowInstanceId(messageDTO.getWorkflowInstanceId());
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
@@ -242,6 +243,26 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.getWorkflowInstanceId());
 		boolean isResumable=false;
 		try {
+			
+			List<String> tags = new ArrayList<>();
+			tags.add("AGE_GROUP");
+			Map<String, String> tagsPresent = packetService.getTags(id, tags);
+			String ageGroup = tagsPresent.get("AGE_GROUP");
+
+			regProcLogger.info("Extracted values for id : {}, tagsPresent : {}, ageGroup : {}", id, tagsPresent, ageGroup);
+			
+			String previousRegStageName=registrationStatusDto.getRegistrationStageName();
+			regProcLogger.info("Extracted Previous stage name is : {} for reg id : {}", previousRegStageName,  messageDTO.getRid());
+			
+			if (VerificationConstants.DEMODEDUPE_STAGE.equals(previousRegStageName) &&
+					VerificationConstants.AGE_GROUP_CHILD.equalsIgnoreCase(ageGroup)) {
+				Map<String, String> additionalTags = new HashMap<>();
+				additionalTags.put("ROUTE_TO_CVS_AFTER_MVS", "true");
+				packetService.addOrUpdateTags(id, additionalTags);
+				
+				regProcLogger.info("Marked packet for CVS routing after MVS approval for reg id: {}", id);
+			}
+			
 			if (RegistrationStatusCode.RESUMABLE.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
 				isResumable = true;
 			}
@@ -304,25 +325,11 @@ public class MVSServiceImpl implements MVSService {
 				messageDTO.setIsValid(true);
 				description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
 				description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
-				try {
-					String id = messageDTO.getRid();
-					List<String> tags = new ArrayList<>();
-					tags.add("AGE_GROUP");
-					Map<String, String> tagsPresent = packetService.getTags(id, tags);
-					String ageGroup = tagsPresent.get("AGE_GROUP");
-					if ("DemoDedupeStage".equals(registrationStatusDto.getRegistrationStageName()) &&
-							"CHILD".equalsIgnoreCase(ageGroup)) {
-						messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
-					}
-
-				} catch (Exception e) {
-					regProcLogger.error("Error while processing tags and setting message bus address", e);
-				}
-
-			} else
+			} else {
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
-			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
+				updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
 					PlatformSuccessMessages.RPR_MVS_SENT, isResumable);
+			}
 		}
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
@@ -369,9 +376,9 @@ public class MVSServiceImpl implements MVSService {
 			registrationStatusDto.setUpdatedBy(USER);
 			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, description.getMessage());
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, messageDTO.toString());
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 
 		} catch (TablenotAccessibleException e) {
@@ -387,9 +394,9 @@ public class MVSServiceImpl implements MVSService {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					regId, e.getMessage() + ExceptionUtils.getStackTrace(e));
 
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, messageDTO.toString());
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 		} catch (NoRecordAssignedException e) {
 			messageDTO.setIsValid(false);
@@ -405,9 +412,9 @@ public class MVSServiceImpl implements MVSService {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					regId, e.getMessage() + ExceptionUtils.getStackTrace(e));
 
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, messageDTO.toString());
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 		} catch (Exception e) {
 			messageDTO.setInternalError(true);
@@ -422,15 +429,15 @@ public class MVSServiceImpl implements MVSService {
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					regId, e.getMessage() + ExceptionUtils.getStackTrace(e));
 
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, messageDTO.toString());
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 		} finally {
 
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, messageDTO.toString());
-			regProcLogger.info("nainital"+LoggerFileConstant.SESSIONID.toString(),
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString(), regId, registrationStatusDto.toString());
 			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
 					PlatformSuccessMessages.RPR_MVS_SUCCESS, false);
@@ -895,6 +902,25 @@ public class MVSServiceImpl implements MVSService {
 
 			description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
 			description.setCode(PlatformSuccessMessages.RPR_MVS_SUCCESS.getCode());
+			
+			try {
+				List<String> tags = new ArrayList<>();
+				tags.add("ROUTE_TO_CVS_AFTER_MVS");
+				Map<String, String> tagsPresent = packetService.getTags(registrationStatusDto.getRegistrationId(), tags);
+				String routeToCVS = tagsPresent.get("ROUTE_TO_CVS_AFTER_MVS");
+				
+				regProcLogger.info("Checking CVS routing flag for reg id : {}, routeToCVS : {}",
+						registrationStatusDto.getRegistrationId(), routeToCVS);
+				if(VerificationConstants.TAG_VALUE_ROUTE_TO_CVS_AFTER_MVS_TRUE.equalsIgnoreCase(routeToCVS)) {
+					messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
+					regProcLogger.info("MVS APPROVED - Routing to CVS as per stored flag for reg id : {}", registrationStatusDto.getRegistrationId());
+				} else {
+					regProcLogger.info("MVS APPROVED - Normal routing for reg id : {}", registrationStatusDto.getRegistrationId());
+				}
+				
+			} catch (Exception e) {
+				regProcLogger.error("Error while checking for CVS routing flag for reg id : {}", registrationStatusDto.getRegistrationId(), e);
+			}
 
 		} else if (statusCode.equalsIgnoreCase(MVSStatus.REJECTED.name())) {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
