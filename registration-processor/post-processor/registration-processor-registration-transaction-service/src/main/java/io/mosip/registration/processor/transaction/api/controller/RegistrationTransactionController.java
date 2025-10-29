@@ -172,16 +172,12 @@ public class RegistrationTransactionController {
 						response = "Successfully updated";
 						updated = true;
 						break;
-					} else {
-						response = "Application can't be resumed";
 					}
-				} else {
-					response = "Application not present in securezone stage";
 				}
 			}
 
-			if (!updated && response == null) {
-				response = "Application not present";
+			if (!updated ) {
+				response = "Application cant be resumed";
 			}
 		}
 
