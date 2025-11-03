@@ -473,6 +473,19 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		prnStatusRequestDTO.setPRN(prn);
 		Object rawResponse = restApi.postApi(ApiName.GETPRNSTATUS, "", "", prnStatusRequestDTO, Object.class);
 		Map<String, Object> responseMap = (Map<String, Object>) rawResponse;
+		if (responseMap.containsKey("errors")) {
+			List<Map<String, Object>> errors = (List<Map<String, Object>>) responseMap.get("errors");
+			if (!errors.isEmpty()) {
+				String errorCode = (String) errors.get(0).get("errorCode");
+				if ("NPG_UNKNOWN_EXCEPTION".equalsIgnoreCase(errorCode)
+						|| "SERVICE_UNAVAILABLE".equalsIgnoreCase(errorCode)
+				        || "404".equalsIgnoreCase(errorCode)
+                        || "NOT_FOUND".equalsIgnoreCase(errorCode)
+				        || "NPG-CHECK-PRN-STATUS-001".equalsIgnoreCase(errorCode)) {
+					throw new ApisResourceAccessException("External payment system unavailable: " + errorCode);
+				}
+			}
+		}
 		Map<String, Object> innerResponseMap = (Map<String, Object>) responseMap.get("response");
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // Ignore unknown fields
