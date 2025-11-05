@@ -1,4 +1,4 @@
-FROM openjdk:11
+FROM syedsalman041997/openjdk-11-jre:latest
 
 ARG SOURCE
 ARG COMMIT_HASH
