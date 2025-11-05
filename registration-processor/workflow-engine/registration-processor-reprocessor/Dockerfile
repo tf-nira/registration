@@ -1,5 +1,6 @@
 # Base image: OpenJDK 11
-FROM openjdk:11
+#FROM openjdk:11
+FROM eclipse-temurin:11-jdk
 
 # Uncomment below and comment above line for Alpine-based image
 # FROM openjdk:8-jdk-alpine
