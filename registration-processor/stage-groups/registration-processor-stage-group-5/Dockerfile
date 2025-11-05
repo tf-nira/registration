@@ -67,8 +67,6 @@ ENV biosdk_zip_file_path=${biosdk_zip_path}
 # install packages and create user
 RUN apt-get -y update \
 && apt-get install -y unzip sudo \
-&& groupadd -g ${container_user_gid} ${container_user_group} \
-&& useradd -u ${container_user_uid} -g ${container_user_group} -s /bin/sh -m ${container_user} \
 && adduser ${container_user} sudo \
 && echo "%sudo ALL=(ALL) NOPASSWD:/home/${container_user}/${biosdk_local_dir}/install.sh" >> /etc/sudoers
 
