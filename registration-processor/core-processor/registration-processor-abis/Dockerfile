@@ -1,4 +1,4 @@
-FROM openjdk:11
+FROM eclipse-temurin:11-jdk
 
 # Uncomment below and Comment above line (i.e., FROM openjdk:8) for OS specific (e.g., Alpine OS) docker base image
 # FROM openjdk:8-jdk-alpine
@@ -68,3 +68,4 @@ CMD if [ "$is_glowroot_env" = "present" ]; then \
     else \
     java -jar -Dspring.cloud.config.label="${spring_config_label_env}" -Dspring.profiles.active="${active_profile_env}" -Dspring.cloud.config.uri="${spring_config_url_env}" registration-processor-abis.jar ; \
     fi
+
