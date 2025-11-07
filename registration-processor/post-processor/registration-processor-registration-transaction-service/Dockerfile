@@ -1,4 +1,4 @@
-FROM openjdk:11
+FROM syedsalman041997/openjdk-11-jre:latest
 
 # Uncomment below and Comment above line (i.e. FROM openjdk:8) for OS specific (e.g. Alpine OS) docker base image
 # FROM openjdk:8-jdk-alpine
@@ -33,8 +33,6 @@ ENV iam_adapter_url_env=${iam_adapter_url}
 
 RUN apt-get -y update \
     && apt-get install -y unzip sudo \
-    && groupadd -g ${container_user_gid} ${container_user_group} \
-    && useradd -u ${container_user_uid} -g ${container_user_group} -s /bin/sh -m ${container_user} \
     && adduser ${container_user} sudo
 
 # set working directory for the user
@@ -78,3 +76,4 @@ CMD if [ "$is_glowroot_env" = "present" ]; then \
     wget "${iam_adapter_url_env}" -O "${loader_path_env}"/kernel-auth-adapter.jar; \
     java -Dloader.path="${loader_path_env}" -jar  -Dspring.cloud.config.label="${spring_config_label_env}" -Dspring.profiles.active="${active_profile_env}" -Dspring.cloud.config.uri="${spring_config_url_env}" registration-processor-registration-transaction-service.jar; \
    fi
+
