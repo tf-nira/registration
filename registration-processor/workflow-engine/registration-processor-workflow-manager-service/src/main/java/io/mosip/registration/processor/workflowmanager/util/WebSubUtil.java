@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
-
+import org.springframework.http.MediaType;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.websub.spi.PublisherClient;
 import io.mosip.kernel.websub.api.exception.WebSubClientException;
@@ -59,15 +59,16 @@ public class WebSubUtil {
 
 	public void publishEvent(WorkflowPausedForAdditionalInfoEventDTO workflowPausedForAdditionalInfoEventDTO)
 			throws WebSubClientException {
-		// String rid = workflowPausedForAdditionalInfoEventDTO.getInstanceId();
-		// HttpHeaders httpHeaders = new HttpHeaders();
-		// workflowPausedForAdditionalInfoPublisher.publishUpdate(workflowPausedforadditionalinfoTopic,
-		// 		workflowPausedForAdditionalInfoEventDTO,
-		// 		MediaType.APPLICATION_JSON_UTF8_VALUE,
-		// 		httpHeaders, webSubPublishUrl);
-		// regProcLogger.info("Publish the update successfully  for registration id {}", rid);
+		String rid = workflowPausedForAdditionalInfoEventDTO.getInstanceId();
+		HttpHeaders httpHeaders = new HttpHeaders();
+		workflowPausedForAdditionalInfoPublisher.publishUpdate(workflowPausedforadditionalinfoTopic,
+				workflowPausedForAdditionalInfoEventDTO,
+				MediaType.APPLICATION_JSON_UTF8_VALUE,
+				httpHeaders, webSubPublishUrl);
+		regProcLogger.info("Publish the update successfully  for registration id {}", rid);
 
 	}
 	
 	
 }
+
