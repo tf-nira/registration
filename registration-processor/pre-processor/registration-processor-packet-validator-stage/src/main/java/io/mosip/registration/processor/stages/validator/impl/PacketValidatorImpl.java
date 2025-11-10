@@ -150,7 +150,17 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
-				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())){
+				Object JsonDistrictObj = jsonObject.get(MappingJsonConstants.SERVICE_TYPE);
+				
+				String userServiceType= null;
+				if (JsonDistrictObj instanceof List<?>) {
+				    List<?> sericeTypeList = (List<?>) JsonDistrictObj;
+				    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
+				        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
+				        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+				    }
+				}
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString()) && !"Renewal of Alien".equalsIgnoreCase(userServiceType)){
 					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
 						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
 						packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getCode());
