@@ -299,6 +299,9 @@ public class PriorityBasedPacketManagerService {
                 biometricRecord = new BiometricRecord();
             biometricRecord.getSegments().addAll(record.getSegments());
         }
+		if (CollectionUtils.isEmpty(containers)) {
+			return packetManagerService.getBiometrics(id, person, modalities, null, process);
+		}
         return biometricRecord;
 
     }
