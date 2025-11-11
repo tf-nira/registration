@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -462,7 +461,7 @@ public class PacketValidateProcessor {
 	}
 
 
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+
 	private SyncRegistrationEntity getSyncRegistrationEntity(MessageDTO object) {
 		SyncRegistrationEntity regEntity = syncRegistrationService
 				.findByWorkflowInstanceId(object.getWorkflowInstanceId());
@@ -470,7 +469,7 @@ public class PacketValidateProcessor {
 	}
 
 
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+
 	private InternalRegistrationStatusDto getRegistrationDto(MessageDTO object, String registrationId) {
 		InternalRegistrationStatusDto registrationStatusDto;
 		registrationStatusDto = registrationStatusService.getRegistrationStatus(
