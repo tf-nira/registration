@@ -11,11 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
 import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
-import io.mosip.registration.processor.packet.storage.entity.RegLostUinDetEntity;
-import io.mosip.registration.processor.status.code.RegistrationType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
@@ -328,9 +324,9 @@ public class MVSServiceImpl implements MVSService {
 				description.setMessage(PlatformSuccessMessages.RPR_MVS_SUCCESS.getMessage());
 			} else {
 				registrationStatusDto.setSubStatusCode(StatusUtil.MVS_FAILED.getCode());
-				updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
-					PlatformSuccessMessages.RPR_MVS_SENT, isResumable);
 			}
+			updateStatus(messageDTO, registrationStatusDto, isTransactionSuccessful, description,
+					PlatformSuccessMessages.RPR_MVS_SENT, isResumable);
 		}
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
