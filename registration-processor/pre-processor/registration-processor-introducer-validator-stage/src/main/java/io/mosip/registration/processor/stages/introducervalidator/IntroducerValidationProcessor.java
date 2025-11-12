@@ -136,9 +136,11 @@ public class IntroducerValidationProcessor {
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (IntroducerOnHoldException e) {
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
-					StatusUtil.PACKET_ON_HOLD, RegistrationExceptionTypeCode.ON_HOLD_INTRODUCER_PACKET, description,
-					PlatformErrorMessages.INTRODUCER_VALIDATION_FAILED, e);
+			registrationStatusDto.setLatestTransactionStatusCode(
+					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_INTRODUCER_PACKET));
+			registrationStatusDto.setStatusComment(e.getMessage());
+			registrationStatusDto.setSubStatusCode(StatusUtil.PACKET_ON_HOLD.getCode());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 		} catch (DataAccessException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.DB_NOT_ACCESSIBLE, RegistrationExceptionTypeCode.DATA_ACCESS_EXCEPTION, description,
