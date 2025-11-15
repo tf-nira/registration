@@ -2,6 +2,7 @@ package io.mosip.registration.processor.stages.legacy.data.val.stage;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
@@ -147,7 +148,9 @@ public class LegacyDataProcessor {
 		registrationStatusDto.setRegistrationStageName(stageName);
 		//Setting the latest transaction status code (latest_trn_status_code) to IN_PROGRESS.
 		registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.IN_PROGRESS.toString());
-		
+		registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getCode());
+		registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+		registrationStatusDto.setStatusComment(trimExpMessage.trimExceptionMessage(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getMessage()));
 		try {
 
 			legacyDataVal.validate(registrationId, registrationStatusDto, description, object);
@@ -179,7 +182,7 @@ public class LegacyDataProcessor {
 					StatusUtil.API_RESOUCE_ACCESS_FAILED, RegistrationExceptionTypeCode.APIS_RESOURCE_ACCESS_EXCEPTION,
 					description,
 					PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
-		} catch (IOException e) {
+		} catch (IOException | URISyntaxException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED, StatusUtil.IO_EXCEPTION,
 					RegistrationExceptionTypeCode.IOEXCEPTION, description, PlatformErrorMessages.RPR_SYS_IO_EXCEPTION,
 					e);
@@ -191,8 +194,7 @@ public class LegacyDataProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.DB_NOT_ACCESSIBLE, RegistrationExceptionTypeCode.TABLE_NOT_ACCESSIBLE_EXCEPTION,
 					description, PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
-		} 
-		catch (BaseUncheckedException e) {
+		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.BASE_UNCHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION,
 					description, PlatformErrorMessages.INTRODUCER_BASE_UNCHECKED_EXCEPTION, e);
@@ -258,7 +260,7 @@ public class LegacyDataProcessor {
 	        initMsg.put("payload", initPayload);
 
 	        client.send(gson.toJson(initMsg));
-	        System.out.println("→ Sent connection_init");
+	        regProcLogger.info("→ Sent connection_init");
 	    }
 	 private void sendSubscribe() {
 		 Map<String, Object> payload = new HashMap<>();
@@ -271,7 +273,7 @@ public class LegacyDataProcessor {
 	        subMsg.put("payload", payload);
 
 	        client.send(gson.toJson(subMsg));
-	        System.out.println("→ Sent subscription start");
+	        regProcLogger.info("→ Sent subscription start");
 	 }
 	 private String pretty(String json) {
 	        try {
@@ -288,10 +290,10 @@ public class LegacyDataProcessor {
 	        if (!payload.has("data")) return;
 
 	        JsonObject data = payload.getAsJsonObject("data");
-	        System.out.println("[SUB DATA] " + pretty(data.toString()));
+	        regProcLogger.info("[SUB DATA] " + pretty(data.toString()));
 	        
 	        if(!data.has("identifyPerson")) {
-	        	System.out.println("[SUB DATA] Unknown Data : " + data);
+	        	regProcLogger.info("[SUB DATA] Unknown Data : {}", data);
 	        	return;
 	        }
 	        
@@ -299,7 +301,7 @@ public class LegacyDataProcessor {
 	        
 	        Gson gson = new Gson();
 	        IdentifyPersonGraphQLResponse response = gson.fromJson(identifyPerson, IdentifyPersonGraphQLResponse.class);
-	        System.out.println("[SUB DATA] " + response);
+	        regProcLogger.info("[SUB DATA] : {}", response);
 	        
 	        String requestId = response.getRequestId();
 	        LogDescription description = new LogDescription();
@@ -322,7 +324,7 @@ public class LegacyDataProcessor {
     			registrationStatusDto.setStatusComment(trimExceptionMessage
     					.trimExceptionMessage(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getMessage() + e.getMessage()));
     			registrationStatusDto.setSubStatusCode(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getCode());
-
+    			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
     			description.setMessage(PlatformErrorMessages.UNKNOWN_EXCEPTION.getMessage());
     			description.setCode(PlatformErrorMessages.UNKNOWN_EXCEPTION.getCode());
             }
@@ -337,7 +339,7 @@ public class LegacyDataProcessor {
 	 
 	 public void connectAndSubscribe() throws Exception {
 		 if (client != null && client.isOpen()) {
-	            System.out.println("WebSocket already connected");
+			 regProcLogger.info("WebSocket already connected");
 	            return;
 	        }
 
@@ -348,7 +350,7 @@ public class LegacyDataProcessor {
 	        client = new WebSocketClient(uri, draft) {
 	            @Override
 	            public void onOpen(ServerHandshake handshake) {
-	                System.out.println("✅ Connected to GraphQL WS at " + LocalDateTime.now());
+	            	regProcLogger.info("✅ Connected to GraphQL WS at : {}", LocalDateTime.now());
 	                connected.set(true);
 	                sendConnectionInit();
 	            }
@@ -360,31 +362,31 @@ public class LegacyDataProcessor {
 	                    String type = msg.has("type") ? msg.get("type").getAsString() : "";
 
 	                    if ("connection_ack".equals(type)) {
-	                        System.out.println("📡 connection_ack received - subscribing...");
+	                    	regProcLogger.info("📡 connection_ack received - subscribing...");
 	                        sendSubscribe();
 	                    } else if ("next".equals(type)) {
-	                        System.out.println("🔔 subscription event:");
-	                        System.out.println(pretty(message));
+	                    	regProcLogger.info("🔔 subscription event:");
+	                    	regProcLogger.info("Message: {}",pretty(message));
 	                        handleSubscriptionPayload(msg);
 	                    } else if ("complete".equals(type)) {
-	                        System.out.println("✅ subscription complete");
+	                    	regProcLogger.info("✅ subscription complete");
 	                    } else {
-	                        System.out.println("[WS MESSAGE] " + message);
+	                    	regProcLogger.info("[WS MESSAGE] : {}", message);
 	                    }
 	                } catch (Exception e) {
-	                    System.err.println("Error parsing WS message: " + e.getMessage());
+	                	regProcLogger.error("Error parsing WS message: {}", e.getMessage());
 	                }
 	            }
 
 	            @Override
 	            public void onClose(int code, String reason, boolean remote) {
 	                connected.set(false);
-	                System.out.println("❌ WebSocket closed: " + reason + " (code=" + code + ")");
+	                regProcLogger.info("❌ WebSocket closed: " + reason + " (code=" + code + ")");
 	            }
 
 	            @Override
 	            public void onError(Exception ex) {
-	                System.err.println("WebSocket error: " + ex.getMessage());
+	            	regProcLogger.info("WebSocket error: {}", ex.getMessage());
 	            }
 
 	        };

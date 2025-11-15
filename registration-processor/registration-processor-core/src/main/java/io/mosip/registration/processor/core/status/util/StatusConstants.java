@@ -10,6 +10,7 @@ public final class StatusConstants {
 	private static final String SUCCESS = "SUCCESS-";
 	private static final String FAILED = "FAILED-";
 	private static final String SKIPPED = "SKIPPED-";
+	private static final String IN_PROGRESS = "IN_PROGRESS-";
 	private static final String SYSTEM_EXCEPTION = "SYS-EXCEPTION-001";
 	public static final String SYSTEM_EXCEPTION_MESSAGE = "System Exception Occurred - Unable to Process Packet";
 
@@ -179,6 +180,7 @@ public final class StatusConstants {
 	public static final String LEGACY_DATA_VALIDATION_FAILED = LEGACY_DATA_VALIDATION + FAILED;
 	public static final String LEGACY_DATA_SUCCESS = LEGACY_DATA + SUCCESS;
 	public static final String LEGACY_DATA_FAILED = LEGACY_DATA + FAILED;
+	public static final String LEGACY_DATA_IN_PROGRESS = LEGACY_DATA + IN_PROGRESS;
 	
 
 }

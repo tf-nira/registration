@@ -3,6 +3,7 @@ package io.mosip.registration.processor.stages.legacy.data.val.stage;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -137,7 +138,7 @@ public class LegacyDataVal {
 
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object) throws ApisResourceAccessException, PacketManagerException,
-			JsonProcessingException, LegacyDataBiomtericException, IOException {
+			JsonProcessingException, LegacyDataBiomtericException, IOException, URISyntaxException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
@@ -241,7 +242,7 @@ public class LegacyDataVal {
 		return NIN;
 	}
 
-	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap) {
+	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap) throws IOException, URISyntaxException{
 		List<Map<String, String>> fingerprints = new ArrayList<>();
 		for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
 	        Map<String, String> fingerprint = new HashMap<>();
@@ -270,10 +271,7 @@ public class LegacyDataVal {
             String responseString = EntityUtils.toString(client.execute(post).getEntity());
             JsonNode responseJson = objectMapper.readTree(responseString);
             return responseJson.toPrettyString();
-        } catch (Exception e) {
-        	//exception
-        	return null;
-        }
+        } 
 
 	}
 	
