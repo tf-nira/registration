@@ -104,7 +104,7 @@
 		<!-- Java-WebSocket client -->
 		<dependency>
 			<groupId>org.java-websocket</groupId>
-			<artifactId>java-websocket</artifactId>
+			<artifactId>Java-WebSocket</artifactId>
 			<version>1.5.4</version>
 		</dependency>
 		<!-- Gson for JSON parsing/formatting -->

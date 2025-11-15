@@ -72,9 +72,6 @@ public class LegacyDataStage extends MosipVerticleAPIManager {
 	 */
 	public void deployVerticle() {
 		this.mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
-//		this.consumeAndSend(mosipEventBus, MessageBusAddress.LEGACY_DATA_IN, MessageBusAddress.LEGACY_DATA_OUT,
-//				messageExpiryTimeLimit);
-		
 		this.consume(mosipEventBus, MessageBusAddress.LEGACY_DATA_IN, messageExpiryTimeLimit);
 		try {
 			legacyDataProcessor.connectAndSubscribe();

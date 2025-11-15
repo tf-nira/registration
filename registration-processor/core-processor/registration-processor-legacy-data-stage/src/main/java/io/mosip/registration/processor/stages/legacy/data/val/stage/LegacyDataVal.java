@@ -136,63 +136,13 @@ public class LegacyDataVal {
 	private String authToken;
 
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
-			LogDescription description, MessageDTO object) throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, LegacyDataBiomtericException, IOException
-			 {
+			LogDescription description, MessageDTO object) throws ApisResourceAccessException, PacketManagerException,
+			JsonProcessingException, LegacyDataBiomtericException, IOException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
-			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			sendIdentifyPersonGraphQLRequest(positionAndWsqMap);
-			//String NIN = checkNINAVailableInLegacy(registrationId, positionAndWsqMap);
-			//response from subscribe will handle this
-//			if (NIN != null) {
-//				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
-//						registrationId);
-//					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-//					migrationRequestDto.setNin(NIN.toUpperCase());
-//					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-//					requestWrapper.setRequest(migrationRequestDto);
-//					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-//							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
-//									ResponseWrapper.class,
-//									null);
-//					regProcLogger.info("Response from migration api : {}{}", registrationId,
-//							JsonUtils.javaObjectToJsonString(responseWrapper));
-//					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
-//						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-//						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
-//					}
-//					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
-//							.readValue(
-//							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-//									MigrationOnDemandResponse.class);
-//					if (migrationOnDemandResponse != null) {
-//						regProcLogger.info(
-//								"ondemand migration happended for registration id  and migration rid is  : {} {}",
-//								registrationId, migrationOnDemandResponse.getRid());
-//						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-//								StatusUtil.LEGACY_DATA_FAILED.getCode());
-//					} else {
-//						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
-//								registrationId);
-//						throw new DataMigrationPacketCreationException(
-//								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
-//								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
-//					}
-//
-//			} else {
-//				regProcLogger.info("NIN is not present in legacy system so proceed for new registration: {}",
-//						registrationId);
-//				registrationStatusDto
-//						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-//				registrationStatusDto.setStatusComment(StatusUtil.LEGACY_DATA_SUCCESS.getMessage());
-//				registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_SUCCESS.getCode());
-//				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-//
-//				description.setMessage(
-//						PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getMessage() + " -- " + registrationId);
-//				description.setCode(PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getCode());
-//			}
+		Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
+		sendIdentifyPersonGraphQLRequest(positionAndWsqMap);
 
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
