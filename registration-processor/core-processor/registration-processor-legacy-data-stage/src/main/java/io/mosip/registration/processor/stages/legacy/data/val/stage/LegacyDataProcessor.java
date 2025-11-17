@@ -156,6 +156,20 @@ public class LegacyDataProcessor {
 			legacyDataVal.validate(registrationId, registrationStatusDto, description, object);
 			regProcLogger.info("LegacyDataProcessor call ended for registrationId {} {} {}", registrationId,
 					description.getCode() + description.getMessage());
+			
+			if (registrationStatusDto.getStatusComment() != null 
+				&& registrationStatusDto.getStatusComment().contains("Waiting for legacy system")) {
+				
+				regProcLogger.info("Waiting for WebSocket result - NOT sending to next stage");
+				object.setIsValid(Boolean.FALSE);
+				object.setInternalError(Boolean.FALSE);
+				
+				registrationStatusDto.setUpdatedBy(USER);
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, 
+					ModuleName.LEGACY_DATA.toString(), ModuleName.LEGACY_DATA.toString());
+				
+				return object; // RETURN without sending to next stage
+			}
 
 			object.setIsValid(Boolean.TRUE);
 			object.setInternalError(Boolean.FALSE);
@@ -428,13 +442,14 @@ public class LegacyDataProcessor {
 	            registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 	            registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getCode());
 	            registrationStatusDto.setStatusComment("Legacy system is processing the identification request");
-	            registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+	            registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.IN_PROGRESS.toString());
 	            description.setCode(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getCode());
 	            description.setMessage("Legacy system is processing the identification request");
 	            
 	            object.setIsValid(Boolean.FALSE);
 	            object.setInternalError(Boolean.FALSE);
 	            
+	            isTransactionSuccessful = false;
 	            // Don't call onDemandMigration yet - wait for final result
 	            
 	        } else if ("Error".equalsIgnoreCase(transactionStatus.getTransactionStatus())
@@ -442,7 +457,7 @@ public class LegacyDataProcessor {
 	                && transactionStatus.getError().getMessage() != null
 	                && transactionStatus.getError().getMessage()
 	                        .contains("AFIS system is not available! connect timed"))){
-	            regProcLogger.warn("AFIS system is not available! connect timed for requestId: {}",
+	            regProcLogger.warn("AFIS system is not available! waiting for requestId: {}",
 	            		response.getRequestId());
 	            
 	            registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
@@ -451,6 +466,9 @@ public class LegacyDataProcessor {
 	            
 	            object.setIsValid(Boolean.FALSE);
 	            object.setInternalError(Boolean.FALSE);
+	            
+	            isTransactionSuccessful = false;
+	            
 	        } else if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Error")) {
 				regProcLogger.info("Transaction status is Error : {}", response.getRequestId());
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -496,22 +514,30 @@ public class LegacyDataProcessor {
 					RegistrationExceptionTypeCode.DATA_MIGRATION_PACKET_CREATION_EXCEPTION, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
 		} finally {
-			if (object.getInternalError()) {
-				int retryCount = registrationStatusDto.getRetryCount() != null
-						? registrationStatusDto.getRetryCount() + 1
-						: 1;
-				registrationStatusDto.setRetryCount(retryCount);
-				updateErrorFlags(registrationStatusDto, object);
+			if (isTransactionSuccessful ||  
+					transactionStatus.getTransactionStatus().equalsIgnoreCase("Processing")) {
+				if (object.getInternalError()) {
+					int retryCount = registrationStatusDto.getRetryCount() != null
+							? registrationStatusDto.getRetryCount() + 1
+							: 1;
+					registrationStatusDto.setRetryCount(retryCount);
+					updateErrorFlags(registrationStatusDto, object);
+				}
+				registrationStatusDto.setUpdatedBy(USER);
+				/** Module-Id can be Both Success/Error code */
+				String moduleId = description.getCode();
+				String moduleName = ModuleName.LEGACY_DATA.toString();
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+				updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationStatusDto.getRegistrationId());
 			}
-			registrationStatusDto.setUpdatedBy(USER);
-			/** Module-Id can be Both Success/Error code */
-			String moduleId = description.getCode();
-			String moduleName = ModuleName.LEGACY_DATA.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
-			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationStatusDto.getRegistrationId());
-			
-			legacyDataStage.sendMessage(object);
-			
+			// ONLY send to next stage if successful (not for Processing or AFIS errors)
+		    if (isTransactionSuccessful) {
+				legacyDataStage.sendMessage(object);
+			} else {
+				regProcLogger.info("NOT sending to next stage for requestId: {} - waiting for final result", 
+						response.getRequestId());
+			}
+			 
 			
 		}
 	}
