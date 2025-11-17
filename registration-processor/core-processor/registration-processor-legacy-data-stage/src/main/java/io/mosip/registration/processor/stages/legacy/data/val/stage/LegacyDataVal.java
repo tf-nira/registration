@@ -1,9 +1,14 @@
 package io.mosip.registration.processor.stages.legacy.data.val.stage;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -128,9 +133,6 @@ public class LegacyDataVal {
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
 	
-	@Value("${graphql.subscription.query}")
-	private String graphQLQuery;
-	
 	@Value("${graphql.post.urls}")
 	private String postUrl;
 	
@@ -149,7 +151,7 @@ public class LegacyDataVal {
 	            positionAndWsqMap.size(), registrationId);
 		
 		
-		String response = sendIdentifyPersonGraphQLRequest(positionAndWsqMap);
+		String response = sendIdentifyPersonGraphQLRequest(positionAndWsqMap,registrationId);
 
 		regProcLogger.info("GraphQL response for registrationId {}: {}", registrationId, response);
 	    
@@ -251,21 +253,16 @@ public class LegacyDataVal {
 		return NIN;
 	}
 
-	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap) 
+	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap, String registrationId) 
 	        throws IOException, URISyntaxException {
 	    
 	    regProcLogger.info("sendIdentifyPersonGraphQLRequest started with {} fingerprints", 
 	            positionAndWsqMap.size());
 	    
-	 // Validation checks
+	    // Validation checks
 	    if (positionAndWsqMap == null || positionAndWsqMap.isEmpty()) {
 	        regProcLogger.error("No fingerprints provided for identification");
 	        throw new IllegalArgumentException("Fingerprint map cannot be null or empty");
-	    }
-	    
-	    if (graphQLQuery == null || graphQLQuery.isEmpty()) {
-	        regProcLogger.error("GraphQL query is not configured");
-	        throw new IllegalStateException("GraphQL query is missing");
 	    }
 	    
 	    if (postUrl == null || postUrl.isEmpty()) {
@@ -278,6 +275,7 @@ public class LegacyDataVal {
 	        throw new IllegalStateException("Authorization token is missing");
 	    }
 	    
+	    // Build fingerprints list - matching working code structure
 	    List<Map<String, String>> fingerprints = new ArrayList<>();
 	    for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
 	        Map<String, String> fingerprint = new HashMap<>();
@@ -286,44 +284,63 @@ public class LegacyDataVal {
 	        fingerprints.add(fingerprint);
 	        regProcLogger.debug("Added fingerprint for position: {}", entry.getKey());
 	    }
-
-	    Map<String, Object> input = new HashMap<>();
-	    input.put("fingerprints", fingerprints);
-
-	    Map<String, Object> variables = new HashMap<>();
-	    variables.put("input", input);
-
-	    Map<String, Object> payload = new HashMap<>();
-	    payload.put("query", graphQLQuery);
-	    payload.put("variables", variables);
-
-	    CloseableHttpResponse response = null;
 	    
-	    try (CloseableHttpClient client = HttpClients.createDefault()) {
-	        String jsonRequest = objectMapper.writeValueAsString(payload);
-	        
-	        regProcLogger.debug("GraphQL Request URL: {}", postUrl);
-	        regProcLogger.debug("GraphQL Request Payload: {}", jsonRequest);
-	        
-	        HttpPost post = new HttpPost(postUrl);
-	        post.setHeader("Content-Type", "application/json");
-	        post.setHeader("Authorization", "Bearer " + authToken);
-	        post.setEntity(new StringEntity(jsonRequest, StandardCharsets.UTF_8));
+	    // Build the request object - EXACTLY like working code
+	    Map<String, Object> identifyPersonRequest = new HashMap<>();
+	    identifyPersonRequest.put("fingerprints", fingerprints);
+	    identifyPersonRequest.put("requestId", registrationId);
+	    identifyPersonRequest.put("nationalId", "");
 
+	    HttpURLConnection conn = null;
+	    
+	    try {
+	        // Convert to JSON
+	        String json = objectMapper.writeValueAsString(identifyPersonRequest);
+	        
+	        regProcLogger.info("GraphQL Request URL: {}", postUrl);
+	        regProcLogger.info("GraphQL Request Payload: {}", json);
+	        
+	        // Create connection - matching working code
+	        conn = (HttpURLConnection) new URL(postUrl).openConnection();
+	        conn.setRequestMethod("POST");
+	        conn.setRequestProperty("Content-Type", "application/json");
+	        conn.setRequestProperty("Accept", "application/json");
+	        conn.setRequestProperty("Authorization", authToken);
+	        conn.setDoOutput(true);
+	        // Set timeouts
+	        conn.setConnectTimeout(120000);
+	        conn.setReadTimeout(150000);
 	        regProcLogger.info("Sending GraphQL request to legacy system");
 	        
-	        response = client.execute(post);
-	        int statusCode = response.getStatusLine().getStatusCode();
+	        // Write request body
+	        try (OutputStream os = conn.getOutputStream()) {
+	            os.write(json.getBytes(StandardCharsets.UTF_8));
+	        }
+
+	        // Get response code
+	        int code = conn.getResponseCode();
 	        
-	        regProcLogger.info("Received response with status code: {}", statusCode);
+	        regProcLogger.info("Received response with status code: {}", code);
 	        
-	        String responseString = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+	        // Read response
+	        BufferedReader br = new BufferedReader(new InputStreamReader(
+	                (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream(),
+	                StandardCharsets.UTF_8));
+
+	        StringBuilder sb = new StringBuilder();
+	        String line;
+	        while ((line = br.readLine()) != null) {
+	            sb.append(line);
+	        }
+	        br.close();
 	        
-	        regProcLogger.debug("Raw Response: {}", responseString);
+	        String responseString = sb.toString();
 	        
-	        if (statusCode < 200 || statusCode >= 300) {
-	            regProcLogger.error("GraphQL request failed with status {}: {}", statusCode, responseString);
-	            throw new IOException("HTTP Error " + statusCode + ": " + responseString);
+	        regProcLogger.info("Raw Response: {}", responseString);
+	        
+	        if (code < 200 || code >= 300) {
+	            regProcLogger.error("GraphQL request failed with status {}: {}", code, responseString);
+	            throw new IOException("HTTP Error " + code + ": " + responseString);
 	        }
 	        
 	        JsonNode responseJson = objectMapper.readTree(responseString);
@@ -335,7 +352,7 @@ public class LegacyDataVal {
 	        
 	        String prettyResponse = responseJson.toPrettyString();
 	        regProcLogger.info("GraphQL response received successfully");
-	        regProcLogger.debug("Formatted Response: {}", prettyResponse);
+	        regProcLogger.info("Formatted Response: {}", prettyResponse);
 	        
 	        return prettyResponse;
 	        
@@ -343,14 +360,10 @@ public class LegacyDataVal {
 	        regProcLogger.error("IOException during GraphQL request: {}", e.getMessage(), e);
 	        throw e;
 	    } finally {
-	        if (response != null) {
-	            try {
-	                response.close();
-	            } catch (IOException e) {
-	                regProcLogger.warn("Error closing response: {}", e.getMessage());
-	            }
+	        if (conn != null) {
+	            conn.disconnect();
 	        }
-	        regProcLogger.debug("sendIdentifyPersonGraphQLRequest completed");
+	        regProcLogger.info("sendIdentifyPersonGraphQLRequest completed");
 	    }
 	}
 	
