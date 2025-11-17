@@ -461,8 +461,9 @@ public enum StatusUtil {
 	LEGACY_DATA_BIOMETRIC_FAILED(StatusConstants.LEGACY_DATA_FAILED + "006",
 			"Fingerprint Biometrics are not present for packet to verify against legacy"),
 	LEGACY_DATA_SYSTEM_FAILED(StatusConstants.LEGACY_DATA_FAILED + "007",
-			"Error from legacy system");
-
+			"Error from legacy system"),
+	LEGACY_DATA_STAGE_IN_PROGRESS(StatusConstants.LEGACY_DATA_IN_PROGRESS + "008",
+			"Legacy data stage In-Progess");
 	private final String statusComment;
 	private final String statusCode;
 

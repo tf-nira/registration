@@ -1,8 +1,14 @@
 package io.mosip.registration.processor.stages.legacy.data.val.stage;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -15,6 +21,12 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +34,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.entities.BIR;
@@ -63,6 +77,7 @@ import io.mosip.registration.processor.stages.legacy.data.val.dto.Envelope;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Fingerprint;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Header;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPerson;
+import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPersonGraphQLResponse;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPersonResponse;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Password;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Person;
@@ -117,71 +132,33 @@ public class LegacyDataVal {
 
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
+	
+	@Value("${graphql.post.urls}")
+	private String postUrl;
+	
+	@Value("${graphql.auth.token}")
+	private String authToken;
 
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
-			LogDescription description, MessageDTO object)
-			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
-			ValidationFailedException, JAXBException, NoSuchAlgorithmException,
-			NumberFormatException, JSONException, DataMigrationPacketCreationException, LegacyDataValidationException,
-			LegacyDataBiomtericException {
+			LogDescription description, MessageDTO object) throws ApisResourceAccessException, PacketManagerException,
+			JsonProcessingException, LegacyDataBiomtericException, IOException, URISyntaxException {
 
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
-			Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-			String NIN = checkNINAVailableInLegacy(registrationId, positionAndWsqMap);
-			if (NIN != null) {
-				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
-						registrationId);
-					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-					migrationRequestDto.setNin(NIN.toUpperCase());
-					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-					requestWrapper.setRequest(migrationRequestDto);
-					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
-									ResponseWrapper.class,
-									null);
-					regProcLogger.info("Response from migration api : {}{}", registrationId,
-							JsonUtils.javaObjectToJsonString(responseWrapper));
-					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
-						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
-					}
-					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
-							.readValue(
-							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-									MigrationOnDemandResponse.class);
-					if (migrationOnDemandResponse != null) {
-						regProcLogger.info(
-								"ondemand migration happended for registration id  and migration rid is  : {} {}",
-								registrationId, migrationOnDemandResponse.getRid());
-						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_FAILED.getCode());
-					} else {
-						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
-								registrationId);
-						throw new DataMigrationPacketCreationException(
-								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
-								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
-					}
+		Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
+		
+		regProcLogger.info("Retrieved {} fingerprints for registrationId {}", 
+	            positionAndWsqMap.size(), registrationId);
+		
+		
+		String response = sendIdentifyPersonGraphQLRequest(positionAndWsqMap,registrationId);
 
-			} else {
-				regProcLogger.info("NIN is not present in legacy system so proceed for new registration: {}",
-						registrationId);
-				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-				registrationStatusDto.setStatusComment(StatusUtil.LEGACY_DATA_SUCCESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_SUCCESS.getCode());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-
-				description.setMessage(
-						PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getMessage() + " -- " + registrationId);
-				description.setCode(PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getCode());
-			}
-
+		regProcLogger.info("GraphQL response for registrationId {}: {}", registrationId, response);
+	    
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
 	}
-
+	
 	private Map<String, String> getBiometricsWSQFormat(String registrationId,
 			InternalRegistrationStatusDto registrationStatusDto)
 			throws IOException, ApisResourceAccessException, PacketManagerException, JsonProcessingException,
@@ -275,6 +252,122 @@ public class LegacyDataVal {
 		return NIN;
 	}
 
+	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap, String registrationId) 
+	        throws IOException, URISyntaxException {
+	    
+	    regProcLogger.info("sendIdentifyPersonGraphQLRequest started with {} fingerprints", 
+	            positionAndWsqMap.size());
+	    
+	    // Validation checks
+	    if (positionAndWsqMap == null || positionAndWsqMap.isEmpty()) {
+	        regProcLogger.error("No fingerprints provided for identification");
+	        throw new IllegalArgumentException("Fingerprint map cannot be null or empty");
+	    }
+	    
+	    if (postUrl == null || postUrl.isEmpty()) {
+	        regProcLogger.error("GraphQL endpoint URL is not configured");
+	        throw new IllegalStateException("GraphQL endpoint URL is missing");
+	    }
+	    
+	    if (authToken == null || authToken.isEmpty()) {
+	        regProcLogger.error("Authorization token is not configured");
+	        throw new IllegalStateException("Authorization token is missing");
+	    }
+	    
+	    // Build fingerprints list - matching working code structure
+	    List<Map<String, String>> fingerprints = new ArrayList<>();
+	    for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
+	        Map<String, String> fingerprint = new HashMap<>();
+	        fingerprint.put("position", entry.getKey());
+	        fingerprint.put("wsq", entry.getValue());
+	        fingerprints.add(fingerprint);
+	        regProcLogger.debug("Added fingerprint for position: {}", entry.getKey());
+	    }
+	    
+	    // Build the request object - EXACTLY like working code
+	    Map<String, Object> identifyPersonRequest = new HashMap<>();
+	    identifyPersonRequest.put("fingerprints", fingerprints);
+	    identifyPersonRequest.put("requestId", registrationId);
+	    identifyPersonRequest.put("nationalId", "");
+
+	    HttpURLConnection conn = null;
+	    
+	    try {
+	        // Convert to JSON
+	        String json = objectMapper.writeValueAsString(identifyPersonRequest);
+	        
+	        regProcLogger.info("GraphQL Request URL: {}", postUrl);
+	        regProcLogger.info("GraphQL Request Payload: {}", json);
+	        
+	        // Create connection - matching working code
+	        conn = (HttpURLConnection) new URL(postUrl).openConnection();
+	        conn.setRequestMethod("POST");
+	        conn.setRequestProperty("Content-Type", "application/json");
+	        conn.setRequestProperty("Accept", "application/json");
+	        conn.setRequestProperty("Authorization", authToken);
+	        conn.setDoOutput(true);
+	        // Set timeouts
+//	        conn.setConnectTimeout(120000);
+//	        conn.setReadTimeout(150000);
+	        regProcLogger.info("Sending GraphQL request to legacy system");
+	        
+	        // Write request body
+	        try (OutputStream os = conn.getOutputStream()) {
+	            os.write(json.getBytes(StandardCharsets.UTF_8));
+	        }
+
+	        // Get response code
+	        int code = conn.getResponseCode();
+	        
+	        regProcLogger.info("Received response with status code: {}", code);
+	        
+	        // Read response
+	        BufferedReader br = new BufferedReader(new InputStreamReader(
+	                (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream(),
+	                StandardCharsets.UTF_8));
+
+	        StringBuilder sb = new StringBuilder();
+	        String line;
+	        while ((line = br.readLine()) != null) {
+	            sb.append(line);
+	        }
+	        br.close();
+	        
+	        String responseString = sb.toString();
+	        
+	        regProcLogger.info("Raw Response: {}", responseString);
+	        
+	        if (code < 200 || code >= 300) {
+	            regProcLogger.error("GraphQL request failed with status {}: {}", code, responseString);
+	            throw new IOException("HTTP Error " + code + ": " + responseString);
+	        }
+	        
+	        JsonNode responseJson = objectMapper.readTree(responseString);
+	        
+	        if (responseJson.has("errors")) {
+	            regProcLogger.error("GraphQL returned errors: {}", responseJson.get("errors").toPrettyString());
+	            throw new IOException("GraphQL errors: " + responseJson.get("errors").toPrettyString());
+	        }
+	        
+	        String prettyResponse = responseJson.toPrettyString();
+	        regProcLogger.info("GraphQL response received successfully");
+	        regProcLogger.info("Formatted Response: {}", prettyResponse);
+	        
+	        return prettyResponse;
+	        
+	    } catch (IOException e) {
+	        regProcLogger.error("IOException during GraphQL request: {}", e.getMessage(), e);
+	        throw e;
+	    } finally {
+	        if (conn != null) {
+	            conn.disconnect();
+	        }
+	        regProcLogger.info("sendIdentifyPersonGraphQLRequest completed");
+	    }
+	}
+	
+	
+	
 	private Envelope createIdentifyPersonRequest(Map<String, String> positionAndWsqMap)
 			throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
@@ -332,4 +425,119 @@ public class LegacyDataVal {
 		marshaller.marshal(envelope, sw);
 		return sw.toString();
 	}
+	
+	public void callOnDemandMigration(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
+			LogDescription description, MessageDTO object, String NIN)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
+			ValidationFailedException, JAXBException, NoSuchAlgorithmException,
+			NumberFormatException, JSONException, DataMigrationPacketCreationException, LegacyDataValidationException,
+			LegacyDataBiomtericException {
+
+		regProcLogger.debug("validate called for registrationId {}", registrationId);
+
+			//response from subscribe will handle this
+			if (NIN != null) {
+				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
+						registrationId);
+					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
+					migrationRequestDto.setNin(NIN.toUpperCase());
+					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
+					requestWrapper.setRequest(migrationRequestDto);
+					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
+							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
+									ResponseWrapper.class,
+									null);
+					regProcLogger.info("Response from migration api : {}{}", registrationId,
+							JsonUtils.javaObjectToJsonString(responseWrapper));
+					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
+						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
+						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
+					}
+					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
+							.readValue(
+							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+									MigrationOnDemandResponse.class);
+					if (migrationOnDemandResponse != null) {
+						regProcLogger.info(
+								"ondemand migration happended for registration id  and migration rid is  : {} {}",
+								registrationId, migrationOnDemandResponse.getRid());
+						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
+								StatusUtil.LEGACY_DATA_FAILED.getCode());
+					} else {
+						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
+								registrationId);
+						throw new DataMigrationPacketCreationException(
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
+					}
+
+			} else {
+				regProcLogger.info("NIN is not present in legacy system so proceed for new registration: {}",
+						registrationId);
+				registrationStatusDto
+						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+				registrationStatusDto.setStatusComment(StatusUtil.LEGACY_DATA_SUCCESS.getMessage());
+				registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_SUCCESS.getCode());
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+
+				description.setMessage(
+						PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getMessage() + " -- " + registrationId);
+				description.setCode(PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getCode());
+			}
+
+		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
+
+	}
+	
+	public void onDemandMigration(String NIN, IdentifyPersonGraphQLResponse response,
+			InternalRegistrationStatusDto registrationStatusDto, LogDescription description) throws ApisResourceAccessException, JsonProcessingException, DataMigrationPacketCreationException, JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException, ValidationFailedException {
+		 if (NIN != null) {
+				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
+						response.getRequestId());
+					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
+					migrationRequestDto.setNin(NIN.toUpperCase());
+					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
+					requestWrapper.setRequest(migrationRequestDto);
+					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
+							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
+									ResponseWrapper.class,
+									null);
+					regProcLogger.info("Response from migration api : {}{}", response.getRequestId(),
+							JsonUtils.javaObjectToJsonString(responseWrapper));
+					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
+						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
+						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
+					}
+					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
+							.readValue(
+							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+									MigrationOnDemandResponse.class);
+					if (migrationOnDemandResponse != null) {
+						regProcLogger.info(
+								"ondemand migration happended for registration id  and migration rid is  : {} {}",
+								response.getRequestId(), migrationOnDemandResponse.getRid());
+						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getMessage(),
+								StatusUtil.LEGACY_DATA_FAILED.getCode());
+					} else {
+						regProcLogger.info("ondemand migration api response is null  for registration id : {}",
+								response.getRequestId());
+						throw new DataMigrationPacketCreationException(
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getMessage(),
+								StatusUtil.LEGACY_DATA_MIGRATION_API_FAILED.getCode());
+					}
+
+			} else {
+				regProcLogger.info("NIN is not present in legacy system so proceed for new registration: {}",
+						response.getRequestId());
+				registrationStatusDto
+						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+				registrationStatusDto.setStatusComment(StatusUtil.LEGACY_DATA_SUCCESS.getMessage());
+				registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_SUCCESS.getCode());
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+
+				description.setMessage(
+						PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getMessage() + " -- " + response.getRequestId());
+				description.setCode(PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE.getCode());
+			}
+	 }
 }

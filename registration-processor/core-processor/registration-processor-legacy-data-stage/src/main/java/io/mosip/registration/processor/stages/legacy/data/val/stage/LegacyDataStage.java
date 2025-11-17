@@ -72,9 +72,13 @@ public class LegacyDataStage extends MosipVerticleAPIManager {
 	 */
 	public void deployVerticle() {
 		this.mosipEventBus = this.getEventBus(this, clusterManagerUrl, workerPoolSize);
-		this.consumeAndSend(mosipEventBus, MessageBusAddress.LEGACY_DATA_IN, MessageBusAddress.LEGACY_DATA_OUT,
-				messageExpiryTimeLimit);
-
+		this.consume(mosipEventBus, MessageBusAddress.LEGACY_DATA_IN, messageExpiryTimeLimit);
+		try {
+			legacyDataProcessor.connectAndSubscribe();
+		} catch (Exception e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),"Unknown Exception while connecting and subscribing to graphQL : {}",
+					e.getMessage());
+		}
 	}
 
 	@Override
@@ -112,5 +116,9 @@ public class LegacyDataStage extends MosipVerticleAPIManager {
 	 */
 	protected String getStageName() {
 		return ClassUtils.getUserClass(this.getClass()).getSimpleName();
+	}
+	
+	public void sendMessage(MessageDTO messageDTO) {
+		this.send(this.mosipEventBus, MessageBusAddress.LEGACY_DATA_OUT, messageDTO);
 	}
 }
