@@ -155,17 +155,6 @@ public class LegacyDataVal {
 
 		regProcLogger.info("GraphQL response for registrationId {}: {}", registrationId, response);
 	    
-		JsonNode responseJson = objectMapper.readTree(response);
-		if (responseJson.has("transactionStatus")) {
-			JsonNode transactionStatus = responseJson.get("transactionStatus");
-			String status = transactionStatus.get("transactionStatus").asText();
-			
-			if ("Processing".equalsIgnoreCase(status)) {
-				regProcLogger.info("GraphQL returned Processing status - waiting for WebSocket result");
-				registrationStatusDto.setStatusComment("Waiting for legacy system identification result");
-				return;
-			}
-		}
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
 	}

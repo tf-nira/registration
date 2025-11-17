@@ -129,7 +129,6 @@ public class LegacyDataProcessor {
 	
 	public MessageDTO process(MessageDTO object, String stageName) {
 		LogDescription description = new LogDescription();
-		boolean isTransactionSuccessful = false;
 		String registrationId = "";
 		//original code had the following Message Bus Address.
 		//object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
@@ -156,24 +155,9 @@ public class LegacyDataProcessor {
 			legacyDataVal.validate(registrationId, registrationStatusDto, description, object);
 			regProcLogger.info("LegacyDataProcessor call ended for registrationId {} {} {}", registrationId,
 					description.getCode() + description.getMessage());
-			
-			if (registrationStatusDto.getStatusComment() != null 
-				&& registrationStatusDto.getStatusComment().contains("Waiting for legacy system")) {
-				
-				regProcLogger.info("Waiting for WebSocket result - NOT sending to next stage");
-				object.setIsValid(Boolean.FALSE);
-				object.setInternalError(Boolean.FALSE);
-				
-				registrationStatusDto.setUpdatedBy(USER);
-				registrationStatusService.updateRegistrationStatus(registrationStatusDto, 
-					ModuleName.LEGACY_DATA.toString(), ModuleName.LEGACY_DATA.toString());
-				
-				return object; // RETURN without sending to next stage
-			}
 
 			object.setIsValid(Boolean.TRUE);
 			object.setInternalError(Boolean.FALSE);
-			isTransactionSuccessful = true;
 		} 
 		catch (LegacyDataBiomtericException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
