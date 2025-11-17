@@ -308,8 +308,8 @@ public class LegacyDataVal {
 	        conn.setRequestProperty("Authorization", authToken);
 	        conn.setDoOutput(true);
 	        // Set timeouts
-	        conn.setConnectTimeout(120000);
-	        conn.setReadTimeout(150000);
+//	        conn.setConnectTimeout(120000);
+//	        conn.setReadTimeout(150000);
 	        regProcLogger.info("Sending GraphQL request to legacy system");
 	        
 	        // Write request body

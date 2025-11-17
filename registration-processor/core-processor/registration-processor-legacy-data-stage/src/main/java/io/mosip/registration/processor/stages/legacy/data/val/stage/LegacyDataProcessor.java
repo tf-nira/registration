@@ -420,7 +420,38 @@ public class LegacyDataProcessor {
 				legacyDataVal.onDemandMigration(NIN, response, registrationStatusDto, description);
 				object.setIsValid(Boolean.TRUE);
 				object.setInternalError(Boolean.FALSE);
-			} else if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Error")) {
+			} else if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Processing")) {
+	            // Handle the Processing status - this is what you're receiving!
+	            regProcLogger.info("Legacy system is still processing request: {}", response.getRequestId());
+	            
+	            // Set processing status
+	            registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+	            registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getCode());
+	            registrationStatusDto.setStatusComment("Legacy system is processing the identification request");
+	            registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+	            description.setCode(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getCode());
+	            description.setMessage("Legacy system is processing the identification request");
+	            
+	            object.setIsValid(Boolean.FALSE);
+	            object.setInternalError(Boolean.FALSE);
+	            
+	            // Don't call onDemandMigration yet - wait for final result
+	            
+	        } else if ("Error".equalsIgnoreCase(transactionStatus.getTransactionStatus())
+	                && (transactionStatus.getError() != null 
+	                && transactionStatus.getError().getMessage() != null
+	                && transactionStatus.getError().getMessage()
+	                        .contains("AFIS system is not available! connect timed"))){
+	            regProcLogger.warn("AFIS system is not available! connect timed for requestId: {}",
+	            		response.getRequestId());
+	            
+	            registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+	            registrationStatusDto.setSubStatusCode(StatusUtil.LEGACY_DATA_STAGE_IN_PROGRESS.getCode());
+	            registrationStatusDto.setStatusComment("AFIS system is not available! connect timed");
+	            
+	            object.setIsValid(Boolean.FALSE);
+	            object.setInternalError(Boolean.FALSE);
+	        } else if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Error")) {
 				regProcLogger.info("Transaction status is Error : {}", response.getRequestId());
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 						LoggerFileConstant.REGISTRATIONID.toString(), response.getRequestId(),
