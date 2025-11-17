@@ -76,7 +76,7 @@ public class LegacyDataStage extends MosipVerticleAPIManager {
 		try {
 			legacyDataProcessor.connectAndSubscribe();
 		} catch (Exception e) {
-			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(),"Unknown Exception while connecting and subscribing to graphQL : {}",
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),"Unknown Exception while connecting and subscribing to graphQL : {}",
 					e.getMessage());
 		}
 	}

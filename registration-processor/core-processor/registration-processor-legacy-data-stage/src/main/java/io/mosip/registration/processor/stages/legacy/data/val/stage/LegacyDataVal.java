@@ -16,6 +16,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -143,8 +144,16 @@ public class LegacyDataVal {
 		regProcLogger.debug("validate called for registrationId {}", registrationId);
 
 		Map<String, String> positionAndWsqMap = getBiometricsWSQFormat(registrationId, registrationStatusDto);
-		sendIdentifyPersonGraphQLRequest(positionAndWsqMap);
+		
+		regProcLogger.info("Retrieved {} fingerprints for registrationId {}", 
+	            positionAndWsqMap.size(), registrationId);
+		
+		
+		String response = sendIdentifyPersonGraphQLRequest(positionAndWsqMap);
 
+		regProcLogger.info("GraphQL response for registrationId {}: {}", registrationId, response);
+	    
+		
 		regProcLogger.debug("validate call ended for registrationId {}", registrationId);
 
 	}
@@ -242,37 +251,107 @@ public class LegacyDataVal {
 		return NIN;
 	}
 
-	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap) throws IOException, URISyntaxException{
-		List<Map<String, String>> fingerprints = new ArrayList<>();
-		for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
+	private String sendIdentifyPersonGraphQLRequest(Map<String, String> positionAndWsqMap) 
+	        throws IOException, URISyntaxException {
+	    
+	    regProcLogger.info("sendIdentifyPersonGraphQLRequest started with {} fingerprints", 
+	            positionAndWsqMap.size());
+	    
+	 // Validation checks
+	    if (positionAndWsqMap == null || positionAndWsqMap.isEmpty()) {
+	        regProcLogger.error("No fingerprints provided for identification");
+	        throw new IllegalArgumentException("Fingerprint map cannot be null or empty");
+	    }
+	    
+	    if (graphQLQuery == null || graphQLQuery.isEmpty()) {
+	        regProcLogger.error("GraphQL query is not configured");
+	        throw new IllegalStateException("GraphQL query is missing");
+	    }
+	    
+	    if (postUrl == null || postUrl.isEmpty()) {
+	        regProcLogger.error("GraphQL endpoint URL is not configured");
+	        throw new IllegalStateException("GraphQL endpoint URL is missing");
+	    }
+	    
+	    if (authToken == null || authToken.isEmpty()) {
+	        regProcLogger.error("Authorization token is not configured");
+	        throw new IllegalStateException("Authorization token is missing");
+	    }
+	    
+	    List<Map<String, String>> fingerprints = new ArrayList<>();
+	    for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
 	        Map<String, String> fingerprint = new HashMap<>();
 	        fingerprint.put("position", entry.getKey());
 	        fingerprint.put("wsq", entry.getValue());
 	        fingerprints.add(fingerprint);
+	        regProcLogger.debug("Added fingerprint for position: {}", entry.getKey());
 	    }
-		
-		Map<String, Object> input = new HashMap<>();
-        input.put("fingerprints", fingerprints);
 
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("input", input);
+	    Map<String, Object> input = new HashMap<>();
+	    input.put("fingerprints", fingerprints);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("query", graphQLQuery);
-        payload.put("variables", variables);
-        
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-        	String jsonRequest = objectMapper.writeValueAsString(payload);
-            HttpPost post = new HttpPost(postUrl);
-            post.setHeader("Content-Type", "application/json");
-            post.setHeader("Authorization", "Bearer " + authToken);
-            post.setEntity(new StringEntity(jsonRequest));
+	    Map<String, Object> variables = new HashMap<>();
+	    variables.put("input", input);
 
-            String responseString = EntityUtils.toString(client.execute(post).getEntity());
-            JsonNode responseJson = objectMapper.readTree(responseString);
-            return responseJson.toPrettyString();
-        } 
+	    Map<String, Object> payload = new HashMap<>();
+	    payload.put("query", graphQLQuery);
+	    payload.put("variables", variables);
 
+	    CloseableHttpResponse response = null;
+	    
+	    try (CloseableHttpClient client = HttpClients.createDefault()) {
+	        String jsonRequest = objectMapper.writeValueAsString(payload);
+	        
+	        regProcLogger.debug("GraphQL Request URL: {}", postUrl);
+	        regProcLogger.debug("GraphQL Request Payload: {}", jsonRequest);
+	        
+	        HttpPost post = new HttpPost(postUrl);
+	        post.setHeader("Content-Type", "application/json");
+	        post.setHeader("Authorization", "Bearer " + authToken);
+	        post.setEntity(new StringEntity(jsonRequest, StandardCharsets.UTF_8));
+
+	        regProcLogger.info("Sending GraphQL request to legacy system");
+	        
+	        response = client.execute(post);
+	        int statusCode = response.getStatusLine().getStatusCode();
+	        
+	        regProcLogger.info("Received response with status code: {}", statusCode);
+	        
+	        String responseString = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+	        
+	        regProcLogger.debug("Raw Response: {}", responseString);
+	        
+	        if (statusCode < 200 || statusCode >= 300) {
+	            regProcLogger.error("GraphQL request failed with status {}: {}", statusCode, responseString);
+	            throw new IOException("HTTP Error " + statusCode + ": " + responseString);
+	        }
+	        
+	        JsonNode responseJson = objectMapper.readTree(responseString);
+	        
+	        if (responseJson.has("errors")) {
+	            regProcLogger.error("GraphQL returned errors: {}", responseJson.get("errors").toPrettyString());
+	            throw new IOException("GraphQL errors: " + responseJson.get("errors").toPrettyString());
+	        }
+	        
+	        String prettyResponse = responseJson.toPrettyString();
+	        regProcLogger.info("GraphQL response received successfully");
+	        regProcLogger.debug("Formatted Response: {}", prettyResponse);
+	        
+	        return prettyResponse;
+	        
+	    } catch (IOException e) {
+	        regProcLogger.error("IOException during GraphQL request: {}", e.getMessage(), e);
+	        throw e;
+	    } finally {
+	        if (response != null) {
+	            try {
+	                response.close();
+	            } catch (IOException e) {
+	                regProcLogger.warn("Error closing response: {}", e.getMessage());
+	            }
+	        }
+	        regProcLogger.debug("sendIdentifyPersonGraphQLRequest completed");
+	    }
 	}
 	
 	
