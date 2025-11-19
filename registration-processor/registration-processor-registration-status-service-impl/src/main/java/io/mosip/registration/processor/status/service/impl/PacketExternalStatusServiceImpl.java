@@ -42,10 +42,10 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 	@Value("#{'${mosip.registration.processor.packet.status.reg-stage-names-before-uploading-to-objectstore:PacketReceiverStage,SecurezoneNotificationStage}'.split(',')}")
 	private List<String> regStageNamesBeforeUploadingToObjectStore;
 
-	@Value("${mosip.registration.processor.packet.status.transactiontypecodes-uploading-to-objectstore:PacketUploaderStage}")
+	@Value("${mosip.registration.processor.packet.status.reg-stage-names-uploading-to-objectstore}")
 	private String regStageNameUploadingToObjectStore;
 
-	@Value("#{'${mosip.registration.processor.packet.status.transactiontypecodes-time-based-resend-required:PacketReceiverStage}'.split(',')}")
+	@Value("#{'${mosip.registration.processor.packet.status.reg-stage-names-time-based-resend-required:PacketReceiverStage}'.split(',')}")
 	private List<String> regStageNamesTimeBasedResendRequired;
 
 	/** The elapsed time. */
