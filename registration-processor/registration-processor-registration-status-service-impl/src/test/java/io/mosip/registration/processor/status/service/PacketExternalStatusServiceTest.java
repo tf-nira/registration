@@ -50,14 +50,17 @@ public class PacketExternalStatusServiceTest {
 	@Before
 	public void setup() {
 		List<String> transactionTypeCodesBeforeUploadingToObjectStoreList=new ArrayList<>();
-		transactionTypeCodesBeforeUploadingToObjectStoreList.add("PACKET_RECEIVER");
-		transactionTypeCodesBeforeUploadingToObjectStoreList.add("SECUREZONE_NOTIFICATION");
+		transactionTypeCodesBeforeUploadingToObjectStoreList.add("PacketReceiverStage");
+		transactionTypeCodesBeforeUploadingToObjectStoreList.add("SecurezoneNotificationStage");
 		List<String> transactionTypeCodeTimeBasesResendRequiredList=new ArrayList<>();
-		transactionTypeCodeTimeBasesResendRequiredList.add("PACKET_RECEIVER");
+		transactionTypeCodeTimeBasesResendRequiredList.add("PacketReceiverStage");
 		
-		ReflectionTestUtils.setField(packetExternalStatusService, "transactionTypeCodesBeforeUploadingToObjectStore", transactionTypeCodesBeforeUploadingToObjectStoreList);
-		ReflectionTestUtils.setField(packetExternalStatusService, "transactionTypeCodeUploadingToObjectStore", "UPLOAD_PACKET");
-		ReflectionTestUtils.setField(packetExternalStatusService, "transactionTypeCodesTimeBasedResendRequired", transactionTypeCodeTimeBasesResendRequiredList);
+		ReflectionTestUtils.setField(packetExternalStatusService, "regStageNamesBeforeUploadingToObjectStore",
+				transactionTypeCodesBeforeUploadingToObjectStoreList);
+		ReflectionTestUtils.setField(packetExternalStatusService, "regStageNameUploadingToObjectStore",
+				"PacketUploaderStage");
+		ReflectionTestUtils.setField(packetExternalStatusService, "regStageNamesTimeBasedResendRequired",
+				transactionTypeCodeTimeBasesResendRequiredList);
 		ReflectionTestUtils.setField(packetExternalStatusService, "maxRetryCount", 10);
 		syncRegistrationEntities = new ArrayList<>();
 		SyncRegistrationEntity syncRegistrationEntity = new SyncRegistrationEntity();
@@ -72,6 +75,7 @@ public class PacketExternalStatusServiceTest {
 		internalRegistrationStatusDto.setWorkflowInstanceId("0c326dc2-ac54-4c2a-98b4-b0c620f1661f");
 		internalRegistrationStatusDto.setRegistrationType("NEW");
 		internalRegistrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.SECUREZONE_NOTIFICATION.toString());
+		internalRegistrationStatusDto.setRegistrationStageName("SecurezoneNotificationStage");
 		internalRegistrationStatusDto.setStatusCode("REPROCESS");
 		internalRegistrationStatusDto.setRetryCount(0);
 		Mockito.when(syncRegistrationService.getByPacketIds(any())).thenReturn(syncRegistrationEntities);
@@ -92,6 +96,7 @@ public class PacketExternalStatusServiceTest {
 		internalRegistrationStatusDto.setLatestTransactionTimes(LocalDateTime.now().minusSeconds(100));
 		internalRegistrationStatusDto
 				.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PACKET_RECEIVER.toString());
+		internalRegistrationStatusDto.setRegistrationStageName("PacketReceiverStage");
 		List<String> packetIdList = new ArrayList<>();
 		packetIdList.add("packetId1");
 		List<PacketExternalStatusDTO> packetExternalStatusDTOList = packetExternalStatusService
@@ -114,6 +119,7 @@ public class PacketExternalStatusServiceTest {
 	public void testGetByPacketIdsWithPaused() {
 		internalRegistrationStatusDto.setStatusCode("PAUSED");
 		internalRegistrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PACKET_CLASSIFICATION.toString());
+		internalRegistrationStatusDto.setRegistrationStageName("PacketClassifierStage");
 		List<String> packetIdList = new ArrayList<>();
 		packetIdList.add("packetId1");
 		List<PacketExternalStatusDTO> packetExternalStatusDTOList=packetExternalStatusService.getByPacketIds(packetIdList);
@@ -123,6 +129,7 @@ public class PacketExternalStatusServiceTest {
 	@Test
 	public void testGetByPacketIdsWithReprocessFailed() {
 		internalRegistrationStatusDto.setStatusCode("REPROCESS_FAILED");
+		internalRegistrationStatusDto.setRegistrationStageName("SecurezoneNotificationStage");
 		List<String> packetIdList = new ArrayList<>();
 		packetIdList.add("packetId1");
 		List<PacketExternalStatusDTO> packetExternalStatusDTOList=packetExternalStatusService.getByPacketIds(packetIdList);
@@ -142,6 +149,7 @@ public class PacketExternalStatusServiceTest {
 	public void testGetByPacketIdsWithMaxRetryCount() {
 		internalRegistrationStatusDto.setStatusCode("FAILED");
 		internalRegistrationStatusDto.setRetryCount(11);
+		internalRegistrationStatusDto.setRegistrationStageName("PacketReceiverStage");
 		List<String> packetIdList = new ArrayList<>();
 		packetIdList.add("packetId1");
 		List<PacketExternalStatusDTO> packetExternalStatusDTOList=packetExternalStatusService.getByPacketIds(packetIdList);
@@ -152,6 +160,7 @@ public class PacketExternalStatusServiceTest {
 	public void testGetByPacketIdsWithUploadingToObjectStoreReprocessFailed() {
 		internalRegistrationStatusDto.setStatusCode("REPROCESS_FAILED");
 		internalRegistrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.UPLOAD_PACKET.toString());
+		internalRegistrationStatusDto.setRegistrationStageName("PacketUploaderStage");
 		List<String> packetIdList = new ArrayList<>();
 		packetIdList.add("packetId1");
 		List<PacketExternalStatusDTO> packetExternalStatusDTOList=packetExternalStatusService.getByPacketIds(packetIdList);
