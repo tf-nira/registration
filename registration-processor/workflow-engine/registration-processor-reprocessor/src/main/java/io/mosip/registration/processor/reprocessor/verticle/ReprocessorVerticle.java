@@ -80,10 +80,10 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Value("${registration.processor.reprocess.fetchsize}")
 	private Integer fetchSize;
 	
-	@Value("${registration.processor.reprocess.processing.fetchsize}")
+	@Value("${registration.processor.reprocess.processing.new.fetchsize}")
 	private Integer processingFetchSize;
 
-	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.processes}')}")
+	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.new.processes}')}")
 	private List<String> processes;
 	
 	/** The elapse time. */
@@ -437,3 +437,4 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		return VERTICLE_PROPERTY_PREFIX;
 	}
 }
+
