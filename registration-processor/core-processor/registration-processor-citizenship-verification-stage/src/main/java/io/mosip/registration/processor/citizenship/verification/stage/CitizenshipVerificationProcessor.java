@@ -168,10 +168,10 @@ public class CitizenshipVerificationProcessor {
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (PacketOnHoldException e) {
 			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
+					RegistrationTransactionStatusCode.ON_HOLD.toString());
 			registrationStatusDto.setStatusComment(e.getMessage());
 			registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
 			object.setOnHold(Boolean.TRUE);
 		} catch (DataAccessException e) {
 			object.setInternalError(Boolean.TRUE);
