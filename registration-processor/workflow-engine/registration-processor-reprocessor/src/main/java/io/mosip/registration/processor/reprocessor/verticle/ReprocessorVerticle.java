@@ -76,18 +76,14 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	/** The mosip event bus. */
 	MosipEventBus mosipEventBus = null;
 	
-	/** The fetch size. */
-	@Value("${registration.processor.reprocess.fetchsize}")
+	@Value("${registration.processor.reprocess.instance2.fetchsize}")
 	private Integer fetchSize;
-	
-	@Value("${registration.processor.reprocess.processing.fetchsize}")
-	private Integer processingFetchSize;
 
-	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.processes}')}")
-	private List<String> processes;
+	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.instance2.include.processes}')}")
+	private List<String> includeProcesses;
 	
 	/** The elapse time. */
-	@Value("${registration.processor.reprocess.elapse.time}")
+	@Value("${registration.processor.reprocess.instance2.elapse.time}")
 	private long elapseTime;
 
 	/** The reprocess count. */
@@ -170,14 +166,14 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		// description of timers
 		JsonObject timer = (new JsonObject())
 				.put(ReprocessorConstants.TYPE, environment.getProperty(ReprocessorConstants.TYPE_VALUE))
-				.put(ReprocessorConstants.SECONDS, environment.getProperty(ReprocessorConstants.SECONDS_VALUE))
-				.put(ReprocessorConstants.MINUTES, environment.getProperty(ReprocessorConstants.MINUTES_VALUE))
-				.put(ReprocessorConstants.HOURS, environment.getProperty(ReprocessorConstants.HOURS_VALUE))
+				.put(ReprocessorConstants.SECONDS, environment.getProperty(ReprocessorConstants.SECONDS_VALUE_2))
+				.put(ReprocessorConstants.MINUTES, environment.getProperty(ReprocessorConstants.MINUTES_VALUE_2))
+				.put(ReprocessorConstants.HOURS, environment.getProperty(ReprocessorConstants.HOURS_VALUE_2))
 				.put(ReprocessorConstants.DAY_OF_MONTH,
-						environment.getProperty(ReprocessorConstants.DAY_OF_MONTH_VALUE))
-				.put(ReprocessorConstants.MONTHS, environment.getProperty(ReprocessorConstants.MONTHS_VALUE))
+						environment.getProperty(ReprocessorConstants.DAY_OF_MONTH_VALUE_2))
+				.put(ReprocessorConstants.MONTHS, environment.getProperty(ReprocessorConstants.MONTHS_VALUE_2))
 				.put(ReprocessorConstants.DAYS_OF_WEEK,
-						environment.getProperty(ReprocessorConstants.DAYS_OF_WEEK_VALUE));
+						environment.getProperty(ReprocessorConstants.DAYS_OF_WEEK_VALUE_2));
 
 		// create scheduler
 		eventBus.send(ReprocessorConstants.CHIME,
@@ -238,10 +234,23 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		int  totalNumberOfReprocessRecords = 0;
 		try {
 			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
+			reprocessorDtoList = registrationStatusService.getResumablePackets(elapseTime, fetchSize,
+					reprocessExcludeStageNames, includeProcesses);
 			
-			reprocessorDtoList = registrationStatusService.getUnProcessedPackets(processingFetchSize, elapseTime,
-					reprocessCount, statusList, reprocessExcludeStageNames, processes);
-			
+			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
+				if (reprocessorDtoList.size() < fetchSize) {
+					List<InternalRegistrationStatusDto> reprocessorPacketList = registrationStatusService
+							.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime, reprocessCount,
+									statusList, reprocessExcludeStageNames, includeProcesses);
+					if (!CollectionUtils.isEmpty(reprocessorPacketList)) {
+						reprocessorDtoList.addAll(reprocessorPacketList);
+					}
+				}
+			} else {
+				reprocessorDtoList = registrationStatusService.getUnProcessedPackets(fetchSize, elapseTime,
+						reprocessCount, statusList, reprocessExcludeStageNames, includeProcesses);
+			}
+
 			totalNumberOfReprocessRecords = (!CollectionUtils.isEmpty(reprocessorDtoList)?reprocessorDtoList.size():0);
 			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);			
 			
