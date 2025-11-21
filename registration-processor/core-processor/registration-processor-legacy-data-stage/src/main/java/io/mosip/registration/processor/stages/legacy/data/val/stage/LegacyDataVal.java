@@ -50,8 +50,8 @@ import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
-import io.mosip.registration.processor.core.migration.dto.MigrationOnDemandResponse;
-import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
+import io.mosip.registration.processor.core.migration.dto.MigrationRequestUpdateDto;
+import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.util.JsonUtil;
@@ -134,13 +134,13 @@ public class LegacyDataVal {
 			if (NIN != null) {
 				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
 						registrationId);
-					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-					migrationRequestDto.setNin(NIN.toUpperCase());
-					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-					requestWrapper.setRequest(migrationRequestDto);
+				MigrationRequestUpdateDto migrationRequestUpdateDto = new MigrationRequestUpdateDto();
+				migrationRequestUpdateDto.setNin(NIN.toUpperCase());
+				migrationRequestUpdateDto.setDependentRid(registrationId);
+				RequestWrapper<MigrationRequestUpdateDto> requestWrapper = new RequestWrapper();
+				requestWrapper.setRequest(migrationRequestUpdateDto);
 					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
-									ResponseWrapper.class,
+						.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class,
 									null);
 					regProcLogger.info("Response from migration api : {}{}", registrationId,
 							JsonUtils.javaObjectToJsonString(responseWrapper));
@@ -148,14 +148,14 @@ public class LegacyDataVal {
 						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
 						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
 					}
-					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
+					MigrationResponse migrationResponse = objectMapper
 							.readValue(
 							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-									MigrationOnDemandResponse.class);
-					if (migrationOnDemandResponse != null) {
+									MigrationResponse.class);
+					if (migrationResponse != null) {
 						regProcLogger.info(
 								"ondemand migration happended for registration id  and migration rid is  : {} {}",
-								registrationId, migrationOnDemandResponse.getRid());
+								registrationId, migrationResponse.getRid());
 						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
 								StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNIN " + NIN);
 					} else {

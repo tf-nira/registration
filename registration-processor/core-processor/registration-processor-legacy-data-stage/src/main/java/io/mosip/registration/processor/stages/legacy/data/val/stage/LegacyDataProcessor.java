@@ -150,6 +150,7 @@ public class LegacyDataProcessor {
 					description, PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
 		} catch (ValidationFailedException e) {
 			object.setInternalError(Boolean.FALSE);
+			object.setOnHold(true);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.ON_HOLD,
 					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.ON_HOLD,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
