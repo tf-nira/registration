@@ -166,13 +166,11 @@ public class CitizenshipVerificationProcessor {
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (PacketOnHoldException e) {
-			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", e.getErrorText());
-			object.setNotificationAttributes(notificationAttributes);
-			object.setInternalError(Boolean.TRUE);
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING, StatusUtil.PACKET_ON_HOLD,
-					RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET, description,
-					PlatformErrorMessages.RPR_CITIZENSHIP_VERIFICATION_FAILED, e);
+			registrationStatusDto.setLatestTransactionStatusCode(
+					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
+			registrationStatusDto.setStatusComment(e.getMessage());
+			registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 		} catch (DataAccessException e) {
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
@@ -382,26 +380,19 @@ public class CitizenshipVerificationProcessor {
 					registrationStatusDto, description, parentFoundDTO);
 	    }
 		if (parentFoundDTO.isParentNINFoundInMosip() == false && isParentInfoValid == false) {
-			boolean isOnDemandValid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
+			String migrationRid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
 			String fatherOrMother = "";
 			if (fatherNIN != null) {
 				fatherOrMother = "Father";
 			} else {
 				fatherOrMother = "Mother";
 			}
-			if (isOnDemandValid == true) {
-				registrationStatusDto.setLatestTransactionStatusCode(
-						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
-				registrationStatusDto.setStatusComment(
-						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage() + fatherOrMother
-								+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+			if (migrationRid != null) {
 				regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
 						registrationStatusDto.getRegistrationId(),
 						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 				throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
+						StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " for " + fatherOrMother + " and rid is " + migrationRid);
 			} else {
 
 				logAndSetStatusError(registrationStatusDto,
@@ -442,24 +433,24 @@ public class CitizenshipVerificationProcessor {
 	    return isParentInfoValid;
 	}
 
-	private boolean validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
+	private String validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
 			String fatherNIN) throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException,
 			UnsupportedEncodingException, JsonProcessingException, JsonMappingException,
 			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException,
 			LegacyDataValidationException {
-		boolean isValid = false;
+		String migrationRid = null;
 		if (fatherNIN != null) {
 			regProcLogger.info("On demand migration of father NIN for rid {} {}", fatherNIN,
 					registrationStatusDto.getRegistrationId());
-			isValid = migrationUtil
+			migrationRid = migrationUtil
 					.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(), fatherNIN);
 		} else if (motherNIN != null) {
 			regProcLogger.info("On demand migration of mother NIN for rid {} {}", motherNIN,
 					registrationStatusDto.getRegistrationId());
-			isValid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
+			migrationRid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
 					motherNIN);
 		}
-		return isValid;
+		return migrationRid;
 	}
 
 
@@ -745,23 +736,15 @@ public class CitizenshipVerificationProcessor {
 			else {
 				regProcLogger.info("On demand migration of guardian NIN for rid {} {}", guardianNin,
 						registrationStatusDto.getRegistrationId());
-				boolean isValid = migrationUtil
+				String migrationRid = migrationUtil
 						.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
 						guardianNin);
-				if (isValid) {
-					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
-							.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
-					registrationStatusDto
-							.setStatusComment(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage()
-									+ guardianRelationValue
-									+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
-					registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-					regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
+				if (migrationRid != null) {
+					regProcLogger.debug("handleValidationWithNoParentNinFound call ended for registrationId {} {}",
 							registrationStatusDto.getRegistrationId(),
 							StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 					throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
+							StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " for " + guardianRelationValue + " and rid is " + migrationRid);
 				} else {
 					logAndSetStatusError(registrationStatusDto,
 							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),

@@ -5,6 +5,9 @@ import java.util.Objects;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.mosip.registration.processor.core.http.ResponseWrapper;
+import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
+import io.mosip.registration.processor.status.repositary.RegistrationRepositary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -14,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -66,6 +70,9 @@ public class RegistrationTransactionController {
 	@Autowired
 	ObjectMapper objMp;
 
+	@Autowired
+	private RegistrationRepositary registrationRepositary;
+
 	private static final String INVALIDTOKENMESSAGE = "Authorization Token Not Available In The Header";
 	private static final String REG_TRANSACTION_SERVICE_ID = "mosip.registration.processor.registration.transaction.id";
 	private static final String REG_TRANSACTION_APPLICATION_VERSION = "mosip.registration.processor.transaction.version";
@@ -117,6 +124,66 @@ public class RegistrationTransactionController {
 			}
 		}
 	}
+
+	@PreAuthorize("hasAnyRole(@authorizedTransactionRoles.getGetsearchrid())")
+	@PostMapping("/prioritize/{rid}")
+	@Operation(summary = "Get the status entity", description = "Get the rid status ", tags = { "Registration Status" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Transaction Entity/Entities successfully fetched"),
+			@ApiResponse(responseCode = "400", description = "Unable to fetch Transaction Entity/Entities", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true)))
+	})
+	public ResponseWrapper<String> packetResumable(@PathVariable("rid") String rid) {
+
+		ResponseWrapper responseWrapper=new ResponseWrapper<>();
+		String response=null;
+		try {
+			response = processing(rid);
+			responseWrapper.setResponse(response);
+
+		} catch (Exception exc) {
+			throw new RuntimeException("Unexpected error occurred: " + exc.getMessage(), exc);
+		}
+
+		return responseWrapper;
+	}
+
+	public String processing(String rid) {
+		String response = "null";
+		List<RegistrationStatusEntity> records = registrationRepositary.findByRegId(rid);
+
+		if (records == null || records.isEmpty()) {
+			response = "Application not present";
+		} else {
+			boolean updated = false;
+
+			for (RegistrationStatusEntity recordEntity : records) {
+				if (recordEntity != null &&
+						"SecurezoneNotificationStage".equalsIgnoreCase(recordEntity.getRegistrationStageName())) {
+
+					if ("PROCESSING".equalsIgnoreCase(recordEntity.getStatusCode()) &&
+							"SUCCESS".equalsIgnoreCase(recordEntity.getLatestTransactionStatusCode())) {
+
+						recordEntity.setStatusCode("RESUMABLE");
+						registrationRepositary.save(recordEntity);
+						response = "Successfully updated";
+						updated = true;
+						break;
+					}
+				}
+			}
+
+			if (!updated ) {
+				response = "Application cant be resumed";
+			}
+		}
+
+		return response;
+
+	}
+
 
 	/**
 	 * build the registration transaction response

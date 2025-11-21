@@ -320,6 +320,8 @@ public enum RegistrationExceptionTypeCode {
 
 	ON_DEMAND_MIGRATION_REJECTED,
 
-	LEGACY_FAILED;
+	LEGACY_FAILED,
+
+	ON_HOLD;
 
 }

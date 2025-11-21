@@ -144,17 +144,12 @@ public class IntroducerValidator {
 			if (parentInfoJson == null) {
 				regProcLogger.info("introducer NIN is not present in mosip and call for ondemand migration : {}",
 						registrationId);
-				boolean isValid = migrationUtil.validateAndCreateOnDemandPacket(registrationId, introducerNIN);
-				if (isValid) {
-					registrationStatusDto.setLatestTransactionStatusCode(registrationExceptionMapperUtil
-							.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_INTRODUCER_PACKET));
-					registrationStatusDto.setStatusComment(StatusUtil.PACKET_ON_HOLD.getMessage());
-					registrationStatusDto.setSubStatusCode(StatusUtil.PACKET_ON_HOLD.getCode());
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-					regProcLogger.debug("isValidIntroducerRid call ended for registrationId {} {}", registrationId,
+				String migrationRid = migrationUtil.validateAndCreateOnDemandPacket(registrationId, introducerNIN);
+				if (migrationRid != null) {
+					regProcLogger.debug("validate call ended for registrationId {} {}", registrationId,
 							StatusUtil.PACKET_ON_HOLD.getMessage());
 					throw new IntroducerOnHoldException(StatusUtil.PACKET_ON_HOLD.getCode(),
-							StatusUtil.PACKET_ON_HOLD.getMessage());
+							StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is " + migrationRid);
 				} else {
 					regProcLogger.info("ondemand migration for introducer NIN is failed for packet : {}",
 							registrationId);
