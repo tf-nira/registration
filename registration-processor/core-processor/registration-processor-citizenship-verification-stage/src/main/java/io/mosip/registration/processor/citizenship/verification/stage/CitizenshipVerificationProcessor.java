@@ -107,6 +107,7 @@ public class CitizenshipVerificationProcessor {
 		object.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.FALSE);
+		object.setOnHold(Boolean.FALSE);
 
 		regProcLogger.debug("Process called for registrationId {}", registrationId);
 		
@@ -167,10 +168,11 @@ public class CitizenshipVerificationProcessor {
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (PacketOnHoldException e) {
 			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
+					RegistrationTransactionStatusCode.ON_HOLD.toString());
 			registrationStatusDto.setStatusComment(e.getMessage());
 			registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
+			object.setOnHold(Boolean.TRUE);
 		} catch (DataAccessException e) {
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
