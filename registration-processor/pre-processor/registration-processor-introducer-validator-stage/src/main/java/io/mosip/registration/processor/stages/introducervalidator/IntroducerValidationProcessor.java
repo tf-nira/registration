@@ -138,10 +138,10 @@ public class IntroducerValidationProcessor {
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (IntroducerOnHoldException e) {
 			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_INTRODUCER_PACKET));
+					RegistrationTransactionStatusCode.ON_HOLD.toString());
 			registrationStatusDto.setStatusComment(e.getMessage());
 			registrationStatusDto.setSubStatusCode(StatusUtil.PACKET_ON_HOLD.getCode());
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
 			object.setOnHold(Boolean.TRUE);
 		} catch (DataAccessException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
