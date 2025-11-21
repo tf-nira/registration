@@ -85,6 +85,7 @@ public class LegacyDataProcessor {
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
+		object.setOnHold(false);
 		Map<String, String> attributes = new HashMap<>();
 		regProcLogger.debug("LegacyDataProcessor called for registrationId {}", registrationId);
 		registrationId = object.getRid();
@@ -150,6 +151,7 @@ public class LegacyDataProcessor {
 					description, PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
 		} catch (ValidationFailedException e) {
 			object.setInternalError(Boolean.FALSE);
+			object.setOnHold(true);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.ON_HOLD,
 					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.ON_HOLD,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
