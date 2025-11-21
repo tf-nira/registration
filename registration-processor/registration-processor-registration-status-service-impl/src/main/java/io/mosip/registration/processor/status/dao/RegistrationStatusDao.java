@@ -221,7 +221,8 @@ public class RegistrationStatusDao {
 	 * @return the un processed packets
 	 */
 	public List<RegistrationStatusEntity> getUnProcessedPackets(Integer fetchSize, long elapseTime,
-			Integer reprocessCount, List<String> status, List<String> excludeStageNames, List<String> excludeProcesses) {
+			Integer reprocessCount, List<String> status, List<String> excludeStageNames,
+			List<String> includeProcesses) {
 
 		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
 		List<String> statusCodes=new ArrayList<>();
@@ -233,7 +234,7 @@ public class RegistrationStatusDao {
 		statusCodes.add(RegistrationStatusCode.PROCESSED.toString());
 
 		return registrationStatusRepositary.getUnProcessedPackets(status, reprocessCount, timeDifference, 
-			statusCodes, fetchSize, excludeStageNames, excludeProcesses);
+				statusCodes, fetchSize, excludeStageNames, includeProcesses);
 	}
 
 	public Integer getUnProcessedPacketsCount(long elapseTime, Integer reprocessCount, List<String> status, 
@@ -271,10 +272,11 @@ public class RegistrationStatusDao {
 		return registrationStatusRepositary.getActionablePausedPackets(statusCodes, fetchSize);
 	}
 
-	public List<RegistrationStatusEntity> getResumablePackets(long elapseTime, Integer fetchSize, List<String> excludeStageNames) {
+	public List<RegistrationStatusEntity> getResumablePackets(long elapseTime, Integer fetchSize,
+			List<String> excludeStageNames, List<String> includeProcesses) {
 		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
 		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), timeDifference, fetchSize,
-				excludeStageNames);
+				excludeStageNames, includeProcesses);
 	}
 	
 	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {
