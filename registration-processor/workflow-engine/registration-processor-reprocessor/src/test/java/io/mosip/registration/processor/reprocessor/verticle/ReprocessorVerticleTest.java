@@ -118,11 +118,10 @@ public class ReprocessorVerticleTest {
 		 //Mockito.when(description.getCode()).thenReturn("CODE");
 		 //Mockito.when(description.getMessage()).thenReturn("MESSAGE");
 		 ReflectionTestUtils.setField(reprocessorVerticle, "fetchSize", 2);
-		 ReflectionTestUtils.setField(reprocessorVerticle, "processingFetchSize", 2);
          ReflectionTestUtils.setField(reprocessorVerticle, "elapseTime", 21600);
          ReflectionTestUtils.setField(reprocessorVerticle, "reprocessCount", 3);
 		 ReflectionTestUtils.setField(reprocessorVerticle, "reprocessExcludeStageNames", new ArrayList<>());
-		 ReflectionTestUtils.setField(reprocessorVerticle, "processes", new ArrayList<>());
+			ReflectionTestUtils.setField(reprocessorVerticle, "includeProcesses", new ArrayList<>());
 			List<String> reprocessRestartTriggerFilterList = new ArrayList<>();
 			reprocessRestartTriggerFilterList.add("DemodedupStage:Success");
 			reprocessRestartTriggerFilterList.add("BioDedupeStage:*");
