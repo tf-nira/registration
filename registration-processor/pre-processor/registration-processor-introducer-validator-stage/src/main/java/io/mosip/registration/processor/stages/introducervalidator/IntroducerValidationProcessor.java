@@ -88,6 +88,7 @@ public class IntroducerValidationProcessor {
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
+		object.setOnHold(Boolean.FALSE);
 
 		regProcLogger.debug("process called for registrationId {}", registrationId);
 		registrationId = object.getRid();
@@ -137,10 +138,11 @@ public class IntroducerValidationProcessor {
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (IntroducerOnHoldException e) {
 			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_INTRODUCER_PACKET));
+					RegistrationTransactionStatusCode.ON_HOLD.toString());
 			registrationStatusDto.setStatusComment(e.getMessage());
 			registrationStatusDto.setSubStatusCode(StatusUtil.PACKET_ON_HOLD.getCode());
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
+			object.setOnHold(Boolean.TRUE);
 		} catch (DataAccessException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.DB_NOT_ACCESSIBLE, RegistrationExceptionTypeCode.DATA_ACCESS_EXCEPTION, description,
