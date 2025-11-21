@@ -204,6 +204,7 @@ public class RegistrationExceptionMapperUtil {
 		statusMap.put(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET, RegistrationTransactionStatusCode.REPROCESS);
 		statusMap.put(RegistrationExceptionTypeCode.LEGACY_FAILED, RegistrationTransactionStatusCode.FAILED);
 		statusMap.put(RegistrationExceptionTypeCode.MANUAL_VERIFICATION_FAILED, RegistrationTransactionStatusCode.FAILED);
+		statusMap.put(RegistrationExceptionTypeCode.ON_HOLD, RegistrationTransactionStatusCode.ON_HOLD);
 		return unmodifiableMap;
 
 	}
