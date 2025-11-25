@@ -155,7 +155,6 @@ public class LegacyDataProcessor {
 			legacyDataVal.validate(registrationId, registrationStatusDto, description, object);
 			regProcLogger.info("LegacyDataProcessor call ended for registrationId {} {} {}", registrationId,
 					description.getCode() + description.getMessage());
-
 			object.setIsValid(Boolean.TRUE);
 			object.setInternalError(Boolean.FALSE);
 		} 
@@ -204,6 +203,11 @@ public class LegacyDataProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.UNKNOWN_EXCEPTION_OCCURED, RegistrationExceptionTypeCode.EXCEPTION, description,
 					PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
+		} finally {
+			String moduleId = description.getCode();
+			String moduleName = ModuleName.LEGACY_DATA.toString();
+			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			
 		}
 		return object;
 
@@ -419,7 +423,7 @@ public class LegacyDataProcessor {
 				object.setIsValid(Boolean.TRUE);
 				object.setInternalError(Boolean.FALSE);
 			} else if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Processing")) {
-	            // Handle the Processing status - this is what you're receiving!
+	            // Handle the Processing status 
 	            regProcLogger.info("Legacy system is still processing request: {}", response.getRequestId());
 	            
 	            // Set processing status

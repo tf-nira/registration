@@ -37,6 +37,10 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
@@ -78,6 +82,7 @@ import io.mosip.registration.processor.stages.legacy.data.val.dto.Fingerprint;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Header;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPerson;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPersonGraphQLResponse;
+import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPersonRequest;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.IdentifyPersonResponse;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Password;
 import io.mosip.registration.processor.stages.legacy.data.val.dto.Person;
@@ -139,6 +144,8 @@ public class LegacyDataVal {
 	@Value("${graphql.auth.token}")
 	private String authToken;
 
+	private static final Gson GSON = new Gson();
+	
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object) throws ApisResourceAccessException, PacketManagerException,
 			JsonProcessingException, LegacyDataBiomtericException, IOException, URISyntaxException {
@@ -274,32 +281,29 @@ public class LegacyDataVal {
 	        throw new IllegalStateException("Authorization token is missing");
 	    }
 	    
-	    // Build fingerprints list - matching working code structure
-	    List<Map<String, String>> fingerprints = new ArrayList<>();
+	    List<Fingerprint> fingerprints = new ArrayList<>();
 	    for (Map.Entry<String, String> entry : positionAndWsqMap.entrySet()) {
-	        Map<String, String> fingerprint = new HashMap<>();
-	        fingerprint.put("position", entry.getKey());
-	        fingerprint.put("wsq", entry.getValue());
+	        Fingerprint fingerprint = new Fingerprint();
+	        fingerprint.setPosition(entry.getKey());
+	        fingerprint.setWsq(entry.getValue());
 	        fingerprints.add(fingerprint);
 	        regProcLogger.debug("Added fingerprint for position: {}", entry.getKey());
 	    }
 	    
-	    // Build the request object - EXACTLY like working code
-	    Map<String, Object> identifyPersonRequest = new HashMap<>();
-	    identifyPersonRequest.put("fingerprints", fingerprints);
-	    identifyPersonRequest.put("requestId", registrationId);
-	    identifyPersonRequest.put("nationalId", "");
+	    IdentifyPersonRequest identifyPersonRequest = new IdentifyPersonRequest();
+	    identifyPersonRequest.setFingerprints(fingerprints);
+	    identifyPersonRequest.setRequestId(registrationId);
+	    identifyPersonRequest.setNationalId("");
 
 	    HttpURLConnection conn = null;
 	    
 	    try {
 	        // Convert to JSON
-	        String json = objectMapper.writeValueAsString(identifyPersonRequest);
+	    	String json = GSON.toJson(identifyPersonRequest);
 	        
 	        regProcLogger.info("GraphQL Request URL: {}", postUrl);
 	        regProcLogger.info("GraphQL Request Payload: {}", json);
 	        
-	        // Create connection - matching working code
 	        conn = (HttpURLConnection) new URL(postUrl).openConnection();
 	        conn.setRequestMethod("POST");
 	        conn.setRequestProperty("Content-Type", "application/json");
@@ -307,8 +311,8 @@ public class LegacyDataVal {
 	        conn.setRequestProperty("Authorization", authToken);
 	        conn.setDoOutput(true);
 	        // Set timeouts
-//	        conn.setConnectTimeout(120000);
-//	        conn.setReadTimeout(150000);
+	        conn.setConnectTimeout(120000);
+	        conn.setReadTimeout(150000);
 	        regProcLogger.info("Sending GraphQL request to legacy system");
 	        
 	        // Write request body
@@ -342,14 +346,15 @@ public class LegacyDataVal {
 	            throw new IOException("HTTP Error " + code + ": " + responseString);
 	        }
 	        
-	        JsonNode responseJson = objectMapper.readTree(responseString);
+	        JsonElement responseElement = JsonParser.parseString(responseString);
+	        JsonObject responseJson = responseElement.getAsJsonObject();
 	        
 	        if (responseJson.has("errors")) {
-	            regProcLogger.error("GraphQL returned errors: {}", responseJson.get("errors").toPrettyString());
-	            throw new IOException("GraphQL errors: " + responseJson.get("errors").toPrettyString());
+	            regProcLogger.error("GraphQL returned errors: {}", responseJson.get("errors").toString());
+	            throw new IOException("GraphQL errors: " + responseJson.get("errors").toString());
 	        }
 	        
-	        String prettyResponse = responseJson.toPrettyString();
+	        String prettyResponse = GSON.toJson(responseJson);
 	        regProcLogger.info("GraphQL response received successfully");
 	        regProcLogger.info("Formatted Response: {}", prettyResponse);
 	        
