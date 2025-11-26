@@ -13,18 +13,18 @@ public class IdentifyPersonGraphQLResponse {
 	private String requestId;
 	private String recordId;
 	private String processingTime;
-	private List <Person> person;
+	private List <Person> persons;
 	private TransactionStatus transactionStatus;
 	
 	public IdentifyPersonGraphQLResponse(boolean success, String message, String requestId, 
             String recordId, String processingTime, 
-            String nationalId, List<Person> person, TransactionStatus transactionStatus) {
+            String nationalId, List<Person> persons, TransactionStatus transactionStatus) {
 		this.success = success;
         this.message = message;
         this.requestId = requestId;
         this.recordId = recordId;
         this.processingTime = processingTime;
-        this.person = person;
+        this.persons = persons;
         this.transactionStatus = transactionStatus;
 	}
 	
@@ -63,7 +63,7 @@ public class IdentifyPersonGraphQLResponse {
     public static class TransactionStatus {
     	private String transactionStatus;
     	private Error error;
-    	private int passwordDaysLeft;
+    	private String passwordDaysLeft;
     	private double executionCost;
     }
     

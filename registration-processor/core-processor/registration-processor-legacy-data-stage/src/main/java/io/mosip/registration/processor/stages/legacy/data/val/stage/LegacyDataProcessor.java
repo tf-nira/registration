@@ -300,10 +300,12 @@ public class LegacyDataProcessor {
 	        }
 	        
 	        JsonObject identifyPerson = data.getAsJsonObject("identifyPerson");
-	        
+	        regProcLogger.info("[SUB DATA] identifyPerson JSON: {}", identifyPerson.toString());
+
 	        Gson gson = new Gson();
 	        IdentifyPersonGraphQLResponse response = gson.fromJson(identifyPerson, IdentifyPersonGraphQLResponse.class);
 	        regProcLogger.info("[SUB DATA] : {}", response);
+	        regProcLogger.info("[SUB DATA] persons: {}", response.getPersons());
 	        
 	        String requestId = response.getRequestId();
 	        LogDescription description = new LogDescription();
@@ -405,7 +407,7 @@ public class LegacyDataProcessor {
 		try {
 			if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Ok")) {
 				String NIN = null;
-				List<IdentifyPersonGraphQLResponse.Person> persons = response.getPerson();
+				List<IdentifyPersonGraphQLResponse.Person> persons = response.getPersons();
 				if (persons != null && !persons.isEmpty()) {
 					if (persons.size() == 1) {
 						regProcLogger.info("Single nin returned from legacy : {}", response.getRequestId());
