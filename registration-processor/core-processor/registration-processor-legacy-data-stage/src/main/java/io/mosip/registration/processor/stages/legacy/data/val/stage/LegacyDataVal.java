@@ -346,7 +346,8 @@ public class LegacyDataVal {
 	            throw new IOException("HTTP Error " + code + ": " + responseString);
 	        }
 	        
-	        JsonElement responseElement = JsonParser.parseString(responseString);
+	        JsonParser parser = new JsonParser();
+	        JsonElement responseElement = parser.parse(responseString);
 	        JsonObject responseJson = responseElement.getAsJsonObject();
 	        
 	        if (responseJson.has("errors")) {
