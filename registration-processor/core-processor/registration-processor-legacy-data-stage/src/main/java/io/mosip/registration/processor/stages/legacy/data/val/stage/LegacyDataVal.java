@@ -146,7 +146,8 @@ public class LegacyDataVal {
 							JsonUtils.javaObjectToJsonString(responseWrapper));
 					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
 						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
+						throw new DataMigrationPacketCreationException(error.getErrorCode(),
+								error.getMessage() + " matchedNIN " + NIN);
 					}
 					MigrationResponse migrationResponse = objectMapper
 							.readValue(

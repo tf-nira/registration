@@ -140,7 +140,7 @@ public class LegacyDataValidator {
 				regProcLogger.error("Error from migration api : {}{}", registrationId,
 						JsonUtils.javaObjectToJsonString(responseWrapper));
 				ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-				throw new DataMigrationException(error.getErrorCode(), error.getMessage());
+				throw new DataMigrationException(error.getErrorCode(), error.getMessage() + " NIN " + NIN);
 			}
 			else{
 				MigrationResponse migrationResponse = objectMapper.readValue(
