@@ -522,8 +522,16 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			throw unwrapBiometricException(ex);
 		}
 
-		if (fingerScoreList != null && !fingerScoreList.isEmpty())
-			bioTypeMinScoreMap.put(BiometricType.FINGER.value(), getFingerMedianScore(fingerScoreList));
+		if (fingerScoreList != null && !fingerScoreList.isEmpty()) {
+			boolean hasNegative = fingerScoreList.stream().anyMatch(v -> v < 0);
+			if (hasNegative) {
+				tags.put(qualityTagPrefix.concat(BiometricType.FINGER.value()), "level-1");
+			} else {
+				bioTypeMinScoreMap.put(BiometricType.FINGER.value(), getFingerMedianScore(fingerScoreList));
+			}
+
+		}
+			
 		
 		// Check Maximum Score for Each Modality
 		for (Map.Entry<String, List<Float>> entry : bioTypeScoreMap.entrySet()) {
@@ -531,8 +539,14 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			List<Float> scores = entry.getValue();
 
 			if (scores != null && !scores.isEmpty()) {
-				float max = Collections.max(scores);
-				bioTypeMinScoreMap.put(bioType, max);
+				boolean hasNegative = scores.stream().anyMatch(v -> v < 0);
+				if (hasNegative) {
+					tags.put(qualityTagPrefix.concat(bioType), "level-1");
+				} else {
+					float max = Collections.max(scores);
+					bioTypeMinScoreMap.put(bioType, max);
+				}
+
 			}
 		}
 
