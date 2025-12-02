@@ -126,6 +126,14 @@ public class SyncRegistrationDao {
 		return !CollectionUtils.isEmpty(syncRegistrationEntityList) ? syncRegistrationEntityList.get(0) : null;
 
 	}
+	
+	public SyncRegistrationEntity findByRegistrationIdAndRegTypeAndAdditionalInfoReqId(String registrationId, String registrationType, String additionalInfoReqId) {
+		List<SyncRegistrationEntity> syncRegistrationEntityList = syncRegistrationRepository.findByRegistrationIdAndRegTypeAndAdditionalInfoReqId(registrationId,
+				registrationType, additionalInfoReqId);
+
+		return !CollectionUtils.isEmpty(syncRegistrationEntityList) ? syncRegistrationEntityList.get(0) : null;
+
+	}
 
 	/**
 	 * Gets the by ids.
