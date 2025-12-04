@@ -254,16 +254,22 @@ public class LegacyDataVal {
 		if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Ok")) {
 			List<Person> persons = identifyPersonResponse.getReturnElement().getPersons();
 			if (persons != null && !persons.isEmpty()) {
-				if (persons.size() == 1) {
+
+				List<String> finalNins = persons.stream().map(Person::getNationalId).filter(Objects::nonNull)
+						.filter(nin -> !(nin.startsWith("nct") || nin.startsWith("tmp"))).collect(Collectors.toList());
+				if (finalNins != null && !finalNins.isEmpty()) {
+					if (finalNins.size() == 1) {
 					regProcLogger.info("Single nin returned from legacy : {}", registrationId);
-					NIN = persons.get(0).getNationalId();
+					NIN = finalNins.get(0);
 				} else {
-					String nins = persons.stream().map(Person::getNationalId).filter(Objects::nonNull)
-							.collect(Collectors.joining(", "));
+					String nins = String.join(", ", finalNins);
 					regProcLogger.error("Multiple NINs returned from legacy for regId {} : {}", registrationId, nins);
 					throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
 							StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNINs " + nins);
 				}
+			}else {
+				regProcLogger.info("No  nins returned from legacy : {}", registrationId);
+			   }
 			} else {
 				regProcLogger.info("No  nins returned from legacy : {}", registrationId);
 			}
