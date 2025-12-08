@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.stages.packet.validator;
 
 import java.io.ByteArrayInputStream;
+import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -287,6 +288,18 @@ public class PacketValidateProcessor {
 			}
 			object.setInternalError(Boolean.FALSE);
 			registrationStatusDto.setUpdatedBy(USER);
+			
+			String jsonServiceTypeObj =  packetManagerService.getField(regEntity.getRegistrationId(), MappingJsonConstants.SERVICE_TYPE, regEntity.getRegistrationType(), ProviderStageName.PACKET_VALIDATOR);
+			
+			String userServiceType = null;
+			if (jsonServiceTypeObj != null) {
+				JSONArray userServiceTypeArray = new JSONArray(jsonServiceTypeObj);
+				userServiceType = userServiceTypeArray.getJSONObject(0).getString("value");
+			}
+			
+			if(userServiceType.equalsIgnoreCase("Alien New Registration")){
+				regEntity.setRegistrationType("ALIENNEW");
+			}
 			//Only send success notification here because failure notifications are sent via internal workflow
 			if (packetValidationDto.isTransactionSuccessful()
 					&& !registrationStatusDto.getRegistrationType().equalsIgnoreCase("MIGRATOR")) {

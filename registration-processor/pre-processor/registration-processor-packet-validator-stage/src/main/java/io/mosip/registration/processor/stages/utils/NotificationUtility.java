@@ -182,6 +182,8 @@ public class NotificationUtility {
 			String userService = "";
 			if ("NEW".equals(regType)) {
 				userService = "New Registration";
+			} else if ("ALIENNEW".equals(regType)) {
+				userService = "Alien New Registration";
 			} else if ("LOST".equals(regType)) {
 				userService = "Replacement Of Card";
 			} else if ("UPDATE".equals(regType)) {
