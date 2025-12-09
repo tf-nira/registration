@@ -145,6 +145,8 @@ public class MosipBridgeFactory extends MosipVerticleAPIManager {
 		RoutesDefinition routes;
 		for (String camelRouteFileName : camelRoutesFilesArr) {
 			String camelRoutesUrl = camelRoutesBaseUrl + camelRouteFileName;
+			regProcLogger.info("camelRoutesBaseUrl :"+camelRoutesBaseUrl );
+			regProcLogger.info("camelRouteFileName :"+camelRouteFileName );
 			responseEntity = restTemplate.exchange(camelRoutesUrl, HttpMethod.GET, null, Resource.class);
 			Resource body=responseEntity.getBody();
 			if (body == null) {
