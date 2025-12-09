@@ -370,7 +370,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 						trimeExpMessage.trimExceptionMessage(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getMessage()));
 				registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getCode());
 				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
+						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 				registrationStatusDto
 						.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
 
