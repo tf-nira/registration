@@ -552,13 +552,23 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * @return status
 	 */
 	private boolean validateTaxHeadAndRegType(PrnStatusResponseDataDTO response, String regType ,String citizenshipTypePacket , String replacementTypePacket) {
-		String paidFor = null;
+		String paidFor = "None";
 		if("Alien New Registration".equalsIgnoreCase(citizenshipTypePacket)){
 			paidFor = "NEWAID";
 		}
-		else {
-			paidFor = "None";
+		else if("Renewal of Alien".equalsIgnoreCase(citizenshipTypePacket)){
+			paidFor = "RENAID";
 		}
+		else if("Replacement of Alien".equalsIgnoreCase(citizenshipTypePacket)){
+			if("Lost".equalsIgnoreCase(replacementTypePacket)){
+				paidFor = "LOSTAID";
+			}
+			else if ("Damaged/ Defaced".equalsIgnoreCase(replacementTypePacket)){
+				paidFor = "DMGAID";
+			}
+
+		}
+
 		if(regType.equalsIgnoreCase(response.getProcessFlow())) {
 			if(response.getTaxHeadCode().equalsIgnoreCase(taxheadChangeCode)){
 				if(response.getAmountPaid().equals(taxheadChangeAmount)) {
@@ -586,7 +596,21 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 					return true;
 				}
 			}
-
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadrenewalalien)){
+				if(response.getAmountPaid().equals(amountrenewalalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+					return true;
+				}
+			}
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadlostalien)){
+				if(response.getAmountPaid().equals(amountlostalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+					return true;
+				}
+			}
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheaddamagedalien)){
+				if(response.getAmountPaid().equals(amountdamagedalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+					return true;
+				}
+			}
 			else {
 				return false;
 			}
