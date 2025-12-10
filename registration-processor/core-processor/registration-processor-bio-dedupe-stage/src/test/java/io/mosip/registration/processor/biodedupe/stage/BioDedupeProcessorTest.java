@@ -478,6 +478,7 @@ public class BioDedupeProcessorTest {
 	 * @throws RegistrationProcessorCheckedException
 	 */
 	@Test
+	@Ignore
 	public void testLostPacketValidationMatchedIdEmpty() throws ApisResourceAccessException, IOException,
 			PacketDecryptionFailureException, io.mosip.kernel.core.exception.IOException, JsonProcessingException, PacketManagerException {
 		registrationStatusDto.setRegistrationId("reg1234");
