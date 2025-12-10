@@ -73,6 +73,9 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	@Query(value ="SELECT * FROM registration r WHERE r.upd_dtimes < CURRENT_DATE and r.is_anonymous_profile_added IS NOT TRUE order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(@Param("fetchSize") Integer fetchSize);
 	
+	@Query("SELECT registration.registrationType FROM RegistrationStatusEntity registration WHERE registration.regId in :regIds")
+	public List<String> getProcessForRegIds(@Param("regIds") List<String> regIds);
+
 }
 
 
