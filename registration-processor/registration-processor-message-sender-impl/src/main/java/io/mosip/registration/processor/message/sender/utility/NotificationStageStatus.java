@@ -34,6 +34,8 @@ public enum NotificationStageStatus {
 
 	REG_PACKET_REJECTED,
 
+	MA_PACKET_REJECTED,
+
 	PACKET_FAILED,
 
 	ON_DEMAND_MIGRATION_FAILED,
