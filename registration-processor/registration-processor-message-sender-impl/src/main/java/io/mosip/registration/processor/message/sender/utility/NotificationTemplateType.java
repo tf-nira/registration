@@ -29,6 +29,7 @@ public enum NotificationTemplateType {
 	
 	ONDEMAND,
 
-	SUPERVISOR_REJECTION
+	SUPERVISOR_REJECTION,
 
+	MA_PACKET_REJECTED
 }
