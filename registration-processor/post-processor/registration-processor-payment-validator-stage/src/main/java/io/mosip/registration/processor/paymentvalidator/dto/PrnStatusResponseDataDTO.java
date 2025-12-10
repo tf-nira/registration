@@ -60,4 +60,7 @@ public class PrnStatusResponseDataDTO {
 	
 	@JsonProperty("processFlowPaidFor")
 	private String processFlow;
+
+	@JsonProperty("subServiceTypePaidFor")
+	private String subServiceTypePaidFor;
 }
