@@ -169,4 +169,6 @@ public interface RegistrationStatusService<T, U, D> {
 	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(Integer fetchSize);
 	
 	public U getRegistrationStatusforMVS(String regid, String processs, Integer iteration, String workflowInstanceId);
+
+	public List<String> getProcessForRegIds(List<String> matchedRegIds);
 }
