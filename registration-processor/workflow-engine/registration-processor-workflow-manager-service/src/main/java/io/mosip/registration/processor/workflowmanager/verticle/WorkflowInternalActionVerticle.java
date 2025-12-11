@@ -345,6 +345,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.anyMatch(s -> s.equalsIgnoreCase(candidate));
+		regProcLogger.info("Should send failure notification for registration id {} : {}", workflowInternalActionDTO.getRid(), shouldNotify);
 
 		if (shouldNotify && workflowInternalActionDTO.getNotificationAttributes() != null) {
 			registrationStatusDto.setNeedsNotification(true);
@@ -388,6 +389,8 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				ProviderStageName.MVS.getValue(),
 				ProviderStageName.MANUAL_ADJUDICATION.getValue()
 		}).anyMatch(regStageName::contains);
+
+		regProcLogger.info("Is relevant stage for notification for registration id {} : {}", workflowInternalActionDTO.getRid(), isRelevantStage);
 
 		if (isRelevantStage && workflowInternalActionDTO.getNotificationAttributes() != null) {
 			registrationStatusDto.setNeedsNotification(true);
