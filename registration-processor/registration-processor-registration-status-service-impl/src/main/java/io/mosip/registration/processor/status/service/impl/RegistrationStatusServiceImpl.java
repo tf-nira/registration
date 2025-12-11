@@ -1038,5 +1038,10 @@ public class RegistrationStatusServiceImpl
 				"RegistrationStatusServiceImpl::updateRegistrationStatusForWorkFlow()::exit");
 
 	}
-	
+
+	@Override
+	public List<String> getProcessForRegIds(List<String> matchedRegIds) {
+		return registrationStatusDao.getProcessForRegIds(matchedRegIds);
+	}
+
 }

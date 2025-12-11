@@ -286,4 +286,9 @@ public class RegistrationStatusDao {
 	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(Integer fetchSize) {
 		return registrationStatusRepositary.getAnonymousNotAddedPackets(fetchSize);
 	}
+
+	public List<String> getProcessForRegIds(List<String> matchedRegIds) {
+		return registrationStatusRepositary.getProcessForRegIds(matchedRegIds);
+	}
+
 }

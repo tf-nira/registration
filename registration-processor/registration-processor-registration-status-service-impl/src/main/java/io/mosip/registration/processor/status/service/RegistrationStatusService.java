@@ -38,7 +38,7 @@ public interface RegistrationStatusService<T, U, D> {
 	public U getRegistrationStatus(String regid, String processs, Integer iteration, String workflowInstanceId);
 
 	public List<InternalRegistrationStatusDto> getAllRegistrationStatuses(String registrationId);
-	
+
 	public U getRegistrationStatusforMVS(String regid, String processs, Integer iteration, String workflowInstanceId);
 
 	public InternalRegistrationStatusDto getRegStatusForMainProcess(String registrationId);
@@ -170,4 +170,8 @@ public interface RegistrationStatusService<T, U, D> {
 	public List<InternalRegistrationStatusDto> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes);
 	
 	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(Integer fetchSize);
+	
+	public U getRegistrationStatusforMVS(String regid, String processs, Integer iteration, String workflowInstanceId);
+
+	public List<String> getProcessForRegIds(List<String> matchedRegIds);
 }
