@@ -85,6 +85,7 @@ public class LegacyDataProcessor {
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
+		object.setOnHold(false);
 		Map<String, String> attributes = new HashMap<>();
 		regProcLogger.debug("LegacyDataProcessor called for registrationId {}", registrationId);
 		registrationId = object.getRid();
