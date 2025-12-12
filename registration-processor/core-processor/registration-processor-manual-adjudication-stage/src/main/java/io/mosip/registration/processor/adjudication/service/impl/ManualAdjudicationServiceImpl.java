@@ -1124,7 +1124,15 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformErrorMessages.RPR_MANUAL_VERIFICATION_REJECTED.getCode());
 			messageDTO.setIsValid(Boolean.FALSE);
 			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", "Application rejected during the Manual Adjudication");
+
+			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
+				notificationAttributes.put("FAILURE_REASON", "Biometric authentication failed");
+			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				notificationAttributes.put("FAILURE_REASON", "Introducer biometric authentication failed");
+			} else {
+				notificationAttributes.put("FAILURE_REASON", "Similar biometrics exists in the system");
+			}
+
 			messageDTO.setNotificationAttributes(notificationAttributes);
 		} else {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
