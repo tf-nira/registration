@@ -387,7 +387,10 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		String regStageName = registrationStatusDto.getRegistrationStageName();
 		boolean isRelevantStage = Arrays.stream(new String[]{
 				ProviderStageName.MVS.getValue(),
-				ProviderStageName.MANUAL_ADJUDICATION.getValue()
+				ProviderStageName.MANUAL_ADJUDICATION.getValue(),
+				"MVSStage",
+				"MvsStage",
+				"ManualAdjudicationStage"
 		}).anyMatch(regStageName::contains);
 
 		regProcLogger.info("Is relevant stage for notification for registration id {} : {}", workflowInternalActionDTO.getRid(), isRelevantStage);
