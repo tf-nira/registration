@@ -232,6 +232,9 @@ public class ABISHandlerUtil {
 						registrationId, packetUin + " entered packetUin****************************");
 				if (matchedUin != null && packetUin.equals(matchedUin)) {
 					filteredRegMap.put(matchedUin, machedRegId);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							registrationId,
+							filteredRegMap + " entered condition adding to map ****************************");
 				}
 			}
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.NEW.toString()) && matchedUin != null) {
