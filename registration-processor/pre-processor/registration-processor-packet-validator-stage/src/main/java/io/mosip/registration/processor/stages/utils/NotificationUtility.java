@@ -176,11 +176,25 @@ public class NotificationUtility {
                 MappingJsonConstants.VALUE);
 		String[] nameArray = nameField.toString().split(",");
 
+		String jsonServiceTypeObj =  packetManagerService.getField(regEntity.getRegistrationId(), MappingJsonConstants.SERVICE_TYPE, regEntity.getRegistrationType(), ProviderStageName.PACKET_VALIDATOR);
+		
+		String userServiceType = null;
+		if (jsonServiceTypeObj != null) {
+			JSONArray userServiceTypeArray = new JSONArray(jsonServiceTypeObj);
+			userServiceType = userServiceTypeArray.getJSONObject(0).getString("value");
+		}
+
 		for(String preferredLanguage:preferredLanguages) {
 			attributes.put(nameArray[0] + "_" + preferredLanguage, "applicant");
 
 			String userService = "";
-			if ("NEW".equals(regType)) {
+			if("Alien New Registration".equalsIgnoreCase(userServiceType)) {
+				userService = userServiceType;
+			} else if ("Renewal of Alien".equalsIgnoreCase(userServiceType)) {
+				userService = userServiceType;
+			} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
+				userService = userServiceType;
+			} else if ("NEW".equals(regType)) {
 				userService = "New Registration";
 			} else if ("LOST".equals(regType)) {
 				userService = "Replacement Of Card";

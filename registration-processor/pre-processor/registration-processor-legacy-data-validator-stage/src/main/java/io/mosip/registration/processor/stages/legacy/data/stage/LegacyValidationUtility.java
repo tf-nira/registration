@@ -59,9 +59,6 @@ public class LegacyValidationUtility {
 
 	private Map<String, double[]> parsedAgeGroupRangemap;
 
-	@Value("${mosip.regproc.introducer-validator.renewal.age.limit:16}")
-	private String RenewalAgelimit;
-
 	@Value("${mosip.regproc.packet.validator.max.number.spouses:4}")
 	private Integer maxNumberOfSpouses;
 
@@ -139,15 +136,5 @@ public class LegacyValidationUtility {
 		return isValidNumberOfSpouse;
 	}
 
-	public boolean validateAgeToRenewal(String id, String process)
-			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
-		double age = utility.getApplicantAge(id, process, ProviderStageName.PACKET_VALIDATOR);
-		int ageThreshold = Integer.parseInt(RenewalAgelimit);
-		if (age < ageThreshold) {
 
-			return false;
-		}
-		return true;
-
-	}
 }

@@ -108,6 +108,9 @@ public class LegacyDataValidator {
 	@Value("${registration.processor.applicant.dob.format}")
 	private String dobFormat;
 	
+	@Value("${mosip.regproc.introducer-validator.renewal.age.limit:16}")
+	private String renewalAgelimit;
+
 	public void validate(String registrationId, InternalRegistrationStatusDto registrationStatusDto,
 			LogDescription description, MessageDTO object)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException,
@@ -207,7 +210,7 @@ public class LegacyDataValidator {
 				}
 			}
 			if (registrationType.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) {
-				isValidRenewal = legacyValidationUtility.validateAgeToRenewal(registrationId, registrationType);
+				isValidRenewal = validateAgeToRenewal(jSONObject, registrationId, registrationType);
 			}
 					
 			if(!getFirstIdAgeValidFlag){
@@ -321,5 +324,24 @@ public class LegacyDataValidator {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	public boolean validateAgeToRenewal(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
+		boolean renewalAgeValidFlag = true;
+		String dateOfBirth = jsonObject.get("dateOfBirth").toString();
+		if (dateOfBirth != null) {
+			int age = calculateAge(dateOfBirth);
+			int ageThreshold = Integer.parseInt(renewalAgelimit);
+			if (age < ageThreshold)
+				renewalAgeValidFlag = false;
+			else
+				renewalAgeValidFlag = true;
+		} else {
+			renewalAgeValidFlag = false;
+		}
+
+		return renewalAgeValidFlag;
+
 	}
 }

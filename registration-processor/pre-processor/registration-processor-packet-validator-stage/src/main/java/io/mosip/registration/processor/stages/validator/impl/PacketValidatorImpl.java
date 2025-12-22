@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import org.json.simple.parser.JSONParser;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.core.cbeffutil.exception.CbeffException;
 import io.mosip.kernel.core.exception.BiometricSignatureValidationException;
@@ -150,7 +150,27 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
-				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())){
+				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
+				
+				String userServiceType= null;
+				try {
+				    if (jsonServiceTypeObj != null) {
+				        if (jsonServiceTypeObj instanceof String) {
+				            JSONParser parser = new JSONParser();
+				            Object parsedObj = parser.parse((String) jsonServiceTypeObj);
+				            if (parsedObj instanceof List<?>) {
+							    List<?> sericeTypeList = (List<?>) parsedObj;
+							    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
+							        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
+							        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+							    }
+							}
+				        }
+				    }
+				} catch (Exception e) {
+				    regProcLogger.error("Error while extracting userServiceType", e);
+				}
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString()) && !"Renewal of Alien".equalsIgnoreCase(userServiceType)){
 					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
 						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
 						packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getCode());

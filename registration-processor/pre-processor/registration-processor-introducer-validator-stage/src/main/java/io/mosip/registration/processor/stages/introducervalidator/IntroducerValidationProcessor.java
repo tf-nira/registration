@@ -101,7 +101,7 @@ public class IntroducerValidationProcessor {
 
 		String nin = "";
 		try {
-			nin = packetManagerService.getField(registrationId, "NIN", object.getReg_type(), ProviderStageName.INTRODUCER_VALIDATOR);
+			nin = packetManagerService.getField(registrationId, "introducerNIN", object.getReg_type(), ProviderStageName.INTRODUCER_VALIDATOR);
 			introducerValidator.validate(registrationId, registrationStatusDto);
 
 			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
