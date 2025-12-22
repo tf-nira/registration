@@ -137,6 +137,8 @@ public class NotificationScheduler {
 					} else {
 						if (packet.getRegistrationStageName().contains(ProviderStageName.MVS.getValue())) {
 							workflowDto.setErrorCode(RegistrationExceptionTypeCode.MVS_PACKET_REJECTED.name());
+						} else if (packet.getRegistrationStageName().contains(ProviderStageName.MANUAL_ADJUDICATION.getValue())) {
+							workflowDto.setErrorCode(RegistrationExceptionTypeCode.MA_PACKET_REJECTED.name());
 						} else {
 							workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_REJECTED.name());
 						}
