@@ -97,7 +97,7 @@ public class IdrepoDraftService {
             List<Map<String, Object>> userServiceTypes = (List<Map<String, Object>>) identity.get("userServiceType");
 
             if (userServiceTypes!=null && !userServiceTypes.isEmpty() && "Deactivated".equalsIgnoreCase((String) userServiceTypes.get(0).get("value"))) {
-                String nin = identity.get("NIN") != null ? (String) identity.get("NIN") : null;
+                String nin = (String) identity.get("NIN");
                 uin = (nin != null && nin.length() >= 10) ? nin.substring(nin.length() - 10) : uin;
             }
             idrepoCreateDraft(id, uin);
