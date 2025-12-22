@@ -224,9 +224,17 @@ public class ABISHandlerUtil {
 				}
 			}
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.LOST.toString())) {
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						registrationId, matchedUin + " entered matchedUIN*************************");
+
 				String packetUin = utilities.getUINByHandle(registrationId, registrationType, stageName);
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						registrationId, packetUin + " entered packetUin****************************");
 				if (matchedUin != null && packetUin.equals(matchedUin)) {
 					filteredRegMap.put(matchedUin, machedRegId);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							registrationId,
+							filteredRegMap + " entered condition adding to map ****************************");
 				}
 			}
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.NEW.toString()) && matchedUin != null) {

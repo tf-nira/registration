@@ -554,7 +554,8 @@ public class BioDedupeProcessor {
 		} else {
 			List<String> processes = registrationStatusService.getProcessForRegIds(new ArrayList<>(matchedRegIds));
 			boolean isAllowed = processes.stream().filter(Objects::nonNull).map(String::toUpperCase)
-					.anyMatch(p -> p.equals("RENEWAL") || p.equals("UPDATE") || p.equals("FIRSTID") || p.equals("NEW"));
+					.anyMatch(p -> p.equalsIgnoreCase("RENEWAL") || p.equalsIgnoreCase("UPDATE")
+							|| p.equalsIgnoreCase("FIRSTID") || p.equalsIgnoreCase("NEW"));
 			if(isAllowed) {
 				registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 				object.setIsValid(Boolean.TRUE);
