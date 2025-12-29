@@ -136,7 +136,8 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 					mappedValue = PacketExternalStatusCode.RECEIVED;
 				}
            
-			} else if (status.equalsIgnoreCase(RegistrationStatusCode.FAILED.toString())) {
+			} else if (status.equalsIgnoreCase(RegistrationStatusCode.FAILED.toString())
+					|| status.equalsIgnoreCase(RegistrationStatusCode.REPROCESS_FAILED.toString())) {
 				if ((internalRegistrationStatusDto.getRetryCount() < maxRetryCount)) {
 					mappedValue = PacketExternalStatusCode.RESEND;
 				} else {
