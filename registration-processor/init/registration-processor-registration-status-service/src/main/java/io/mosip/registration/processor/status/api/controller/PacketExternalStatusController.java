@@ -144,8 +144,6 @@ public class PacketExternalStatusController {
 		} catch (RegStatusAppException e) {
 			throw new RegStatusAppException(PlatformErrorMessages.RPR_RGS_DATA_VALIDATION_FAILED, e);
 		} catch (Exception e) {
-			logger.error("Error while getting the packet status", e.getStackTrace());
-			logger.error("Error while getting the packet status", e.getMessage());
 			throw new RegStatusAppException(PlatformErrorMessages.RPR_RGS_UNKNOWN_EXCEPTION, e);
 		}
 	}
