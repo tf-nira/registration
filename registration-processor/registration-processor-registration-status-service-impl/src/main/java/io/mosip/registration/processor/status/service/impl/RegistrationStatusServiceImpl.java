@@ -671,6 +671,7 @@ public class RegistrationStatusServiceImpl
 		registrationStatusDto.setNeedsNotification(entity.getNeedsNotification());
 		registrationStatusDto.setNotificationSent(entity.getNotificationSent());
 		registrationStatusDto.setIsAnonymousProfileAdded(entity.getIsAnonymousProfileAdded());
+		registrationStatusDto.setLatestTransactionTimes(entity.getLatestTransactionTimes());
 		return registrationStatusDto;
 	}
 
