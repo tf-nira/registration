@@ -122,7 +122,14 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 					|| status.equalsIgnoreCase(RegistrationStatusCode.RESUMABLE.toString())) {
 				if (regStageNamesTimeBasedResendRequired
 						.contains(internalRegistrationStatusDto.getRegistrationStageName())) {
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							internalRegistrationStatusDto.getRegistrationId(), "entered resend************");
 					long timeElapsedInCurrentStage = checkElapsedTime(internalRegistrationStatusDto);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							internalRegistrationStatusDto.getRegistrationId(),
+							"timeElapsedInCurrentStage" + timeElapsedInCurrentStage);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							internalRegistrationStatusDto.getRegistrationId(), "elapsedTime" + elapsedTime);
 					if (timeElapsedInCurrentStage > elapsedTime) {
 						if ((internalRegistrationStatusDto.getRetryCount() < maxRetryCount)) {
 							mappedValue = PacketExternalStatusCode.RESEND;
