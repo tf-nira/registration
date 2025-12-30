@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.stages.app;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,6 @@ import io.mosip.registration.processor.core.code.ModuleName;
 import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
 import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
 import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
-import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.AuthSystemException;
@@ -105,6 +105,13 @@ public class CMDValidationProcessor {
 	@Value("#{'${mosip.regproc.cmd-validator.device-validation.processes:NEW,UPDATE,LOST,BIOMETRIC_CORRECTION}'.split(',')}")
 	private List<String> deviceValidationProcessList ;
 
+	/**
+	 * The tag value that will be used by default when the packet does not have
+	 * value for the tag field
+	 */
+	@Value("${mosip.regproc.packet.classifier.tagging.not-available-tag-value}")
+	private String notAvailableTagValue;
+
 	public MessageDTO process(MessageDTO object, String stageName) {
 
 		LogDescription description = new LogDescription();
@@ -113,7 +120,7 @@ public class CMDValidationProcessor {
 		object.setMessageBusAddress(MessageBusAddress.CMD_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
-
+		String ageGroup = " --AGE_GROUP--";
 		regProcLogger.debug("process called for registration id {}", registrationId);
 		registrationId = object.getRid();
 
@@ -124,6 +131,14 @@ public class CMDValidationProcessor {
 		registrationStatusDto.setRegistrationStageName(stageName);
 		try {
 
+			Map<String, String> tags = new HashMap<>();
+			tags = object.getTags();
+			if (tags != null) {
+				String value = tags.get("AGE_GROUP");
+				if (value != null && !notAvailableTagValue.equals(value)) {
+					ageGroup += value;
+				}
+			}
 			Map<String, String> metaInfo = packetManagerService.getMetaInfo(registrationId,
 					registrationStatusDto.getRegistrationType(), ProviderStageName.CMD_VALIDATOR);
 
@@ -238,6 +253,7 @@ public class CMDValidationProcessor {
 			/** Module-Id can be Both Success/Error code */
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.CMD_VALIDATOR.toString();
+			registrationStatusDto.setStatusComment(registrationStatusDto.getStatusComment() + "" + ageGroup);
 			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
