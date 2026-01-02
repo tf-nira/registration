@@ -234,9 +234,11 @@ public class PacketUploaderServiceImpl implements PacketUploaderService<MessageD
 										LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
 										description.getMessage());
 
-								regProcLogger.info("Extracting the NIN from packet manager and inserting in registration table");
+								regProcLogger.info("Extracting the NIN from packet manager and inserting in registration table for registration id : {}", registrationId);
 								String nin = utility.getNIN(registrationId, RegistrationType.RENEWAL.toString(), ProviderStageName.PACKET_UPLOADER);
+								regProcLogger.info("Extracted NIN for registration id: {} is: {}", registrationId, nin);
 								String hashedNin = HMACUtils2.digestAsPlainText(nin.getBytes());
+								regProcLogger.info("Hashed value for the NIN for registration id: {} is: {}", registrationId, hashedNin);
 								dto.setReferenceId(hashedNin);
                                 
                             }
