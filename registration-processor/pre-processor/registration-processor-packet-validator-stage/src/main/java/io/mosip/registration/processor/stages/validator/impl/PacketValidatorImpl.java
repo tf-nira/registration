@@ -590,7 +590,10 @@ public class PacketValidatorImpl implements PacketValidator {
 				boolean hasInvalidStatus = otherRegistrations.stream().anyMatch(reg -> {
 					String statusCode = (String) reg.get("statusCode");
 					return statusCode != null
-							&& (statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSED.toString()) || statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSING.toString()));
+							&& (statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSED.toString()) || statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSING.toString())
+									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.RESUMABLE.toString())
+									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PAUSED_FOR_ADDITIONAL_INFO.toString())
+									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.REPROCESS.toString()));
 				});
 				isValidRenewalExpiry = !hasInvalidStatus;
 				

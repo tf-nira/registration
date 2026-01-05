@@ -34,6 +34,9 @@ public enum RegistrationTransactionStatusCode {
 
 	MERGED,
 
-	ON_HOLD;
+	ON_HOLD,
 	
+	RESUMABLE,
+	
+	PAUSED_FOR_ADDITIONAL_INFO;
 }
