@@ -734,6 +734,7 @@ public class RegistrationStatusServiceImpl
 			registrationStatusEntity.setLastSuccessStageName(existingLastSuccessStageName);
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
+		registrationStatusEntity.setReferenceId(dto.getReferenceId());
 		return registrationStatusEntity;
 	}
 
