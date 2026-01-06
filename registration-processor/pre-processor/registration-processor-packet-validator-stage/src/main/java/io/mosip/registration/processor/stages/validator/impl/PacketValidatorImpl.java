@@ -592,7 +592,6 @@ public class PacketValidatorImpl implements PacketValidator {
 					return statusCode != null
 							&& (statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSED.toString()) || statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSING.toString())
 									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.RESUMABLE.toString())
-									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PAUSED_FOR_ADDITIONAL_INFO.toString())
 									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.REPROCESS.toString()));
 				});
 				isValidRenewalExpiry = !hasInvalidStatus;
