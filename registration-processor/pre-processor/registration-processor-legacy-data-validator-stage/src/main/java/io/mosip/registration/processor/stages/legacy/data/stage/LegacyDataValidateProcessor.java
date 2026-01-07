@@ -81,7 +81,6 @@ public class LegacyDataValidateProcessor {
 	public MessageDTO process(MessageDTO object, String stageName) {
 		LogDescription description = new LogDescription();
 		boolean isTransactionSuccessful = false;
-		boolean isRejected = false;
 		String registrationId = "";
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
@@ -111,7 +110,7 @@ public class LegacyDataValidateProcessor {
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_MIGRATION_API_FAILED, e);
 			attributes.put("FAILURE_REASON", "Potential mistype of NIN");
 			object.setNotificationAttributes(attributes);
-			isRejected = true;
+			object.setInternalError(Boolean.FALSE);
 		} catch (LegacyDataValidationException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.LEGACYERROR,
 					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
@@ -180,7 +179,7 @@ public class LegacyDataValidateProcessor {
 			/** Module-Id can be Both Success/Error code */
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.LEGACY_DATA.toString();
-			if (registrationStatusDto.getStatusCode().equals(RegistrationStatusCode.ON_HOLD.name()) || isRejected) {
+			if (registrationStatusDto.getStatusCode().equals(RegistrationStatusCode.ON_HOLD.name())) {
 				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
 						moduleName);
 			} else {
