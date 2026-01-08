@@ -110,6 +110,7 @@ public class LegacyDataValidateProcessor {
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_MIGRATION_API_FAILED, e);
 			attributes.put("FAILURE_REASON", "Potential mistype of NIN");
 			object.setNotificationAttributes(attributes);
+			object.setInternalError(Boolean.FALSE);
 		} catch (LegacyDataValidationException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.LEGACYERROR,
 					StatusUtil.LEGACY_DATA_SYSTEM_FAILED, RegistrationExceptionTypeCode.LEGACY_FAILED, description,
