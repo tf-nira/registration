@@ -25,6 +25,7 @@ import io.mosip.kernel.core.exception.BiometricSignatureValidationException;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
+import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
 import io.mosip.registration.processor.core.constant.JsonConstant;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
@@ -49,6 +50,10 @@ import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.stages.utils.ApplicantDocumentValidation;
 import io.mosip.registration.processor.stages.utils.BiometricsXSDValidator;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
+import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
+import io.mosip.registration.processor.status.repositary.RegistrationRepositary;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 
 @Component
 @RefreshScope
@@ -93,7 +98,16 @@ public class PacketValidatorImpl implements PacketValidator {
 
 	@Value("${mosip.regproc.packet.validator.max.number.spouses:4}")
 	private Integer maxNumberOfSpouses;
+	
+	@Value("${mosip.regproc.packet.validator.renewal.min-years-to-reapply:10}")
+	private int minYearsBeforeRenewalAllowed;
+	
+	@Value("#{'${mosip.regproc.packet.validator.process:RENEWAL}'.split(',')}")
+	private List<String> allowedProcess;
 
+	@Autowired
+	RegistrationRepositary<RegistrationStatusEntity, String> registrationStatusRepositary;
+	
 	@SuppressWarnings("unused")
 	@Override
 	public boolean validate(String id, String process, PacketValidationDto packetValidationDto)
@@ -157,6 +171,40 @@ public class PacketValidatorImpl implements PacketValidator {
 						return false;
 					}
 				}
+				
+				//validation for Renewal application. 
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) {
+					
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+				            LoggerFileConstant.REGISTRATIONID.toString(), id,
+				            "INFO =======> Renewal validation started for registration");
+
+				    regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+				            LoggerFileConstant.REGISTRATIONID.toString(), id,
+				            "INFO =======> Minimum years before renewal allowed: " + minYearsBeforeRenewalAllowed);
+					
+					// Reject if Renewal application is PROCESSED less than 10 years, accept if >= 10 years
+				    if (!validateRenewalExpiryDate(jsonObject, id, process)) {
+				        regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+				                LoggerFileConstant.REGISTRATIONID.toString(), id,
+				                "ERROR =======>" + StatusUtil.PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS.getMessage());
+				        packetValidationDto.setPacketValidaionFailureMessage(
+				                "Renewal rejected - Not allowed within " + minYearsBeforeRenewalAllowed + " years");
+				        packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS.getCode());
+				        
+				        regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+				                LoggerFileConstant.REGISTRATIONID.toString(), id,
+				                "INFO =======> Renewal packet validation failed and response prepared");
+				        
+				        return false;
+				    }
+				    
+				    regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+				            LoggerFileConstant.REGISTRATIONID.toString(), id,
+				            "INFO =======> Renewal validation passed");
+				}
+				
+				
 				if (!checkNumberOfSpouses(jsonObject, id, process)) {
 					packetValidationDto.setPacketValidaionFailureMessage(
 							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getMessage());
@@ -495,5 +543,53 @@ public class PacketValidatorImpl implements PacketValidator {
 			e.printStackTrace();
 			return false;
 		}
+	}
+	
+	private boolean validateRenewalExpiryDate(JSONObject jsonObject, String id, String process)
+			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+		boolean isValidRenewalExpiry = true;
+		try {
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, "Starting renewal expiry validation for registration ID: " + id);
+			
+			Optional<String> referenceId = registrationStatusRepositary.getReferenceIdByRegId(id);
+			if (referenceId.isPresent()) {
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						id, "Reference ID found: " + referenceId.get());
+				
+				LocalDateTime thresholdDate = LocalDateTime.now().minusYears(minYearsBeforeRenewalAllowed);
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						id, "Threshold date calculated: " + thresholdDate + " (minYearsBeforeRenewalAllowed: " + minYearsBeforeRenewalAllowed + ")");
+				
+				List<Map<String, Object>> otherRegistrations = registrationStatusRepositary
+						.getRegIdAndStatusByReferenceId(referenceId.get(), id, allowedProcess,
+								thresholdDate);
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						id, "Retrieved " + otherRegistrations.size() + " other registrations for reference ID: " + referenceId.get());
+				
+				boolean hasInvalidStatus = otherRegistrations.stream().anyMatch(reg -> {
+					String statusCode = (String) reg.get("statusCode");
+					return statusCode != null
+							&& (statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSED.toString()) || statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.PROCESSING.toString())
+									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.RESUMABLE.toString())
+									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.REPROCESS.toString()));
+				});
+				isValidRenewalExpiry = !hasInvalidStatus;
+				
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						id, "Renewal expiry validation result - hasInvalidStatus: " + hasInvalidStatus + ", isValidRenewalExpiry: " + isValidRenewalExpiry);
+				
+				return isValidRenewalExpiry;
+			}
+		} catch (DateTimeParseException e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, "Error parsing dateOfExpiry: " + e.getMessage());
+			isValidRenewalExpiry = false;
+		} catch (Exception e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					id, "Error processing the Renewal request : " + e.getMessage());
+			isValidRenewalExpiry = false;
+		}
+		return isValidRenewalExpiry;
 	}
 }

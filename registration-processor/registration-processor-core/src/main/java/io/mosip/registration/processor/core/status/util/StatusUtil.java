@@ -84,6 +84,8 @@ public enum StatusUtil {
 			"Applicant existing userServiceType is not eligible for requested change"),
 	PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "023",
 			"Applicant is not eligible to Renewal service"),
+	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
+			"Renewal is not allowed as the application was processed within the last 10 years"),
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),

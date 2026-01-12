@@ -113,6 +113,8 @@ public class InternalRegistrationStatusDto implements Serializable {
 	private Boolean notificationSent;
 	
 	private Boolean isAnonymousProfileAdded;
+	
+	private String referenceId;
 
 	/**
 	 * Gets the ref id.
@@ -689,6 +691,14 @@ public class InternalRegistrationStatusDto implements Serializable {
 				+ ", registrationStageName=" + registrationStageName + ", reProcessRetryCount=" + reProcessRetryCount
 				+ ", subStatusCode=" + subStatusCode + ", resumeTimeStamp=" + resumeTimeStamp + ", defaultResumeAction="
 				+ defaultResumeAction + ", pauseRuleIds=" + pauseRuleIds + ", refId=" + refId + "]";
+	}
+
+	public String getReferenceId() {
+		return referenceId;
+	}
+
+	public void setReferenceId(String referenceId) {
+		this.referenceId = referenceId;
 	}
 
 	
