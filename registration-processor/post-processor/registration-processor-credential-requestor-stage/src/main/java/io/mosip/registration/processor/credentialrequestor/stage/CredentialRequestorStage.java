@@ -227,6 +227,30 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 						.collect(Collectors.toList());
 				filteredPartners.addAll(credentialPartnerUtil.getCredentialPartners(
 						regId, registrationStatusDto.getRegistrationType(), jsonObject));
+				
+				boolean isCrvsFlow = (regId != null && regId.startsWith("CRVS")) || "CRVS_NEW".equals(object.getReg_type());
+
+				if (isCrvsFlow) {
+				    allIssuerList.stream()
+				            .filter(p -> "opencrvsPartner".equals(p.getId()))
+				            .findFirst()
+				            .ifPresent(opencrvsPartner -> {
+				                boolean alreadyPresent = filteredPartners.stream()
+				                        .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
+				                if (!alreadyPresent) {
+				                    filteredPartners.add(opencrvsPartner);
+				                }
+				            });
+				} else {
+				    filteredPartners.removeIf(p -> "opencrvsPartner".equals(p.getId()));
+				}
+				
+				boolean isAdult = "ADULT".equals(object.getTags().get("AGE_GROUP"));
+				
+				if (!isAdult) {
+					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
+				}
+				
 				for (CredentialPartner key : filteredPartners) {
 					CredentialRequestDto credentialRequestDto = getCredentialRequestDto(regId, registrationStatusDto.getRegistrationType(), key);
 					LocalDateTime localdatetime = LocalDateTime.parse(
