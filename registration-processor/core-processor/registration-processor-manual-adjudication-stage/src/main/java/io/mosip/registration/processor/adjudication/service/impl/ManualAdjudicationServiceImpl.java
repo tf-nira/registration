@@ -31,6 +31,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
@@ -519,12 +520,28 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		responseDTO = utility.retrieveIdrepoResponseObjWithNIN(introducerNin);
 
-		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+		Map<String, Object> identityFromRepo = mapper.convertValue(
+			    responseDTO.getIdentity(),
+			    new TypeReference<Map<String, Object>>() {}
+			);
 		Map<String,String> identity=new HashMap<>();
 
-		for(Entry<String,String> entry:demographicMap.entrySet()) {
-			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
-			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
+		for(Entry<String, String> entry : demographicMap.entrySet()) {
+		    String repoKey = entry.getKey();      
+		    String policyKey = entry.getValue(); 
+		    
+		    Object value = identityFromRepo.get(repoKey);
+		    
+		    String stringValue;
+		    if (value == null) {
+		        stringValue = null;  
+		    } else if (value instanceof String) {
+		        stringValue = (String) value; 
+		    } else {
+		        stringValue = mapper.writeValueAsString(value);
+		    }
+		    
+		    identity.put(policyKey, stringValue);
 		}
 		requestDto.setIdentity(identity);
 		List<Documents> documents=responseDTO.getDocuments();
