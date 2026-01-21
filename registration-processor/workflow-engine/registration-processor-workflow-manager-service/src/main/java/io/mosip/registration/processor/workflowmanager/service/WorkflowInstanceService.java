@@ -12,6 +12,8 @@ import java.util.UUID;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.code.*;
+import io.mosip.registration.processor.core.constant.JsonConstant;
+import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
@@ -20,6 +22,8 @@ import io.mosip.registration.processor.status.dto.*;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import io.mosip.registration.processor.status.exception.EncryptionFailureException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -33,6 +37,7 @@ import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessag
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.workflow.dto.WorkflowInstanceRequestDTO;
+import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.dao.SyncRegistrationDao;
@@ -65,6 +70,9 @@ public class WorkflowInstanceService {
 
     @Autowired
     private AdditionalInfoRequestService additionalInfoRequestService;
+    
+    @Autowired
+	private PriorityBasedPacketManagerService priorityBasedPacketManagerService;
 
     /** The resume from beginning stage. */
     @Value("${mosip.regproc.workflow-manager.instance-beginning-stage:PacketValidatorStage}")
@@ -112,7 +120,29 @@ public class WorkflowInstanceService {
             SyncRegistrationEntity syncRegistrationEntity = createSyncRegistrationEntity(regRequest, workflowInstanceId, rid, user);
             syncRegistrationDao.save(syncRegistrationEntity);
             dto = getInternalRegistrationStatusDto(regRequest, user, workflowInstanceId, iteration);
-            registrationStatusService.addRegistrationStatus(dto, MODULE_ID, MODULE_NAME);
+            
+            if ("CRVS_NEW".equals(regRequest.getProcess())) {
+				Map<String, String> metaInfoMap = priorityBasedPacketManagerService.getMetaInfo(rid,
+						regRequest.getProcess(), ProviderStageName.WORKFLOW_MANAGER);
+				String metaDataString = metaInfoMap.get(JsonConstant.METADATA);
+				if (metaDataString != null) {
+					JSONArray metaDataJsonArray = new JSONArray(metaDataString);
+					String trackingId = null;
+					for (int i = 0; i < metaDataJsonArray.length(); i++) {
+						JSONObject jsonObject = (JSONObject) metaDataJsonArray.get(i);
+						if ("trackingId".equals(jsonObject.optString("label"))) {
+							trackingId = jsonObject.optString("value");
+							break;
+						}
+					}
+
+					if (trackingId != null) {
+						dto.setReferenceRegistrationId(trackingId);
+					}
+				}
+			}
+            
+			registrationStatusService.addRegistrationStatus(dto, MODULE_ID, MODULE_NAME);
             description
                     .setMessage(PlatformSuccessMessages.RPR_WORKFLOW_INSTANCE_SERVICE_SUCCESS.getMessage());
             isTransactionSuccessful = true;

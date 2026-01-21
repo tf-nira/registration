@@ -246,8 +246,16 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				}
 				
 				boolean isAdult = object.getTags() != null && "ADULT".equals(object.getTags().get("AGE_GROUP"));
-				boolean isAlien = object.getTags() != null && "Alien New Registration".equals(object.getTags().get("ID_OBJECT-userServiceType"));
 				
+				Map<String, String> tags = object.getTags();
+				String userServiceType = null;
+				if (tags != null) {
+					userServiceType = tags.getOrDefault("ID_OBJECT-applicantCitizenshipType",
+							tags.get("ID_OBJECT-userServiceType"));
+				}
+
+				boolean isAlien = "Alien New Registration".equals(userServiceType);
+
 				if (!isAdult && !isAlien) {
 					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
 				}
