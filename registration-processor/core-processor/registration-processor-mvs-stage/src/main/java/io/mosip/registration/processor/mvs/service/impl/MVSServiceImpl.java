@@ -539,7 +539,14 @@ public class MVSServiceImpl implements MVSService {
 						process, ProviderStageName.MVS));
 
 		String userServiceTypeValue;
-		if (process.equals("RENEWAL")) {
+		JSONArray userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
+        String value = null;
+		if (userServiceTypeArray.length() > 0){
+         value = userServiceTypeArray.getJSONObject(0).optString("value", null);
+		}
+		if (value != null && value.toLowerCase().contains("alien")) {
+          userServiceTypeValue = value; 
+		}else if (process.equals("RENEWAL")) {
 			userServiceTypeValue = "Renewal";
 		} else if (process.equals("FIRSTID")) {
 			userServiceTypeValue = "GetFirst ID";
@@ -548,9 +555,10 @@ public class MVSServiceImpl implements MVSService {
 		} else if (process.equals("UPDATE")) {
 			userServiceTypeValue = "Update";
 		} else {
-			JSONArray userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
+			userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
 			userServiceTypeValue = userServiceTypeArray.getJSONObject(0).getString("value");
 		}
+		
 		
 		verReq.setServiceType(userServiceTypeValue);
 		verReq.setSchemaVersion(requestDto.getIdentity().get("IDSchemaVersion"));
