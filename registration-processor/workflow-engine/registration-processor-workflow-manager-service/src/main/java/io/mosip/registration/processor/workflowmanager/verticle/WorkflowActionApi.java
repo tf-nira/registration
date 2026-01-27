@@ -41,7 +41,7 @@ import io.vertx.ext.web.RoutingContext;
 
 public class WorkflowActionApi extends MosipVerticleAPIManager {
 	
-	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.workflow.action.api.";
+	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.reprocessor.";
 
 	@Value("${vertx.cluster.configuration}")
 	private String clusterManagerUrl;
@@ -52,6 +52,9 @@ public class WorkflowActionApi extends MosipVerticleAPIManager {
 
 	@Autowired
 	WorkflowSearchApi workflowSearchApi;
+	
+	@Autowired
+    WorkflowInstanceApi workflowInstanceApi;
 
 	/** worker pool size. */
 	@Value("${worker.pool.size}")
@@ -119,6 +122,7 @@ public class WorkflowActionApi extends MosipVerticleAPIManager {
 		// like workflowSearchApi and call both setApiRoute method from the common
 		// verticle class
 		workflowSearchApi.setApiRoute(router.getRouter());
+		workflowInstanceApi.setApiRoute(router.getRouter());
 		this.createServer(router.getRouter(), Integer.parseInt(port));
 	}
 

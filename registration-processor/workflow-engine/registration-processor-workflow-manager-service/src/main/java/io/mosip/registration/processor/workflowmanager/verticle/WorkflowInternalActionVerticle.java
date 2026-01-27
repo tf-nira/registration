@@ -385,14 +385,31 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 
 		String regStageName = registrationStatusDto.getRegistrationStageName();
-		boolean isRelevantStage = Arrays.stream(new String[]{
+		boolean shouldNotify = Arrays.stream(new String[]{
 				ProviderStageName.MVS.getValue(),
-				ProviderStageName.MANUAL_ADJUDICATION.getValue()
+				ProviderStageName.MANUAL_ADJUDICATION.getValue(),
+				"MVSStage",
+				"MvsStage",
+				"ManualAdjudicationStage"
 		}).anyMatch(regStageName::contains);
 
-		regProcLogger.info("Is relevant stage for notification for registration id {} : {}", workflowInternalActionDTO.getRid(), isRelevantStage);
+		if (!shouldNotify) {
+			Map<String, String> notificationAttributes = workflowInternalActionDTO.getNotificationAttributes();
+			String failureReasonValue = notificationAttributes.get("FAILURE_REASON");
+			String candidate = failureReasonValue == null ? null : failureReasonValue.trim();
 
-		if (isRelevantStage && workflowInternalActionDTO.getNotificationAttributes() != null) {
+			shouldNotify = candidate != null && !candidate.isEmpty()
+					&& failureReasonValues != null
+					&& failureReasonValues.stream()
+					.filter(Objects::nonNull)
+					.map(String::trim)
+					.filter(s -> !s.isEmpty())
+					.anyMatch(s -> s.equalsIgnoreCase(candidate));
+		}
+
+		regProcLogger.info("Should Notify for notification for registration id {} : {}", workflowInternalActionDTO.getRid(), shouldNotify);
+
+		if (shouldNotify && workflowInternalActionDTO.getNotificationAttributes() != null) {
 			registrationStatusDto.setNeedsNotification(true);
 		}
 

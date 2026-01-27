@@ -122,7 +122,14 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 					|| status.equalsIgnoreCase(RegistrationStatusCode.RESUMABLE.toString())) {
 				if (regStageNamesTimeBasedResendRequired
 						.contains(internalRegistrationStatusDto.getRegistrationStageName())) {
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							internalRegistrationStatusDto.getRegistrationId(), "entered resend************");
 					long timeElapsedInCurrentStage = checkElapsedTime(internalRegistrationStatusDto);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							internalRegistrationStatusDto.getRegistrationId(),
+							"timeElapsedInCurrentStage" + timeElapsedInCurrentStage);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							internalRegistrationStatusDto.getRegistrationId(), "elapsedTime" + elapsedTime);
 					if (timeElapsedInCurrentStage > elapsedTime) {
 						if ((internalRegistrationStatusDto.getRetryCount() < maxRetryCount)) {
 							mappedValue = PacketExternalStatusCode.RESEND;
@@ -174,10 +181,26 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 	}
 
 	private Long checkElapsedTime(InternalRegistrationStatusDto internalRegistrationStatusDto) {
+		try {
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				internalRegistrationStatusDto.getRegistrationId(), "Before getting  trasactiontime************");
 		LocalDateTime createdTime = internalRegistrationStatusDto.getLatestTransactionTimes();
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				internalRegistrationStatusDto.getRegistrationId(),
+				"AFter getting  trasactiontime************" + createdTime);
 		LocalDateTime currentTime = LocalDateTime.now();
 		LocalDateTime tempDate = LocalDateTime.from(createdTime);
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				internalRegistrationStatusDto.getRegistrationId(),
+				"AFter getting  tempDate************" + tempDate);
 		long seconds = tempDate.until(currentTime, ChronoUnit.SECONDS);
+		regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+				internalRegistrationStatusDto.getRegistrationId(), "AFter getting  seconds************" + seconds);
 		return seconds;
+	} catch (Exception e) {
+		regProcLogger.error("Error inside checkElapsedTime", e.getStackTrace());
+		regProcLogger.error("Error inside checkElapsedTime", e.getMessage());
+	}
+	return null;
 	}
 }
