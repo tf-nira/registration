@@ -202,7 +202,11 @@ public class CitizenshipVerificationProcessor {
 			registrationStatusDto.setUpdatedBy(USER);
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.CITIZENSHIP_VERIFICATION.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			if (registrationStatusDto.getStatusCode() == RegistrationStatusCode.ON_HOLD.toString()) {
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId, moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
 
@@ -386,7 +390,7 @@ public class CitizenshipVerificationProcessor {
 						registrationStatusDto.getRegistrationId(),
 						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 				throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-						"NIN : " + (fatherNIN != null ? fatherNIN : motherNIN) + " not found in MOSIP");
+						"NIN : " + (fatherNIN != null ? fatherNIN : motherNIN) + " is not present in ID Repo");
 		}
 		
 		//moving the packet directly to mvs if age >= 25.
@@ -722,7 +726,7 @@ public class CitizenshipVerificationProcessor {
 							registrationStatusDto.getRegistrationId(),
 							StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 					throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-							"NIN : " + guardianNin + " not found in MOSIP");
+							"NIN : " + guardianNin + " is not present in ID Repo");
 			}
 			return isValidGuardian;
 
