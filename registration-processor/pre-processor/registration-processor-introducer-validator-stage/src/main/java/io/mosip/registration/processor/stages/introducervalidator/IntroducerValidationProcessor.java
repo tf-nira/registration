@@ -228,7 +228,11 @@ public class IntroducerValidationProcessor {
 			/** Module-Id can be Both Success/Error code */
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.INTRODUCER_VALIDATOR.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			if (registrationStatusDto.getStatusCode() == RegistrationStatusCode.ON_HOLD.toString()) {
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId, moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
 
