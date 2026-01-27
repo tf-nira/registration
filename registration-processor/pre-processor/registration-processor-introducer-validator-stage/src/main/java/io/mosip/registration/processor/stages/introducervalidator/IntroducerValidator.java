@@ -142,25 +142,10 @@ public class IntroducerValidator {
 		if (introducerNIN != null && !introducerNIN.isEmpty()) {
 			JSONObject parentInfoJson = utility.getIdentityJSONObjectByHandle(introducerNIN);
 			if (parentInfoJson == null) {
-				regProcLogger.info("introducer NIN is not present in mosip and call for ondemand migration : {}",
-						registrationId);
-				String migrationRid = migrationUtil.validateAndCreateOnDemandPacket(registrationId, introducerNIN);
-				if (migrationRid != null) {
-					regProcLogger.debug("validate call ended for registrationId {} {}", registrationId,
-							StatusUtil.PACKET_ON_HOLD.getMessage());
-					throw new IntroducerOnHoldException(StatusUtil.PACKET_ON_HOLD.getCode(),
-							StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is " + migrationRid);
-				} else {
-					regProcLogger.info("ondemand migration for introducer NIN is failed for packet : {}",
-							registrationId);
-					registrationStatusDto.setLatestTransactionStatusCode(registrationExceptionMapperUtil
-							.getStatusCode(RegistrationExceptionTypeCode.INTRODUCER_UIN_NOT_AVAIALBLE));
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
-					regProcLogger.debug("validate called for registrationId {} {}", registrationId,
-							StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getMessage());
-					throw new BaseCheckedException(StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getCode(),StatusUtil.INTRODUCER_NIN_ONDEMAND_MIGRATION_FAILED.getMessage());
-				}
-
+				regProcLogger.debug("validate call ended for registrationId {} {}", registrationId,
+						StatusUtil.PACKET_ON_HOLD.getMessage());
+				throw new IntroducerOnHoldException(StatusUtil.PACKET_ON_HOLD.getCode(),
+						"Introducer NIN " + introducerNIN + " is not present in ID Repo");
 			}
 			introducerUIN = JsonUtil.getJSONValue(parentInfoJson, "UIN");
 			validateIntroducerBiometric(registrationId, registrationStatusDto, introducerUIN);

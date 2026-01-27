@@ -98,7 +98,7 @@ public class CitizenshipVerificationProcessor {
 	@Value("${registration.processor.applicant.age.check.cvs}")
 	private int ageCheckCVS;
 	
-	public MessageDTO process(MessageDTO object) {
+	public MessageDTO process(MessageDTO object, String stageName) {
 
 		LogDescription description = new LogDescription();
 		boolean isTransactionSuccessful = false;
@@ -126,7 +126,7 @@ public class CitizenshipVerificationProcessor {
 
 		registrationStatusDto
 				.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.CITIZENSHIP_VERIFICATION.toString());
-		registrationStatusDto.setRegistrationStageName(ProviderStageName.CITIZENSHIP_VERIFICATION.toString());
+		registrationStatusDto.setRegistrationStageName(stageName);
 
 		try {
 			if (validatePacketCitizenship(registrationId, object, registrationStatusDto, description)) {
@@ -382,29 +382,11 @@ public class CitizenshipVerificationProcessor {
 					registrationStatusDto, description, parentFoundDTO);
 	    }
 		if (parentFoundDTO.isParentNINFoundInMosip() == false && isParentInfoValid == false) {
-			String migrationRid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
-			String fatherOrMother = "";
-			if (fatherNIN != null) {
-				fatherOrMother = "Father";
-			} else {
-				fatherOrMother = "Mother";
-			}
-			if (migrationRid != null) {
 				regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
 						registrationStatusDto.getRegistrationId(),
 						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 				throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-						StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " for " + fatherOrMother + " and rid is " + migrationRid);
-			} else {
-
-				logAndSetStatusError(registrationStatusDto,
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage() + fatherOrMother
-								+ " failed",
-						RegistrationStatusCode.FAILED.toString(), description, applicantFields.get("registrationId"));
-				isParentInfoValid = false;
-			}
+						"NIN : " + (fatherNIN != null ? fatherNIN : motherNIN) + " not found in MOSIP");
 		}
 		
 		//moving the packet directly to mvs if age >= 25.
@@ -736,26 +718,11 @@ public class CitizenshipVerificationProcessor {
 			    }
 		}
 			else {
-				regProcLogger.info("On demand migration of guardian NIN for rid {} {}", guardianNin,
-						registrationStatusDto.getRegistrationId());
-				String migrationRid = migrationUtil
-						.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
-						guardianNin);
-				if (migrationRid != null) {
 					regProcLogger.debug("handleValidationWithNoParentNinFound call ended for registrationId {} {}",
 							registrationStatusDto.getRegistrationId(),
 							StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
 					throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-							StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " for " + guardianRelationValue + " and rid is " + migrationRid);
-				} else {
-					logAndSetStatusError(registrationStatusDto,
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getCode(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage()
-									+ guardianRelationValue + " failed",
-							RegistrationStatusCode.FAILED.toString(), description,
-							applicantFields.get("registrationId"));
-				}
+							"NIN : " + guardianNin + " not found in MOSIP");
 			}
 			return isValidGuardian;
 
