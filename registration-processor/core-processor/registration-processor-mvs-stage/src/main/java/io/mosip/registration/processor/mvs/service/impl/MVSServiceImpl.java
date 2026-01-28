@@ -551,8 +551,8 @@ public class MVSServiceImpl implements MVSService {
 		} catch (Exception e) {
   					  value = null; 
 		}
-		if (value != null){ if(value.toLowerCase().contains("alien")) {
-          userServiceTypeValue = value;} 
+		if (value != null){
+          userServiceTypeValue = value;
 		}else if (process.equals("RENEWAL")) {
 			userServiceTypeValue = "Renewal";
 		} else if (process.equals("FIRSTID")) {
