@@ -228,7 +228,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				filteredPartners.addAll(credentialPartnerUtil.getCredentialPartners(
 						regId, registrationStatusDto.getRegistrationType(), jsonObject));
 				
-				boolean isCrvsFlow = (regId != null && regId.startsWith("CRVS")) || "CRVS_NEW".equals(object.getReg_type());
+				boolean isCrvsFlow = (regId != null && regId.contains("-")) || "CRVS_NEW".equals(object.getReg_type());
 
 				if (isCrvsFlow) {
 				    allIssuerList.stream()
