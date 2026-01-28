@@ -955,7 +955,7 @@ public class Utilities {
 			throws ApisResourceAccessException, IdRepoAppException, IOException {
 
 		if (nin != null) {
-			ResponseDTO idResponseDto = retrieveIdrepoResponseObjWithNIN(nin);
+			ResponseDTO idResponseDto = retrieveIdrepoResponseObjWithNIN(nin, false);
 			if (idResponseDto != null) {
 				String response = objMapper.writeValueAsString(idResponseDto.getIdentity());
 				regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), "",
@@ -987,7 +987,7 @@ public class Utilities {
 	 * @return
 	 * @throws ApisResourceAccessException
 	 */
-	public ResponseDTO retrieveIdrepoResponseObjWithNIN(String nin)
+	public ResponseDTO retrieveIdrepoResponseObjWithNIN(String nin, boolean isBioNeeded)
 			throws ApisResourceAccessException {
 		if (nin != null) {
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), "",
@@ -995,20 +995,25 @@ public class Utilities {
 			List<String> pathSegments = new ArrayList<>();
 			pathSegments.add(nin.toLowerCase() + "@nin");
 			IdResponseDTO1 idResponseDto;
-			
+
 			String typeParam = "type";
-			String typeParamValue = "all"; 
+			String typeParamValue = "all";
 			String typeIdParam = "idType";
 			String typeIdParamValue = "handle";
-			
+
 			List<String> queryParams = new ArrayList<>();
-			queryParams.add(typeParam);
+			if (isBioNeeded) {
+				queryParams.add(typeParam);
+			}
+
 			queryParams.add(typeIdParam);
-			
+
 			List<Object> queryParamValues = new ArrayList<Object>();
-			queryParamValues.add(typeParamValue);
+			if (isBioNeeded) {
+				queryParamValues.add(typeParamValue);
+			}
 			queryParamValues.add(typeIdParamValue);
-			
+
 
 			idResponseDto = (IdResponseDTO1) restClientService.getApi(ApiName.IDREPOGETIDBYUIN, pathSegments,
 					queryParams, queryParamValues,
@@ -1087,7 +1092,7 @@ public class Utilities {
 		String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process, stageName);
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), id,
 				"Utilities::getIdrepoResponseByHandle()::handleRetrieved");
-		ResponseDTO responseDTO = retrieveIdrepoResponseObjWithNIN(handle);
+		ResponseDTO responseDTO = retrieveIdrepoResponseObjWithNIN(handle, false);
 		return responseDTO;
 	}
 	
