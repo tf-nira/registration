@@ -538,14 +538,21 @@ public class MVSServiceImpl implements MVSService {
 				packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()),
 						process, ProviderStageName.MVS));
 
-		String userServiceTypeValue;
-		JSONArray userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
-        String value = null;
-		if (userServiceTypeArray.length() > 0){
-         value = userServiceTypeArray.getJSONObject(0).optString("value", null);
+		String userServiceTypeValue =null;
+		String value = null;
+		JSONArray userServiceTypeArray = null;
+		try {
+   			  userServiceTypeArray =
+           		 new JSONArray(requestDto.getIdentity().get("userServiceType"));
+
+   			 if (userServiceTypeArray.length() > 0) {
+      		  value = userServiceTypeArray.getJSONObject(0).optString("value", null);
+   		 }
+		} catch (Exception e) {
+  					  value = null; 
 		}
-		if (value != null && value.toLowerCase().contains("alien")) {
-          userServiceTypeValue = value; 
+		if (value != null){ if(value.toLowerCase().contains("alien")) {
+          userServiceTypeValue = value;} 
 		}else if (process.equals("RENEWAL")) {
 			userServiceTypeValue = "Renewal";
 		} else if (process.equals("FIRSTID")) {
@@ -558,7 +565,6 @@ public class MVSServiceImpl implements MVSService {
 			userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
 			userServiceTypeValue = userServiceTypeArray.getJSONObject(0).getString("value");
 		}
-		
 		verReq.setServiceType(userServiceTypeValue);
 		verReq.setSchemaVersion(requestDto.getIdentity().get("IDSchemaVersion"));
 		
