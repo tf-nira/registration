@@ -1,3 +1,4 @@
+
 package io.mosip.registration.processor.credentialrequestor.stage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -227,6 +228,39 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 						.collect(Collectors.toList());
 				filteredPartners.addAll(credentialPartnerUtil.getCredentialPartners(
 						regId, registrationStatusDto.getRegistrationType(), jsonObject));
+				
+				boolean isCrvsFlow = (regId != null && regId.contains("-")) || "CRVS_NEW".equals(object.getReg_type());
+
+				if (isCrvsFlow) {
+				    allIssuerList.stream()
+				            .filter(p -> "opencrvsPartner".equals(p.getId()))
+				            .findFirst()
+				            .ifPresent(opencrvsPartner -> {
+				                boolean alreadyPresent = filteredPartners.stream()
+				                        .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
+				                if (!alreadyPresent) {
+				                    filteredPartners.add(opencrvsPartner);
+				                }
+				            });
+				} else {
+				    filteredPartners.removeIf(p -> "opencrvsPartner".equals(p.getId()));
+				}
+				
+				boolean isAdult = object.getTags() != null && "ADULT".equals(object.getTags().get("AGE_GROUP"));
+				
+				Map<String, String> tags = object.getTags();
+				String userServiceType = null;
+				if (tags != null) {
+					userServiceType = tags.getOrDefault("ID_OBJECT-applicantCitizenshipType",
+							tags.get("ID_OBJECT-userServiceType"));
+				}
+
+				boolean isAlien = "Alien New Registration".equals(userServiceType);
+
+				if (!isAdult && !isAlien) {
+					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
+				}
+				
 				for (CredentialPartner key : filteredPartners) {
 					CredentialRequestDto credentialRequestDto = getCredentialRequestDto(regId, registrationStatusDto.getRegistrationType(), key);
 					LocalDateTime localdatetime = LocalDateTime.parse(
