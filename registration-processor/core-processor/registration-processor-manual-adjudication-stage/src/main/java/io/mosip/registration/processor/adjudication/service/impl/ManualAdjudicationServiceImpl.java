@@ -6,6 +6,16 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -83,6 +93,8 @@ import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil
 import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
 import io.mosip.registration.processor.packet.storage.dto.ApplicantInfoDto;
 import io.mosip.registration.processor.packet.storage.dto.Document;
+import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
+import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsPKEntity;
 import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
 import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
@@ -177,6 +189,9 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 	/** The base packet repository. */
 	@Autowired
 	private BasePacketRepository<ManualVerificationEntity, String> basePacketRepository;
+	
+	@Autowired
+	private BasePacketRepository<MAMatchedRidsEntity, String> matchedRidsRepository;
 
 	/** The manual verification stage. */
 	@Autowired
@@ -1033,6 +1048,22 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				statusCode = ManualVerificationStatus.APPROVED.name();
 			} else {
 				statusCode = ManualVerificationStatus.REJECTED.name();
+				
+				if (registrationStatusDto.getRegistrationId().contains("-")) {
+					List<String> rejectedReferenceIds =
+					        manualVerificationDTO.getCandidateList()
+					            .getCandidates()
+					            .stream()
+					            .filter(c -> c.getAnalytics() != null)
+					            .filter(c -> "MATCHED".equals(c.getAnalytics().get("primaryOperatorComments")))
+					            .map(Candidate::getReferenceId)
+					            .collect(Collectors.toList());
+					
+					if (!rejectedReferenceIds.isEmpty()) {
+						// store regID and rejectedRegId in a table(then will issue to opencrvs with the nin for the rejectedRegId)
+						saveMatchedRids(registrationStatusDto.getRegistrationId(), rejectedReferenceIds);
+					}
+				}
 			}
 		}
 
@@ -1153,6 +1184,39 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}
 
 		return isTransactionSuccessful;
+	}
+	
+	private void saveMatchedRids(String regId, List<String> rejectedRids) {
+		if (rejectedRids == null || rejectedRids.isEmpty()) {
+	        return;
+	    }
+		
+		MAMatchedRidsEntity entity =
+	            matchedRidsRepository.findById(regId)
+	                .orElseGet(MAMatchedRidsEntity::new);
+
+	    MAMatchedRidsPKEntity pk = new MAMatchedRidsPKEntity();
+	    pk.setRegId(regId);
+	    entity.setId(pk);
+
+	    entity.setMatchedRegIds(
+	        rejectedRids.size() == 1
+	            ? rejectedRids.get(0)
+	            : String.join(",", rejectedRids)
+	    );
+
+	    entity.setMatchedCount(rejectedRids.size());
+	    entity.setIssued(false);
+
+	    if (entity.getCrDtimes() == null) {
+	        entity.setCrBy("SYSTEM");
+	        entity.setCrDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+	    } else {
+	    	entity.setUpdBy("SYSTEM");
+		    entity.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+	    }
+
+	    matchedRidsRepository.save(entity);
 	}
 
 	private void updateErrorFlags(InternalRegistrationStatusDto registrationStatusDto, MessageDTO object) {
