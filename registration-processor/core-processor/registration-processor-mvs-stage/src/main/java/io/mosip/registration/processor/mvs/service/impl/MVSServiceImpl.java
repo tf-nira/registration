@@ -916,7 +916,7 @@ public class MVSServiceImpl implements MVSService {
 				
 				regProcLogger.info("Checking CVS routing flag for reg id : {}, routeToCVS : {}",
 						registrationStatusDto.getRegistrationId(), routeToCVS);
-				if(VerificationConstants.TAG_VALUE_ROUTE_TO_CVS_AFTER_MVS_TRUE.equalsIgnoreCase(routeToCVS)) {
+				if(routeToCVS!= null && VerificationConstants.TAG_VALUE_ROUTE_TO_CVS_AFTER_MVS_TRUE.equalsIgnoreCase(routeToCVS)) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 					regProcLogger.info("MVS APPROVED - Routing to CVS as per stored flag for reg id : {}", registrationStatusDto.getRegistrationId());
 				} else {
