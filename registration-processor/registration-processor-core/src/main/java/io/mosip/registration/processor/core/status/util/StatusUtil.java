@@ -38,6 +38,8 @@ public enum StatusUtil {
 			"Biometric Quality Check is Successful"),
 	BIOMETRIC_QUALITY_CHECK_FAILED(StatusConstants.QUALITY_CHECKER_MODULE_FAILED + "001",
 			"Quality Score of Biometrics Captured is Below the Threshold"),
+	INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE(StatusConstants.QUALITY_CHECKER_MODULE_SUCCESS + "003",
+			"Biometric classification skipped as applicant age is <= 2 or >= 70"),
 
 	// packet validator stage
 	PACKET_STRUCTURAL_VALIDATION_SUCCESS(StatusConstants.PACKET_VALIDATOR_MODULE_SUCCESS + "001",
