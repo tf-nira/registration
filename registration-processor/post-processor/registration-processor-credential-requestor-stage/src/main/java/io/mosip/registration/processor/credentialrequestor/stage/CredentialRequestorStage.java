@@ -13,7 +13,6 @@ import io.mosip.registration.processor.core.code.*;
 import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.*;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
-import io.mosip.registration.processor.core.exception.RegistrationProcessorCheckedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
 import io.mosip.registration.processor.core.http.RequestWrapper;
@@ -31,8 +30,6 @@ import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.credentialrequestor.dto.CredentialPartner;
 import io.mosip.registration.processor.credentialrequestor.stage.exception.VidNotAvailableException;
 import io.mosip.registration.processor.credentialrequestor.util.CredentialPartnerUtil;
-import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
-import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
@@ -110,9 +107,6 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 	/** The registration status service. */
 	@Autowired
 	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
-	
-	@Autowired
-	private BasePacketRepository<MAMatchedRidsEntity, String> matchedRidsRepository;
 
 	/** worker pool size. */
 	@Value("${worker.pool.size}")
@@ -124,9 +118,6 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 	@Value("${mosip.registration.processor.encrypt:false}")
 	private boolean encrypt;
-	
-	@Value("${mosip.opencrvs.credential.scheduler.fetchsize:5}")
-	private Integer fetchSize;
 
 	/** Mosip router for APIs */
 	@Autowired
@@ -386,89 +377,6 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 		}
 		return object;
-	}
-	
-	@Scheduled(cron = "${mosip.opencrvs.credential.cron.expression:0 0/3 * * * ?}")
-	public void issueOpenCrvsCredential() {
-		regProcLogger.info("Batch job for opencrvs credentials started");
-		try {
-			List<CredentialPartner> allIssuerList = credentialPartnerUtil.getAllCredentialPartners().getPartners();
-			Optional<CredentialPartner> issuerOpt = allIssuerList.stream().filter(issuer -> "opencrvsPartner".equals(issuer.getId())).findFirst();
-			
-			if (issuerOpt.isPresent()) {
-				List<MAMatchedRidsEntity> records =
-				        matchedRidsRepository.findPendingForIssue(fetchSize);
-				
-				records.forEach(record -> {
-					issueCredentialToOpenCrvs(record, issuerOpt.get());
-				});
-			} else {
-				regProcLogger.error("Issuer not found");
-			}
-		} catch (RegistrationProcessorCheckedException e) {
-			regProcLogger.error("Batch job failed, unable to get the issuer");
-		}
-		
-		regProcLogger.info("Batch job completed");
-	}
-	
-	private void issueCredentialToOpenCrvs(MAMatchedRidsEntity record, CredentialPartner key) {
-		try {
-			String regId = record.getId().getRegId();
-			String matchedRegId = record.getMatchedRegIds();
-			CredentialRequestDto credentialRequestDto = new CredentialRequestDto();
-			Map<String, Object> additionalAttributes=new HashMap<>();
-
-			credentialRequestDto.setCredentialType(key.getCredentialType());
-			credentialRequestDto.setEncrypt(encrypt);
-
-			credentialRequestDto.setId(matchedRegId);
-
-			credentialRequestDto.setIssuer(key.getPartnerId());
-
-			credentialRequestDto.setEncryptionKey(generatePin());
-			additionalAttributes.put("templateTypeCode", key.getTemplate());
-			additionalAttributes.put("registrationId", regId);
-			credentialRequestDto.setAdditionalData(additionalAttributes);
-			
-			RequestWrapper<CredentialRequestDto> requestWrapper = new RequestWrapper<>();
-			requestWrapper.setId(env.getProperty("mosip.registration.processor.credential.request.service.id"));
-			DateTimeFormatter format = DateTimeFormatter.ofPattern(env.getProperty(DATETIME_PATTERN));
-			requestWrapper.setVersion("1.0");
-			LocalDateTime localdatetime = LocalDateTime.parse(
-					DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)), format);
-			requestWrapper.setRequesttime(localdatetime);
-			requestWrapper.setRequest(credentialRequestDto);
-			
-			ResponseWrapper<?> responseWrapper = null;
-			// issuers with appIdBasedCredentialIdSuffix is calling v1 api and for others stage is calling v2 api for credential
-			if (StringUtils.isNotEmpty(key.getAppIdBasedCredentialIdSuffix())) {
-				List<String> pathsegments = new ArrayList<>();
-				pathsegments.add(regId + key.getAppIdBasedCredentialIdSuffix()); //  #PDF suffix is added to identify the requested credential via rid
-				responseWrapper = (ResponseWrapper<?>) restClientService.postApi(ApiName.CREDENTIALREQUESTV2, MediaType.APPLICATION_JSON, pathsegments, null,
-							null, requestWrapper, ResponseWrapper.class);
-			} else {
-				responseWrapper = (ResponseWrapper<?>) restClientService.postApi(ApiName.CREDENTIALREQUEST, null, null,
-						requestWrapper, ResponseWrapper.class, MediaType.APPLICATION_JSON);
-			}
-			
-			if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
-				ErrorDTO error = responseWrapper.getErrors().get(0);
-				record.setRemark(error.getMessage());
-			} else {
-				CredentialResponseDto credentialResponseDto = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()),
-						CredentialResponseDto.class);
-				record.setCredentialId(credentialResponseDto.getRequestId());
-				record.setIssued(true);
-				record.setRemark(null);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			regProcLogger.error("Failed to issue the credential");
-			record.setRemark(e.getMessage());
-		}
-		
-		matchedRidsRepository.save(record);
 	}
 
 	private CredentialRequestDto getCredentialRequestDto(String regId, String process, CredentialPartner key) {
