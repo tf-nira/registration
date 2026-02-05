@@ -655,11 +655,11 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 	}
 
 	
-	private int calculateAgeInYears(String dateOfBirth, String dateOfEnrollment) {
+	private int calculateAgeInYears(String dateOfBirth, String packetCreationDate) {
 		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
 		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
-		LocalDate enrollmentDate = LocalDate.parse(dateOfEnrollment.substring(0, 10));
-		Period period = Period.between(dob, enrollmentDate);
+		LocalDate creationDate = LocalDate.parse(packetCreationDate.substring(0, 10));
+		Period period = Period.between(dob, creationDate);
 		return period.getYears();
 	}
 }
