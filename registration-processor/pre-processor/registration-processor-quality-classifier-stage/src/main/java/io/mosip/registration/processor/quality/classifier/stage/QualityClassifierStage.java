@@ -252,6 +252,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 			if(dateOfBirth == null || metaInfo == null || metaInfo.get("creationDate") == null) {
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 										regId, "Missing required date fields for age calculation");
+				packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, null));
 				handleAgeCheckError(regId, object, registrationStatusDto, description);
 				return object;
 			}
