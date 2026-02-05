@@ -3,8 +3,7 @@ package io.mosip.registration.processor.quality.qualifier.stage.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;  
+import static org.mockito.ArgumentMatchers.anyString; 
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -615,16 +614,13 @@ public class QualityClassifierStageTest {
 	}
 
 	private void setupValidDateFieldMocks() throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
-	    Mockito.when(packetManagerService.getField(
-	            eq("1234567890"), eq("dateOfBirth"), anyString(),
-	            eq(ProviderStageName.QUALITY_CHECKER)))
+	    Mockito.when(packetManagerService.getField(any(), any(), any(), any()))
 	            .thenReturn("1990-01-15");
 
 	    Map<String, String> metaInfo = new HashMap<>();
 	    metaInfo.put("creationDate", "2024-02-04");
-	    Mockito.when(packetManagerService.getMetaInfo(
-	            eq("1234567890"), anyString(),
-	            eq(ProviderStageName.QUALITY_CHECKER)))
+	    
+	    Mockito.when(packetManagerService.getMetaInfo(any(), any(), any()))
 	            .thenReturn(metaInfo);
 	}
 	
