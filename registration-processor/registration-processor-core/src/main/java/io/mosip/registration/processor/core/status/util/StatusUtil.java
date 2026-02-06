@@ -380,6 +380,12 @@ public enum StatusUtil {
 	WORKFLOW_INTERNAL_ACTION_SUCCESS(StatusConstants.WORKFLOW_INTERNAL_ACTION + "001",
 			"Packet workflow internal action completed successfully"),
 
+	WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO(StatusConstants.WORKFLOW_INTERNAL_ACTION + "003",
+			"Packet workflow internal action completed successfully"),
+
+	WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO_PARENT_RESTART(StatusConstants.WORKFLOW_INTERNAL_ACTION + "004",
+			"Packet workflow internal action completed successfully"),
+
 	WORKFLOW_INTERNAL_ACTION_REJECTED_ITERATIONS_EXCEEDED_LIMIT(StatusConstants.WORKFLOW_INTERNAL_ACTION + "002",
 			"Packet rejected as number of iterations exceeded permited limit."),
 

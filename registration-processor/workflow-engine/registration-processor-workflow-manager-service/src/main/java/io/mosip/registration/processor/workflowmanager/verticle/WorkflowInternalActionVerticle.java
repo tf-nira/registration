@@ -645,7 +645,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
 		registrationStatusDto
 				.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
-		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO_PARENT_RESTART.getCode());
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 		if (additionalInfoRequestDto != null) {
 			Map<String, String> tags = new HashMap<String, String>();
@@ -726,7 +726,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 			registrationStatusDto.setUpdatedBy(USER);
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
-			registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+			registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO.getCode());
 			registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 			String additionalRequestId = createAdditionalInfoRequest(workflowInternalActionDTO,additionalInfoRequestDtos);
 			sendWorkflowPausedForAdditionalInfoEvent(registrationStatusDto, additionalRequestId,
