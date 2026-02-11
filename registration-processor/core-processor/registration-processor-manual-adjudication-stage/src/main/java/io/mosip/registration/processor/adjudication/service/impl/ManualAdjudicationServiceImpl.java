@@ -1209,14 +1209,22 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		if (rejectedRids == null || rejectedRids.isEmpty()) {
 	        return;
 	    }
+	    
+		List<MAMatchedRidsEntity> entities = matchedRidsRepository.getMatchedRecordByRegId(regId);
+		MAMatchedRidsEntity entity = null;
 		
-		MAMatchedRidsEntity entity =
-	            matchedRidsRepository.findById(regId)
-	                .orElseGet(MAMatchedRidsEntity::new);
-
-	    MAMatchedRidsPKEntity pk = new MAMatchedRidsPKEntity();
-	    pk.setRegId(regId);
-	    entity.setId(pk);
+		if (CollectionUtils.isEmpty(entities)) {
+		    entity = new MAMatchedRidsEntity();
+		    MAMatchedRidsPKEntity pk = new MAMatchedRidsPKEntity();
+		    pk.setRegId(regId);
+		    entity.setId(pk);
+		    entity.setCrBy("SYSTEM");
+	        entity.setCrDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+		} else {
+			entity = entities.iterator().next();
+			entity.setUpdBy("SYSTEM");
+		    entity.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+		}
 
 	    entity.setMatchedRegIds(
 	        rejectedRids.size() == 1
@@ -1226,14 +1234,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	    entity.setMatchedCount(rejectedRids.size());
 	    entity.setIssued(false);
-
-	    if (entity.getCrDtimes() == null) {
-	        entity.setCrBy("SYSTEM");
-	        entity.setCrDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
-	    } else {
-	    	entity.setUpdBy("SYSTEM");
-		    entity.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
-	    }
 
 	    matchedRidsRepository.save(entity);
 	}
