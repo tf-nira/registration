@@ -21,14 +21,4 @@ public class MAMatchedRidsPKEntity implements Serializable {
 	public void setRegId(String regId) {
 		this.regId = regId;
 	}
-
-	@Override
-	public int hashCode() {
-		return super.hashCode();
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		return super.equals(obj);
-	}
 }

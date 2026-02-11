@@ -67,6 +67,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -498,6 +499,8 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 			record.setRemark(e.getMessage());
 		}
 		
+		record.setUpdBy("SYSTEM");
+		record.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
 		matchedRidsRepository.save(record);
 	}
 

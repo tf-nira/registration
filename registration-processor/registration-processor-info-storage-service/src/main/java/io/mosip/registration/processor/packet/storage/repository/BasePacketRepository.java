@@ -502,6 +502,9 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	
 	@Query(value = "SELECT * FROM regprc.ma_matched_rids WHERE matched_count = 1 AND is_issued = false ORDER BY cr_dtimes LIMIT :fetchSize", nativeQuery = true)
 	public List<MAMatchedRidsEntity> findPendingForIssue(@Param("fetchSize") int fetchSize);
+	
+	@Query(value ="SELECT m FROM MAMatchedRidsEntity m WHERE m.id.regId =:regId")
+	public List<MAMatchedRidsEntity> getMatchedRecordByRegId(@Param("regId") String regId);
 
 	@Query(value = "SELECT e FROM EnrollmentDataEntity e WHERE e.id.regId =:regId")
 	public List<EnrollmentDataEntity> getEnrollmentData(@Param("regId") String regId);
