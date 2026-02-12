@@ -34,6 +34,7 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
@@ -69,7 +70,8 @@ public class ApplicantDocumentValidationTest {
 		Map<String,String> map=new LinkedHashMap<>();
 		map.put("value", "documentValue");
 		proofOfDocument=new JSONObject(map);
-
+		List<String> modalities = new ArrayList();
+		ReflectionTestUtils.setField(applicantDocumentValidation, "modalities", modalities);
 		JSONObject identityJSON = new JSONObject();
 		identityJSON.put("proofOfAddress", map);
 		when(utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT)).thenReturn(identityJSON);
@@ -118,6 +120,7 @@ public class ApplicantDocumentValidationTest {
 		biometricRecord.setSegments(birTypeList);
 
 		when(packetManagerService.getBiometrics(anyString(),any(), any(), any())).thenReturn(biometricRecord);
+		when(packetManagerService.getBiometrics(anyString(), any(), any(), any(), any())).thenReturn(biometricRecord);
 		when(packetManagerService.getBiometricsByMappingJsonKey(anyString(), anyString(), any(), any())).thenReturn(biometricRecord);
 	}
 

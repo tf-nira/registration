@@ -15,6 +15,7 @@ import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketM
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -39,6 +40,9 @@ public class ApplicantDocumentValidation {
 
     @Autowired
     private Utilities utility;
+    
+    @Value("#{'${mosip.regproc.packet.validator.modalities}'.split(',')}")
+	private List<String> modalities;
 
     private static final String VALUE = "value";
 
@@ -80,7 +84,8 @@ public class ApplicantDocumentValidation {
             }
         }
         if (docFields.get(introducerBiometricLabel) != null) {
-            BiometricRecord biometricRecord = packetManagerService.getBiometricsByMappingJsonKey(registrationId, MappingJsonConstants.INTRODUCER_BIO, process, ProviderStageName.PACKET_VALIDATOR);
+        	BiometricRecord biometricRecord = packetManagerService.getBiometrics(registrationId,
+					introducerBiometricLabel, modalities, process, ProviderStageName.PACKET_VALIDATOR);
             if (biometricRecord == null || biometricRecord.getSegments() == null || biometricRecord.getSegments().size() == 0)
                 return false;
         }
