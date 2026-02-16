@@ -92,7 +92,7 @@ public class IdrepoDraftService {
 			throws ApisResourceAccessException, IdrepoDraftException, IOException, IdrepoDraftReprocessableException {
         regProcLogger.debug("idrepoUpdateDraft entry " + id);
         if (!idrepoHasDraft(id)) {
-            regProcLogger.info("Existing draft not found for id " + id + ". Creating new draft.");
+            regProcLogger.info("Existing draft not found for id " + id + ". Creating a new draft.");
 			Map<String, Object> identity = (Map<String, Object>) idRequestDto.getRequest().getIdentity();
             List<Map<String, Object>> userServiceTypes = (List<Map<String, Object>>) identity.get("userServiceType");
 
@@ -181,4 +181,5 @@ public class IdrepoDraftService {
 		return true;
 	}
 }
+
 
