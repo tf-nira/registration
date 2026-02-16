@@ -3,6 +3,7 @@ package io.mosip.registration.processor.packet.manager.idreposervice;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.assertj.core.util.Lists;
 import org.json.simple.JSONObject;
@@ -92,6 +93,13 @@ public class IdrepoDraftService {
         regProcLogger.debug("idrepoUpdateDraft entry " + id);
         if (!idrepoHasDraft(id)) {
             regProcLogger.info("Existing draft not found for id " + id + ". Creating new draft.");
+			Map<String, Object> identity = (Map<String, Object>) idRequestDto.getRequest().getIdentity();
+            List<Map<String, Object>> userServiceTypes = (List<Map<String, Object>>) identity.get("userServiceType");
+
+            if (userServiceTypes!=null && !userServiceTypes.isEmpty() && "Deactivated".equalsIgnoreCase((String) userServiceTypes.get(0).get("value"))) {
+                String nin = (String) identity.get("NIN");
+                uin = (nin != null && nin.length() >= 10) ? nin.substring(nin.length() - 10) : uin;
+            }
             idrepoCreateDraft(id, uin);
         } else {
             regProcLogger.info("Existing draft found for id " + id + ". Updating uin in demographic identity.");
@@ -173,3 +181,4 @@ public class IdrepoDraftService {
 		return true;
 	}
 }
+
