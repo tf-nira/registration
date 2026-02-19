@@ -253,9 +253,10 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 				IdResponseDTO idResponseDTO = new IdResponseDTO();
 				String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId, MappingJsonConstants.IDSCHEMA_VERSION, registrationStatusDto.getRegistrationType(), ProviderStageName.UIN_GENERATOR);
-
+				List<String> fields = List.of("NIN");
+				
 				Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
-						idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationStatusDto.getRegistrationType(), ProviderStageName.UIN_GENERATOR);
+						fields, registrationStatusDto.getRegistrationType(), ProviderStageName.UIN_GENERATOR);
 				String uinField = fieldMap.get(utility.getMappingJsonValue(MappingJsonConstants.UIN, MappingJsonConstants.IDENTITY));
 				JSONObject demographicIdentity = new JSONObject();
 				if ((StringUtils.isEmpty(uinField) || uinField.equalsIgnoreCase("null"))

@@ -20,7 +20,7 @@ on:
       - master
       - 1.*
       - develop
-      - tf_nira_dev
+      - tf_nira_*
       - tf_nira_prod
       - tf_nira_prod_tmp
       - renewal/renewal-limit-reapply
