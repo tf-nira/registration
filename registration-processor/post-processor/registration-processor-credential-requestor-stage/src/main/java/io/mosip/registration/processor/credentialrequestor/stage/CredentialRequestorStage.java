@@ -243,16 +243,16 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				boolean isCrvsFlow = (regId != null && regId.contains("-")) || "CRVS_NEW".equals(object.getReg_type());
 
 				if (isCrvsFlow) {
-				    allIssuerList.stream()
+				    Optional<CredentialPartner> opencrvsPartnerOpt = allIssuerList.stream()
 				            .filter(p -> "opencrvsPartner".equals(p.getId()))
-				            .findFirst()
-				            .ifPresent(opencrvsPartner -> {
-				                boolean alreadyPresent = filteredPartners.stream()
-				                        .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
-				                if (!alreadyPresent) {
-				                    filteredPartners.add(opencrvsPartner);
-				                }
-				            });
+				            .findFirst();
+				    if (opencrvsPartnerOpt.isPresent()) {
+				        boolean alreadyPresent = filteredPartners.stream()
+				                .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
+				        if (!alreadyPresent) {
+				            filteredPartners.add(opencrvsPartnerOpt.get());
+				        }
+				    }
 				} else {
 				    filteredPartners.removeIf(p -> "opencrvsPartner".equals(p.getId()));
 				}
