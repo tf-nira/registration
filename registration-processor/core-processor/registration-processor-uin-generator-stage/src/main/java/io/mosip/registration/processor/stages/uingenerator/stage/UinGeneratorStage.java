@@ -944,17 +944,14 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			idResponseDto = idrepoDraftService.idrepoUpdateDraft(id, uin, idRequestDTO);
 
 			if (isIdResponseNotNull(idResponseDto)) {
-				if (idResponseDto.getResponse().getStatus().equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
-					description.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
-					description.setStatusComment(StatusUtil.UIN_DEACTIVATION_SUCCESS.getMessage());
-					description.setSubStatusCode(StatusUtil.UIN_DEACTIVATION_SUCCESS.getCode());
-					description.setMessage(StatusUtil.UIN_DEACTIVATION_SUCCESS.getMessage() + id);
-					description.setMessage(PlatformSuccessMessages.RPR_UIN_DEACTIVATION_SUCCESS.getMessage());
-					description.setCode(PlatformSuccessMessages.RPR_UIN_DEACTIVATION_SUCCESS.getCode());
+				if (IDREPO_STATUS.equalsIgnoreCase(idResponseDto.getResponse().getStatus())) {
+					description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+					description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
+					description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
+					description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
 					description.setTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
 					object.setIsValid(Boolean.TRUE);
 					statusComment = idResponseDto.getResponse().getStatus().toString();
-
 				}
 			} else {
 
