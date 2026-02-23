@@ -383,7 +383,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 					: description.getCode();
 			String moduleName = ModuleName.PRINT_STAGE.toString();
 			
-			if(filteredPartners.size() != 0) {
+			if(filteredPartners != null && !filteredPartners.isEmpty()) {
 				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
 			}
 
