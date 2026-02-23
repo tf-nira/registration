@@ -191,6 +191,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		LogDescription description = new LogDescription();
 
 		boolean isTransactionSuccessful = false;
+		boolean updateTransaction = true;
 		String uin = null;
 		String refIds = null;
 		String regId = object.getRid();
@@ -201,7 +202,6 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		RequestWrapper<CredentialRequestDto> requestWrapper = new RequestWrapper<>();
 		ResponseWrapper<?> responseWrapper = null;
 		CredentialResponseDto credentialResponseDto;
-		List<CredentialPartner> filteredPartners = null;
 		try {
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(
 					regId, object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
@@ -233,7 +233,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				requestWrapper.setVersion("1.0");
 				List<CredentialPartner> allIssuerList = credentialPartnerUtil.getAllCredentialPartners().getPartners();
 				// filtering with default partner ids and process
-				filteredPartners = allIssuerList.stream()
+				List<CredentialPartner> filteredPartners = allIssuerList.stream()
 						.filter(issuer -> defaultPartners.contains(issuer.getId()))
 						.filter(issuer -> (issuer.getProcess() == null) || (issuer.getProcess().contains(object.getReg_type())))
 						.collect(Collectors.toList());
@@ -243,16 +243,16 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				boolean isCrvsFlow = (regId != null && regId.contains("-")) || "CRVS_NEW".equals(object.getReg_type());
 
 				if (isCrvsFlow) {
-				    Optional<CredentialPartner> opencrvsPartnerOpt = allIssuerList.stream()
-				            .filter(p -> "opencrvsPartner".equals(p.getId()))
-				            .findFirst();
-				    if (opencrvsPartnerOpt.isPresent()) {
-				        boolean alreadyPresent = filteredPartners.stream()
-				                .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
-				        if (!alreadyPresent) {
-				            filteredPartners.add(opencrvsPartnerOpt.get());
-				        }
-				    }
+					allIssuerList.stream()
+		            .filter(p -> "opencrvsPartner".equals(p.getId()))
+		            .findFirst()
+		            .ifPresent(opencrvsPartner -> {
+		                boolean alreadyPresent = filteredPartners.stream()
+		                        .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
+		                if (!alreadyPresent) {
+		                    filteredPartners.add(opencrvsPartner);
+		                }
+		            });
 				} else {
 				    filteredPartners.removeIf(p -> "opencrvsPartner".equals(p.getId()));
 				}
@@ -311,6 +311,11 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 						isTransactionSuccessful = true;
 					}
 				}
+				
+				if (filteredPartners.size() == 0) {
+					updateTransaction = false;
+				}
+				
 				if (isTransactionSuccessful) {
 					registrationStatusDto.setRefId(refIds);
 					object.setIsValid(Boolean.TRUE);
@@ -383,7 +388,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 					: description.getCode();
 			String moduleName = ModuleName.PRINT_STAGE.toString();
 			
-			if(filteredPartners.size() != 0) {
+			if(updateTransaction) {
 				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
 			}
 
