@@ -201,6 +201,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		RequestWrapper<CredentialRequestDto> requestWrapper = new RequestWrapper<>();
 		ResponseWrapper<?> responseWrapper = null;
 		CredentialResponseDto credentialResponseDto;
+		List<CredentialPartner> filteredPartners = null;
 		try {
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(
 					regId, object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
@@ -232,7 +233,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				requestWrapper.setVersion("1.0");
 				List<CredentialPartner> allIssuerList = credentialPartnerUtil.getAllCredentialPartners().getPartners();
 				// filtering with default partner ids and process
-				List<CredentialPartner> filteredPartners = allIssuerList.stream()
+				filteredPartners = allIssuerList.stream()
 						.filter(issuer -> defaultPartners.contains(issuer.getId()))
 						.filter(issuer -> (issuer.getProcess() == null) || (issuer.getProcess().contains(object.getReg_type())))
 						.collect(Collectors.toList());
@@ -381,7 +382,10 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 					? PlatformSuccessMessages.RPR_PRINT_STAGE_REQUEST_SUCCESS.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.PRINT_STAGE.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			
+			if(filteredPartners.size() != 0) {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
 
 			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
 					moduleId, moduleName, regId);
