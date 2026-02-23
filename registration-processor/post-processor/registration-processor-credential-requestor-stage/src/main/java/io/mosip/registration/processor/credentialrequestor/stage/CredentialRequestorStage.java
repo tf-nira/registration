@@ -314,6 +314,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				
 				if (filteredPartners.size() == 0) {
 					updateTransaction = false;
+					object.setIsValid(Boolean.TRUE);
 				}
 				
 				if (isTransactionSuccessful) {
