@@ -191,6 +191,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		LogDescription description = new LogDescription();
 
 		boolean isTransactionSuccessful = false;
+		boolean updateTransaction = true;
 		String uin = null;
 		String refIds = null;
 		String regId = object.getRid();
@@ -242,16 +243,16 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				boolean isCrvsFlow = (regId != null && regId.contains("-")) || "CRVS_NEW".equals(object.getReg_type());
 
 				if (isCrvsFlow) {
-				    allIssuerList.stream()
-				            .filter(p -> "opencrvsPartner".equals(p.getId()))
-				            .findFirst()
-				            .ifPresent(opencrvsPartner -> {
-				                boolean alreadyPresent = filteredPartners.stream()
-				                        .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
-				                if (!alreadyPresent) {
-				                    filteredPartners.add(opencrvsPartner);
-				                }
-				            });
+					allIssuerList.stream()
+		            .filter(p -> "opencrvsPartner".equals(p.getId()))
+		            .findFirst()
+		            .ifPresent(opencrvsPartner -> {
+		                boolean alreadyPresent = filteredPartners.stream()
+		                        .anyMatch(p -> "opencrvsPartner".equals(p.getId()));
+		                if (!alreadyPresent) {
+		                    filteredPartners.add(opencrvsPartner);
+		                }
+		            });
 				} else {
 				    filteredPartners.removeIf(p -> "opencrvsPartner".equals(p.getId()));
 				}
@@ -310,6 +311,12 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 						isTransactionSuccessful = true;
 					}
 				}
+				
+				if (filteredPartners.size() == 0) {
+					updateTransaction = false;
+					object.setIsValid(Boolean.TRUE);
+				}
+				
 				if (isTransactionSuccessful) {
 					registrationStatusDto.setRefId(refIds);
 					object.setIsValid(Boolean.TRUE);
@@ -381,7 +388,10 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 					? PlatformSuccessMessages.RPR_PRINT_STAGE_REQUEST_SUCCESS.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.PRINT_STAGE.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			
+			if(updateTransaction) {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
 
 			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
 					moduleId, moduleName, regId);
