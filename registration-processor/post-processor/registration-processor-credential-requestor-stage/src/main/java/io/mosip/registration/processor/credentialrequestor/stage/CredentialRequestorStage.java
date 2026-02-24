@@ -183,6 +183,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		boolean isTransactionSuccessful = false;
 		String uin = null;
 		String refIds = null;
+		boolean updateTransaction = true;
 		String regId = object.getRid();
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 				regId, "PrintStage::process()::entry");
@@ -300,6 +301,12 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 						isTransactionSuccessful = true;
 					}
 				}
+				
+				if (filteredPartners.size() == 0) {
+					updateTransaction = false;
+					object.setIsValid(Boolean.TRUE);
+				}
+				
 				if (isTransactionSuccessful) {
 					registrationStatusDto.setRefId(refIds);
 					object.setIsValid(Boolean.TRUE);
@@ -371,7 +378,10 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 					? PlatformSuccessMessages.RPR_PRINT_STAGE_REQUEST_SUCCESS.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.PRINT_STAGE.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			
+			if(updateTransaction) {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
 
 			auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(), eventId, eventName, eventType,
 					moduleId, moduleName, regId);
