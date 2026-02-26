@@ -3,7 +3,7 @@ package io.mosip.registration.processor.quality.qualifier.stage.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString; 
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +67,7 @@ import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.mosip.registration.processor.core.constant.ProviderStageName;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore({ "javax.management.*", "javax.net.ssl.*", "com.sun.org.apache.xerces.*", "javax.xml.*",
@@ -236,6 +237,9 @@ public class QualityClassifierStageTest {
 				+ "}";
 		InputStream idJsonStream = IOUtils.toInputStream(idJsonString, "UTF-8");
 
+		ReflectionTestUtils.setField(qualityClassifierStage, "dobFormat", "yyyy-MM-dd");
+		ReflectionTestUtils.setField(qualityClassifierStage, "biometricNotAvailableTagValue", "NOT_AVAILABLE");
+		
 		Mockito.when(utility.getGetRegProcessorDemographicIdentity()).thenReturn("identity");
 
 		ClassLoader classLoader = getClass().getClassLoader();
@@ -325,7 +329,8 @@ public class QualityClassifierStageTest {
 		float[] scores = new float[1];
 		scores[0] = 100;
 		Mockito.when(faceIBioProviderApi.getSegmentQuality(any(), any())).thenReturn(scores);
-
+		
+		setupValidDateFieldMocks();  
 	}
 
 	@Test
@@ -608,4 +613,15 @@ public class QualityClassifierStageTest {
 		assertTrue(result.getInternalError());
 	}
 
+	private void setupValidDateFieldMocks() throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
+	    Mockito.when(packetManagerService.getField(any(), any(), any(), any()))
+	            .thenReturn("1990-01-15");
+
+	    Map<String, String> metaInfo = new HashMap<>();
+	    metaInfo.put("creationDate", "2024-02-04");
+	    
+	    Mockito.when(packetManagerService.getMetaInfo(any(), any(), any()))
+	            .thenReturn(metaInfo);
+	}
+	
 }
