@@ -332,6 +332,9 @@ public class RegistrationStatusServiceImpl
 				if (entity.getStatusCode() == null) {
 					entity.setStatusCode(dto.getStatusCode());
 				}
+				if (entity.getReferenceId() == null) {
+			        entity.setReferenceId(dto.getReferenceId());
+			    }
 				registrationStatusDao.save(entity);
 				isTransactionSuccessful = true;
 				description.setMessage("Updated registration status successfully");

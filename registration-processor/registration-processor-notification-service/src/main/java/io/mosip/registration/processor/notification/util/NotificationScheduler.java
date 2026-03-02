@@ -208,11 +208,16 @@ public class NotificationScheduler {
 		registrationStatusEntity.setLatestTransactionStatusCode(dto.getLatestTransactionStatusCode());
 		registrationStatusEntity.setLatestTransactionTypeCode(dto.getLatestTransactionTypeCode());
 		registrationStatusEntity.setRegistrationStageName(dto.getRegistrationStageName());
-		registrationStatusEntity.setLatestTransactionTimes(dto.getLatestTransactionTimes());
+		if (dto.getLatestTransactionTimes() == null) {
+			registrationStatusEntity.setLatestTransactionTimes(LocalDateTime.now(ZoneId.of("UTC")));
+		} else {
+			registrationStatusEntity.setLatestTransactionTimes(dto.getLatestTransactionTimes());
+		}
 		registrationStatusEntity.setResumeTimeStamp(dto.getResumeTimeStamp());
 		registrationStatusEntity.setDefaultResumeAction(dto.getDefaultResumeAction());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
 		registrationStatusEntity.setNotificationSent(dto.getNotificationSent());
+		registrationStatusEntity.setReferenceId(dto.getReferenceId());
 		return registrationStatusEntity;
 	}
 }
