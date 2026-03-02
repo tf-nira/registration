@@ -253,7 +253,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 				IdResponseDTO idResponseDTO = new IdResponseDTO();
 				String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId, MappingJsonConstants.IDSCHEMA_VERSION, registrationStatusDto.getRegistrationType(), ProviderStageName.UIN_GENERATOR);
-				List<String> fields = List.of("NIN");
+				List<String> fields = List.of("NIN", "declaredAsDeceased");
 				
 				Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
 						fields, registrationStatusDto.getRegistrationType(), ProviderStageName.UIN_GENERATOR);
