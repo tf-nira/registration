@@ -193,7 +193,7 @@ public class PacketValidateProcessor {
 			registrationStatusDto.setRegistrationStageName(stageName);
 			setPacketCreatedDateTime(registrationStatusDto);
 
-			Object jsonServiceTypeObj =  packetManagerService.getField(registrationId, MappingJsonConstants.SERVICE_TYPE, registrationStatusDto.getRegistrationType(), ProviderStageName.MESSAGE_SENDER);
+			Object jsonServiceTypeObj =  packetManagerService.getField(registrationId, MappingJsonConstants.SERVICE_TYPE, registrationStatusDto.getRegistrationType(), ProviderStageName.PACKET_VALIDATOR);
 			String userServiceType= null;
 			try {
 				if (jsonServiceTypeObj != null) {
