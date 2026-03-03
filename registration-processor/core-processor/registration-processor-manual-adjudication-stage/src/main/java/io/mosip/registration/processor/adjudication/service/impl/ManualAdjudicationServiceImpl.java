@@ -4,6 +4,9 @@ import static io.mosip.registration.processor.adjudication.constants.ManualAdjud
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -1041,6 +1044,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ManualVerificationEntity manualVerificationEntity=entities.get(i);
 			manualVerificationEntity.setStatusCode(statusCode);
 			manualVerificationEntity.setReponseText(responsetext);
+			manualVerificationEntity.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
 			manualVerificationEntity.setStatusComment(statusCode.equalsIgnoreCase(ManualVerificationStatus.APPROVED.name()) ?
 					StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage() :
 					StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
