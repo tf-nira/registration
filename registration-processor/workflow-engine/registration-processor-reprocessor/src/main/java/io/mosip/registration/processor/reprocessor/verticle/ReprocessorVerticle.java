@@ -353,7 +353,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 		try {
 			// Fetch resumable packets first
-			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService.getResumablePackets(CACHE_SIZE, reprocessExcludeStageNames);
+			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService.getResumablePackets(CACHE_SIZE, reprocessExcludeStageNames,includeProcesses);
 			if (!CollectionUtils.isEmpty(resumablePackets)) {
 				databaseRecords.addAll(resumablePackets);
 				regProcLogger.info("Loaded " + resumablePackets.size() + " resumable packets into cache");
@@ -366,7 +366,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 						elapseTime,
 						reprocessCount, 
 						statusList, 
-						reprocessExcludeStageNames);
+						reprocessExcludeStageNames, includeProcesses);
 				if (!CollectionUtils.isEmpty(unprocessedPackets)) {
 					databaseRecords.addAll(unprocessedPackets);
 					regProcLogger.info("Loaded " + unprocessedPackets.size() + " unprocessed packets into cache");
@@ -546,4 +546,5 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		return VERTICLE_PROPERTY_PREFIX;
 	}
 }
+
 
