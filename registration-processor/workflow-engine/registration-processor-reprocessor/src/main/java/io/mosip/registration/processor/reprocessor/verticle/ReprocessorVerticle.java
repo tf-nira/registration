@@ -314,7 +314,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			regProcLogger.info("Fetched " + reprocessorDtoList.size() + " records from cache. Cache size: " + reprocessorPacketCache.size());
 		}
 
-		// Step 3: If cache is empty after reading, reload from database
+		/*// Step 3: If cache is empty after reading, reload from database
 		if (reprocessorPacketCache.isEmpty() && reprocessorDtoList.size() < fetchSize) {
 			regProcLogger.info("Cache is empty after reading. Reloading from database");
 			loadCacheFromDatabase();
@@ -331,7 +331,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 				}
 				regProcLogger.info("Fetched additional " + recordsToFetch + " records from reloaded cache. Total fetched: " + reprocessorDtoList.size());
 			}
-		}
+		}*/
 
 		int totalFetchedRecords = reprocessorDtoList.size();
 		regProcLogger.info("Total number of packets re-processor picked up :: " + totalFetchedRecords);
