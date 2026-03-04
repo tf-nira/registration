@@ -5,7 +5,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -46,6 +48,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
+
 
 /**
  * The Reprocessor Verticle to deploy the scheduler and implement re-processing
@@ -120,6 +123,12 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Value("${server.port}")
 	private String port;
 
+	/** Cache size for reprocessor packets (default 5000) */
+	private static final int CACHE_SIZE = 5000;
+
+	/** Thread-safe cache for reprocessor packets */
+	private Queue<InternalRegistrationStatusDto> reprocessorPacketCache = new ConcurrentLinkedQueue<>();
+	
 	/**
 	 * Deploy verticle.
 	 */
@@ -223,119 +232,16 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	 */
 	@Override
 	public MessageDTO process(MessageDTO object) {
-		List<InternalRegistrationStatusDto> reprocessorDtoList = null;
 		LogDescription description = new LogDescription();
-		List<String> statusList = new ArrayList<>();
-		statusList.add(RegistrationTransactionStatusCode.SUCCESS.toString());
-		statusList.add(RegistrationTransactionStatusCode.REPROCESS.toString());
-		statusList.add(RegistrationTransactionStatusCode.IN_PROGRESS.toString());
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ReprocessorVerticle::process()::entry");
-		StringBuffer ridSb=new StringBuffer();
-		int  totalNumberOfReprocessRecords = 0;
 		try {
-			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
-			reprocessorDtoList = registrationStatusService.getResumablePackets(elapseTime, fetchSize,
-					reprocessExcludeStageNames, includeProcesses);
-			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
-				if (reprocessorDtoList.size() < fetchSize) {
-					List<InternalRegistrationStatusDto> reprocessorPacketList = registrationStatusService
-							.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime, reprocessCount,
-									statusList, reprocessExcludeStageNames, includeProcesses);
-					if (!CollectionUtils.isEmpty(reprocessorPacketList)) {
-						reprocessorDtoList.addAll(reprocessorPacketList);
-					}
-				}
-			} else {
-				reprocessorDtoList = registrationStatusService.getUnProcessedPackets(fetchSize, elapseTime,
-						reprocessCount, statusList, reprocessExcludeStageNames, includeProcesses);
-			}
+			// Read data from database
+			List<InternalRegistrationStatusDto> reprocessorDtoList = readData();
 
-			totalNumberOfReprocessRecords = (!CollectionUtils.isEmpty(reprocessorDtoList)?reprocessorDtoList.size():0);
-			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);			
+			// Process the fetched data
+			processData(reprocessorDtoList, description, object);
 			
-			
-			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
-				List<String> registrationIds = new ArrayList<>();
-				AtomicInteger processedCount = new AtomicInteger(0);
-				reprocessorDtoList.forEach(dto -> {
-					String registrationId = dto.getRegistrationId();
-					registrationIds.add(registrationId);
-					ridSb.append(registrationId);
-					ridSb.append(",");
-					MessageDTO messageDTO = new MessageDTO();
-					messageDTO.setRid(registrationId);
-					messageDTO.setReg_type(dto.getRegistrationType());
-					messageDTO.setSource(dto.getSource());
-					messageDTO.setIteration(dto.getIteration());
-					messageDTO.setWorkflowInstanceId(dto.getWorkflowInstanceId());
-					if (reprocessCount.equals(dto.getReProcessRetryCount())) {
-						dto.setLatestTransactionStatusCode(
-								RegistrationTransactionStatusCode.REPROCESS_FAILED.toString());
-						dto.setLatestTransactionTypeCode(
-								RegistrationTransactionTypeCode.PACKET_REPROCESS.toString());
-						dto.setStatusComment(StatusUtil.RE_PROCESS_FAILED.getMessage());
-						dto.setStatusCode(RegistrationStatusCode.REPROCESS_FAILED.toString());
-						dto.setSubStatusCode(StatusUtil.RE_PROCESS_FAILED.getCode());
-						messageDTO.setIsValid(false);
-						description.setMessage(PlatformSuccessMessages.RPR_RE_PROCESS_FAILED.getMessage());
-						description.setCode(PlatformSuccessMessages.RPR_RE_PROCESS_FAILED.getCode());
-
-					} else {
-						messageDTO.setIsValid(true);
-						isTransactionSuccessful = true;
-						String stageName;
-						if (isRestartFromStageRequired(dto, reprocessRestartTriggerMap)) {
-							stageName = MessageBusUtil.getMessageBusAdress(reprocessRestartFromStage);
-							stageName = stageName.concat(ReprocessorConstants.BUS_IN);
-								sendAndSetStatus(dto, messageDTO, stageName);
-								dto.setStatusComment(StatusUtil.RE_PROCESS_RESTART_FROM_STAGE.getMessage());
-								dto.setSubStatusCode(StatusUtil.RE_PROCESS_RESTART_FROM_STAGE.getCode());
-								description
-										.setMessage(
-												PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_RESTART_FROM_STAGE_SUCCESS
-														.getMessage());
-								description.setCode(
-										PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_RESTART_FROM_STAGE_SUCCESS
-												.getCode());
-
-						} else {
-							stageName = MessageBusUtil.getMessageBusAdress(dto.getRegistrationStageName());
-						if (RegistrationTransactionStatusCode.SUCCESS.name()
-								.equalsIgnoreCase(dto.getLatestTransactionStatusCode())) {
-							stageName = stageName.concat(ReprocessorConstants.BUS_OUT);
-						} else {
-							stageName = stageName.concat(ReprocessorConstants.BUS_IN);
-						}
-							sendAndSetStatus(dto, messageDTO, stageName);
-						dto.setStatusComment(StatusUtil.RE_PROCESS_COMPLETED.getMessage());
-						dto.setSubStatusCode(StatusUtil.RE_PROCESS_COMPLETED.getCode());
-						description.setMessage(PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getMessage());
-						description.setCode(PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getCode());
-						}
-					}
-					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(), registrationId, description.getMessage());
-					regProcLogger.info("Total records processed :: " + processedCount.incrementAndGet());
-
-					/** Module-Id can be Both Success/Error code */
-					String moduleId = PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getCode();
-					String moduleName = ModuleName.RE_PROCESSOR.toString();
-					registrationStatusService.updateRegistrationStatusForWorkflowEngine(dto, moduleId, moduleName);
-					String eventId = EventId.RPR_402.toString();
-					String eventName = EventName.UPDATE.toString();
-					String eventType = EventType.BUSINESS.toString();
-
-					/*
-					 * if (!isTransactionSuccessful)
-					 * auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(),
-					 * eventId, eventName, eventType, moduleId, moduleName, registrationId);
-					 */
-				});
-			  				String resultRids = registrationIds.stream()
-                        .collect(Collectors.joining(", "));
-				regProcLogger.info("Reprocessor pickedup records to process :: " + resultRids);
-			}
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
 			object.setInternalError(Boolean.TRUE);
@@ -376,6 +282,202 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		}
 
 		return object;
+	}
+
+	/**
+	 * Reads resumable and unprocessed packets from the database
+	 * Implements a caching mechanism:
+	 * 1. If cache is empty, read 5000 records from database and populate cache
+	 * 2. Read fetchSize records from cache and remove them
+	 * 3. If cache becomes empty after reading, repeat step 1
+	 * 
+	 * @return List of InternalRegistrationStatusDto containing packets to reprocess
+	 */
+	private List<InternalRegistrationStatusDto> readData() {
+		List<InternalRegistrationStatusDto> reprocessorDtoList = new ArrayList<>();
+		
+		regProcLogger.info("ReprocessorVerticle::readData()::fetching packets from cache or database");
+
+		// Step 1: If cache is empty, load 5000 records from database
+		if (reprocessorPacketCache.isEmpty()) {
+			regProcLogger.info("Cache is empty. Loading " + CACHE_SIZE + " records from database");
+			loadCacheFromDatabase();
+		}
+
+		// Step 2: Read fetchSize records from cache and remove them
+		if (!reprocessorPacketCache.isEmpty()) {
+			int recordsToFetch = Math.min(fetchSize, reprocessorPacketCache.size());
+			for (int i = 0; i < recordsToFetch; i++) {
+				InternalRegistrationStatusDto dto = reprocessorPacketCache.poll();
+				if (dto != null) {
+					reprocessorDtoList.add(dto);
+				}
+			}
+			regProcLogger.info("Fetched " + reprocessorDtoList.size() + " records from cache. Cache size: " + reprocessorPacketCache.size());
+		}
+
+		// Step 3: If cache is empty after reading, reload from database
+		if (reprocessorPacketCache.isEmpty() && reprocessorDtoList.size() < fetchSize) {
+			regProcLogger.info("Cache is empty after reading. Reloading from database");
+			loadCacheFromDatabase();
+			
+			// Fetch remaining records to reach fetchSize
+			if (!reprocessorPacketCache.isEmpty()) {
+				int remainingRecords = fetchSize - reprocessorDtoList.size();
+				int recordsToFetch = Math.min(remainingRecords, reprocessorPacketCache.size());
+				for (int i = 0; i < recordsToFetch; i++) {
+					InternalRegistrationStatusDto dto = reprocessorPacketCache.poll();
+					if (dto != null) {
+						reprocessorDtoList.add(dto);
+					}
+				}
+				regProcLogger.info("Fetched additional " + recordsToFetch + " records from reloaded cache. Total fetched: " + reprocessorDtoList.size());
+			}
+		}
+
+		int totalFetchedRecords = reprocessorDtoList.size();
+		regProcLogger.info("Total number of packets re-processor picked up :: " + totalFetchedRecords);
+		regProcLogger.info("Cache size after read operation :: " + reprocessorPacketCache.size());
+
+		return reprocessorDtoList;
+	}
+
+	/**
+	 * Loads CACHE_SIZE (5000) records from database into the cache
+	 * Fetches resumable packets first, then unprocessed packets if needed
+	 */
+	private void loadCacheFromDatabase() {
+		List<InternalRegistrationStatusDto> databaseRecords = new ArrayList<>();
+		List<String> statusList = new ArrayList<>();
+		statusList.add(RegistrationTransactionStatusCode.SUCCESS.toString());
+		statusList.add(RegistrationTransactionStatusCode.REPROCESS.toString());
+		statusList.add(RegistrationTransactionStatusCode.IN_PROGRESS.toString());
+
+		try {
+			// Fetch resumable packets first
+			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService.getResumablePackets(CACHE_SIZE, reprocessExcludeStageNames);
+			if (!CollectionUtils.isEmpty(resumablePackets)) {
+				databaseRecords.addAll(resumablePackets);
+				regProcLogger.info("Loaded " + resumablePackets.size() + " resumable packets into cache");
+			}
+
+			// If we need more records, fetch unprocessed packets
+			if (databaseRecords.size() < CACHE_SIZE) {
+				List<InternalRegistrationStatusDto> unprocessedPackets = registrationStatusService.getUnProcessedPackets(
+						CACHE_SIZE - databaseRecords.size(), 
+						elapseTime,
+						reprocessCount, 
+						statusList, 
+						reprocessExcludeStageNames);
+				if (!CollectionUtils.isEmpty(unprocessedPackets)) {
+					databaseRecords.addAll(unprocessedPackets);
+					regProcLogger.info("Loaded " + unprocessedPackets.size() + " unprocessed packets into cache");
+				}
+			}
+
+			// Add all fetched records to cache
+			reprocessorPacketCache.addAll(databaseRecords);
+			regProcLogger.info("Cache populated with " + databaseRecords.size() + " records. Total cache size: " + reprocessorPacketCache.size());
+
+		} catch (Exception e) {
+			regProcLogger.error("Error loading cache from database: " + e.getMessage(), e);
+			throw new RuntimeException("Failed to load cache from database", e);
+		}
+	}
+
+	/**
+	 * Processes the fetched reprocessor packets
+	 * 
+	 * @param reprocessorDtoList List of packets to process
+	 * @param description LogDescription for logging
+	 * @param object MessageDTO for returning response
+	 */
+	private void processData(List<InternalRegistrationStatusDto> reprocessorDtoList, LogDescription description, MessageDTO object) {
+		StringBuffer ridSb = new StringBuffer();
+		
+		if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
+			List<String> registrationIds = new ArrayList<>();
+			AtomicInteger processedCount = new AtomicInteger(0);
+			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
+
+			reprocessorDtoList.forEach(dto -> {
+				String registrationId = dto.getRegistrationId();
+				registrationIds.add(registrationId);
+				ridSb.append(registrationId);
+				ridSb.append(",");
+				MessageDTO messageDTO = new MessageDTO();
+				messageDTO.setRid(registrationId);
+				messageDTO.setReg_type(dto.getRegistrationType());
+				messageDTO.setSource(dto.getSource());
+				messageDTO.setIteration(dto.getIteration());
+				messageDTO.setWorkflowInstanceId(dto.getWorkflowInstanceId());
+				if (reprocessCount.equals(dto.getReProcessRetryCount())) {
+					dto.setLatestTransactionStatusCode(
+							RegistrationTransactionStatusCode.REPROCESS_FAILED.toString());
+					dto.setLatestTransactionTypeCode(
+							RegistrationTransactionTypeCode.PACKET_REPROCESS.toString());
+					dto.setStatusComment(StatusUtil.RE_PROCESS_FAILED.getMessage());
+					dto.setStatusCode(RegistrationStatusCode.REPROCESS_FAILED.toString());
+					dto.setSubStatusCode(StatusUtil.RE_PROCESS_FAILED.getCode());
+					messageDTO.setIsValid(false);
+					description.setMessage(PlatformSuccessMessages.RPR_RE_PROCESS_FAILED.getMessage());
+					description.setCode(PlatformSuccessMessages.RPR_RE_PROCESS_FAILED.getCode());
+
+				} else {
+					messageDTO.setIsValid(true);
+					isTransactionSuccessful = true;
+					String stageName;
+					if (isRestartFromStageRequired(dto, reprocessRestartTriggerMap)) {
+						stageName = MessageBusUtil.getMessageBusAdress(reprocessRestartFromStage);
+						stageName = stageName.concat(ReprocessorConstants.BUS_IN);
+						sendAndSetStatus(dto, messageDTO, stageName);
+						dto.setStatusComment(StatusUtil.RE_PROCESS_RESTART_FROM_STAGE.getMessage());
+						dto.setSubStatusCode(StatusUtil.RE_PROCESS_RESTART_FROM_STAGE.getCode());
+						description
+								.setMessage(
+										PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_RESTART_FROM_STAGE_SUCCESS
+												.getMessage());
+						description.setCode(
+								PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_RESTART_FROM_STAGE_SUCCESS
+										.getCode());
+
+					} else {
+						stageName = MessageBusUtil.getMessageBusAdress(dto.getRegistrationStageName());
+						if (RegistrationTransactionStatusCode.SUCCESS.name()
+								.equalsIgnoreCase(dto.getLatestTransactionStatusCode())) {
+							stageName = stageName.concat(ReprocessorConstants.BUS_OUT);
+						} else {
+							stageName = stageName.concat(ReprocessorConstants.BUS_IN);
+						}
+						sendAndSetStatus(dto, messageDTO, stageName);
+						dto.setStatusComment(StatusUtil.RE_PROCESS_COMPLETED.getMessage());
+						dto.setSubStatusCode(StatusUtil.RE_PROCESS_COMPLETED.getCode());
+						description.setMessage(PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getMessage());
+						description.setCode(PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getCode());
+					}
+				}
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+						LoggerFileConstant.REGISTRATIONID.toString(), registrationId, description.getMessage());
+				regProcLogger.info("Total records processed :: " + processedCount.incrementAndGet());
+
+				/** Module-Id can be Both Success/Error code */
+				String moduleId = PlatformSuccessMessages.RPR_SENT_TO_REPROCESS_SUCCESS.getCode();
+				String moduleName = ModuleName.RE_PROCESSOR.toString();
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(dto, moduleId, moduleName);
+				String eventId = EventId.RPR_402.toString();
+				String eventName = EventName.UPDATE.toString();
+				String eventType = EventType.BUSINESS.toString();
+
+				/*
+				 * if (!isTransactionSuccessful)
+				 * auditLogRequestBuilder.createAuditRequestBuilder(description.getMessage(),
+				 * eventId, eventName, eventType, moduleId, moduleName, registrationId);
+				 */
+			});
+			String resultRids = registrationIds.stream()
+					.collect(Collectors.joining(", "));
+			regProcLogger.info("Reprocessor pickedup records to process :: " + resultRids);
+		}
 	}
 
 	private Map<String, Set<String>> intializeReprocessRestartTriggerMapping() {
@@ -444,6 +546,5 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Override
 	protected String getPropertyPrefix() {
 		return VERTICLE_PROPERTY_PREFIX;
-	}
+	}	
 }
-
