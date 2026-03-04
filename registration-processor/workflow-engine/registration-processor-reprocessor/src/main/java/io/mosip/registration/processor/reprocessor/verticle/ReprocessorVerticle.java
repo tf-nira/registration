@@ -49,7 +49,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 
-
 /**
  * The Reprocessor Verticle to deploy the scheduler and implement re-processing
  * logic
@@ -78,7 +77,6 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 	/** The mosip event bus. */
 	MosipEventBus mosipEventBus = null;
-	
 	/** The fetch size. */
 	@Value("${registration.processor.reprocess.instance3.fetchsize}")
 	private Integer fetchSize;
@@ -128,7 +126,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 	/** Thread-safe cache for reprocessor packets */
 	private Queue<InternalRegistrationStatusDto> reprocessorPacketCache = new ConcurrentLinkedQueue<>();
-	
+
 	/**
 	 * Deploy verticle.
 	 */
@@ -176,14 +174,14 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		// description of timers
 		JsonObject timer = (new JsonObject())
 				.put(ReprocessorConstants.TYPE, environment.getProperty(ReprocessorConstants.TYPE_VALUE))
-				.put(ReprocessorConstants.SECONDS, environment.getProperty(ReprocessorConstants.SECONDS_VALUE_3))
-				.put(ReprocessorConstants.MINUTES, environment.getProperty(ReprocessorConstants.MINUTES_VALUE_3))
-				.put(ReprocessorConstants.HOURS, environment.getProperty(ReprocessorConstants.HOURS_VALUE_3))
+				.put(ReprocessorConstants.SECONDS, environment.getProperty(ReprocessorConstants.SECONDS_VALUE))
+				.put(ReprocessorConstants.MINUTES, environment.getProperty(ReprocessorConstants.MINUTES_VALUE))
+				.put(ReprocessorConstants.HOURS, environment.getProperty(ReprocessorConstants.HOURS_VALUE))
 				.put(ReprocessorConstants.DAY_OF_MONTH,
-						environment.getProperty(ReprocessorConstants.DAY_OF_MONTH_VALUE_3))
-				.put(ReprocessorConstants.MONTHS, environment.getProperty(ReprocessorConstants.MONTHS_VALUE_3))
+						environment.getProperty(ReprocessorConstants.DAY_OF_MONTH_VALUE))
+				.put(ReprocessorConstants.MONTHS, environment.getProperty(ReprocessorConstants.MONTHS_VALUE))
 				.put(ReprocessorConstants.DAYS_OF_WEEK,
-						environment.getProperty(ReprocessorConstants.DAYS_OF_WEEK_VALUE_3));
+						environment.getProperty(ReprocessorConstants.DAYS_OF_WEEK_VALUE));
 
 		// create scheduler
 		eventBus.send(ReprocessorConstants.CHIME,
@@ -546,5 +544,6 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	@Override
 	protected String getPropertyPrefix() {
 		return VERTICLE_PROPERTY_PREFIX;
-	}	
+	}
 }
+
