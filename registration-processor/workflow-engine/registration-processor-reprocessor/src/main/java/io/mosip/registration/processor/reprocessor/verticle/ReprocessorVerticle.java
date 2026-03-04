@@ -353,7 +353,8 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 		try {
 			// Fetch resumable packets first
-			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService.getResumablePackets(CACHE_SIZE, reprocessExcludeStageNames,includeProcesses);
+			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService
+					.getResumablePackets(elapseTime, CACHE_SIZE, reprocessExcludeStageNames, includeProcesses);
 			if (!CollectionUtils.isEmpty(resumablePackets)) {
 				databaseRecords.addAll(resumablePackets);
 				regProcLogger.info("Loaded " + resumablePackets.size() + " resumable packets into cache");
