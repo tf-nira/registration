@@ -122,7 +122,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	private String port;
 
 	/** Cache size for reprocessor packets (default 5000) */
-	private static final int CACHE_SIZE = 5000;
+	private static final int CACHE_SIZE = 15000;
 
 	/** Thread-safe cache for reprocessor packets */
 	private Queue<InternalRegistrationStatusDto> reprocessorPacketCache = new ConcurrentLinkedQueue<>();
