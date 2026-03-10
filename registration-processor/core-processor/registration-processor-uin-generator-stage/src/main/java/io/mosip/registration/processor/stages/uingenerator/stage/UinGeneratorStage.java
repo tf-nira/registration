@@ -267,6 +267,9 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(handleField);
 						uinField = JsonUtil.getJSONValue(jsonObject, "UIN");
 						demographicIdentity.put("UIN", uinField);
+						if (RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())) {
+							demographicIdentity.put("isCardRequired", "Yes");
+						}
 					}
 				}
 
