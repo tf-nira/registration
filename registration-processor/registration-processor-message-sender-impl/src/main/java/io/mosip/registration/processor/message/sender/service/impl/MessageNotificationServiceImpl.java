@@ -558,7 +558,7 @@ public class MessageNotificationServiceImpl
 
 				attributes.put("RID", id);
 				attributes.put("UIN", uin);
-				attributes.put("VID", getVid(uin));
+//				attributes.put("VID", getVid(uin));
 
 			} catch (IdRepoAppException e) {
 				idType = IdType.RID;

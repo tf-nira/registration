@@ -672,6 +672,7 @@ public class RegistrationStatusServiceImpl
 		registrationStatusDto.setNotificationSent(entity.getNotificationSent());
 		registrationStatusDto.setIsAnonymousProfileAdded(entity.getIsAnonymousProfileAdded());
 		registrationStatusDto.setLatestTransactionTimes(entity.getLatestTransactionTimes());
+		registrationStatusDto.setReferenceId(entity.getReferenceId());
 		return registrationStatusDto;
 	}
 
@@ -735,6 +736,9 @@ public class RegistrationStatusServiceImpl
 			registrationStatusEntity.setLastSuccessStageName(existingLastSuccessStageName);
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
+		if(dto.getReferenceId() != null && !dto.getReferenceId().isEmpty()) {
+			registrationStatusEntity.setReferenceId(dto.getReferenceId());
+		}
 		return registrationStatusEntity;
 	}
 

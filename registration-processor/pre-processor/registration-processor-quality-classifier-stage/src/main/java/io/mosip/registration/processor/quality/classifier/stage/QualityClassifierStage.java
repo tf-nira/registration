@@ -2,11 +2,12 @@ package io.mosip.registration.processor.quality.classifier.stage;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
@@ -181,6 +182,9 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 	// The pool size must be calculated as : workerThread * segments. Example : If stage is running with 20 workers and dealing processing 13 segments then the maxPoolSize should 20 * 13 = 260
 	@Value("${mosip.regproc.quality.classifier.max.pool.size:0}")
 	private Integer maxPoolSize;
+	
+	@Value("${registration.processor.applicant.dob.format}")
+	private String dobFormat = "";
 
 	@Autowired
 	private BioAPIFactory bioApiFactory;
@@ -240,12 +244,22 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(regId,
 				object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
-
+	
 		try {
-			String individualBiometricsObject = basedPacketManagerService.getFieldByMappingJsonKey(regId,
-					MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationStatusDto.getRegistrationType(),
-					ProviderStageName.QUALITY_CHECKER);
-			if (StringUtils.isEmpty(individualBiometricsObject)) {
+			String dateOfBirth = packetManagerService.getField(regId, "dateOfBirth", registrationStatusDto.getRegistrationType(), ProviderStageName.QUALITY_CHECKER);
+			Map<String, String> metaInfo = packetManagerService.getMetaInfo(regId, registrationStatusDto.getRegistrationType(), ProviderStageName.QUALITY_CHECKER);
+			String packetCreationDate = metaInfo.get("creationDate");
+			if(dateOfBirth == null || metaInfo == null || metaInfo.get("creationDate") == null) {
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+										regId, "Missing required date fields for age calculation");
+				packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, null));
+				handleAgeCheckError(regId, object, registrationStatusDto, description);
+				return object;
+			}
+			int age = calculateAgeInYears(dateOfBirth, packetCreationDate);
+			if (age < 3 || age > 69) {
+				// Age outside biometric eligibility range (3-69)
+				// quality classifier success
 				packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, null));
 				description.setCode(PlatformErrorMessages.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getCode());
 				description.setMessage(PlatformErrorMessages.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getMessage());
@@ -254,55 +268,83 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 				registrationStatusDto
 						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-				registrationStatusDto.setStatusComment(StatusUtil.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getCode());
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), regId,
-						"Individual Biometric parameter is not present in ID Json");
+				registrationStatusDto.setStatusComment(StatusUtil.INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE.getMessage());
+				registrationStatusDto.setSubStatusCode(StatusUtil.INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE.getCode());
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						regId, "Biometric classification skipped as applicant age is <= 2 or >= 70");
 			} else {
-				BiometricRecord biometricRecord = basedPacketManagerService.getBiometricsByMappingJsonKey(regId,
+				String individualBiometricsObject = basedPacketManagerService.getFieldByMappingJsonKey(regId,
 						MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationStatusDto.getRegistrationType(),
 						ProviderStageName.QUALITY_CHECKER);
-
-				if (biometricRecord == null || CollectionUtils.isEmpty(biometricRecord.getSegments())) {
-					biometricRecord = basedPacketManagerService.getBiometricsByMappingJsonKey(regId,
-							MappingJsonConstants.AUTHENTICATION_BIOMETRICS, registrationStatusDto.getRegistrationType(),
+				if (StringUtils.isEmpty(individualBiometricsObject)) {
+					packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, null));
+					description.setCode(PlatformErrorMessages.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getCode());
+					description.setMessage(PlatformErrorMessages.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getMessage());
+					object.setIsValid(Boolean.TRUE);
+					isTransactionSuccessful = Boolean.TRUE;
+					registrationStatusDto
+							.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+					registrationStatusDto.setStatusComment(StatusUtil.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getMessage());
+					registrationStatusDto.setSubStatusCode(StatusUtil.INDIVIDUAL_BIOMETRIC_NOT_FOUND.getCode());
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							regId, "Individual Biometric parameter is not present in ID Json");
+				} else {
+					BiometricRecord biometricRecord = basedPacketManagerService.getBiometricsByMappingJsonKey(regId,
+							MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationStatusDto.getRegistrationType(),
 							ProviderStageName.QUALITY_CHECKER);
+
+					if (biometricRecord == null || CollectionUtils.isEmpty(biometricRecord.getSegments())) {
+						biometricRecord = basedPacketManagerService.getBiometricsByMappingJsonKey(regId,
+								MappingJsonConstants.AUTHENTICATION_BIOMETRICS,
+								registrationStatusDto.getRegistrationType(), ProviderStageName.QUALITY_CHECKER);
+					}
+
+					if (biometricRecord == null || biometricRecord.getSegments() == null
+							|| biometricRecord.getSegments().size() == 0) {
+						description.setCode(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getCode());
+						description.setMessage(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
+						regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), regId,
+								PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
+						Map<String, String> notificationAttributes = new HashMap<>();
+						notificationAttributes.put("FAILURE_REASON",
+								PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
+						object.setNotificationAttributes(notificationAttributes);
+
+						throw new FileMissingException(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getCode(),
+								PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
+					}
+
+					packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, biometricRecord.getSegments()));
+
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							regId, "UpdatingTags::success ");
+
+					object.setIsValid(Boolean.TRUE);
+					description.setCode(PlatformSuccessMessages.RPR_QUALITY_CHECK_SUCCESS.getCode());
+					description.setMessage(PlatformSuccessMessages.RPR_QUALITY_CHECK_SUCCESS.getMessage());
+					isTransactionSuccessful = Boolean.TRUE;
+					registrationStatusDto
+							.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+					registrationStatusDto.setStatusComment(StatusUtil.BIOMETRIC_QUALITY_CHECK_SUCCESS.getMessage());
+					registrationStatusDto.setSubStatusCode(StatusUtil.BIOMETRIC_QUALITY_CHECK_SUCCESS.getCode());
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), regId, "QualityCheckerImpl::success");
 				}
-
-				if (biometricRecord == null || biometricRecord.getSegments() == null
-						|| biometricRecord.getSegments().size() == 0) {
-					description.setCode(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getCode());
-					description.setMessage(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
-					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(), regId,
-							PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
-					Map<String, String> notificationAttributes = new HashMap<>();
-					notificationAttributes.put("FAILURE_REASON", PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
-					object.setNotificationAttributes(notificationAttributes);
-					
-					throw new FileMissingException(PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getCode(),
-							PlatformErrorMessages.RPR_QCR_BIO_FILE_MISSING.getMessage());
-				}
-				
-
-				packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, biometricRecord.getSegments()));
-
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), regId,
-						"UpdatingTags::success ");
-
-				object.setIsValid(Boolean.TRUE);
-				description.setCode(PlatformSuccessMessages.RPR_QUALITY_CHECK_SUCCESS.getCode());
-				description.setMessage(PlatformSuccessMessages.RPR_QUALITY_CHECK_SUCCESS.getMessage());
-				isTransactionSuccessful = Boolean.TRUE;
-				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-				registrationStatusDto.setStatusComment(StatusUtil.BIOMETRIC_QUALITY_CHECK_SUCCESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.BIOMETRIC_QUALITY_CHECK_SUCCESS.getCode());
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), regId, "QualityCheckerImpl::success");
 			}
-
+		} catch (DateTimeParseException e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					regId, "Date parsing error: " + ExceptionUtils.getStackTrace(e));
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.name());
+			registrationStatusDto.setStatusComment("Invalid date format: " + e.getMessage());
+			registrationStatusDto.setSubStatusCode(StatusUtil.JSON_PARSING_EXCEPTION.getCode());
+			registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
+					.getStatusCode(RegistrationExceptionTypeCode.JSON_PROCESSING_EXCEPTION));
+			object.setInternalError(Boolean.TRUE);
+			description.setCode(PlatformErrorMessages.RPR_SYS_JSON_PARSING_EXCEPTION.getCode());
+			description.setMessage(PlatformErrorMessages.RPR_SYS_JSON_PARSING_EXCEPTION.getMessage());
 		} catch (ApisResourceAccessException e) {
 			registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
 					.getStatusCode(RegistrationExceptionTypeCode.APIS_RESOURCE_ACCESS_EXCEPTION));
@@ -601,5 +643,23 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		} else {
 			object.setIsValid(false);
 		}
+	}
+	private void handleAgeCheckError(String regId, MessageDTO object, InternalRegistrationStatusDto registrationStatusDto,
+	        LogDescription description) {description.setCode(StatusUtil.INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE.getCode());
+	    description.setMessage("Unable to calculate age - missing date fields");
+	    object.setIsValid(Boolean.TRUE);
+	    registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+	    registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+	    registrationStatusDto.setStatusComment("Age calculation skipped due to missing dates");
+	    registrationStatusDto.setSubStatusCode(StatusUtil.INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE.getCode());
+	}
+
+	
+	private int calculateAgeInYears(String dateOfBirth, String packetCreationDate) {
+		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
+		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
+		LocalDate creationDate = LocalDate.parse(packetCreationDate.substring(0, 10));
+		Period period = Period.between(dob, creationDate);
+		return period.getYears();
 	}
 }
