@@ -47,6 +47,7 @@ import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.constant.RegistrationType;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.AuthSystemException;
+import io.mosip.registration.processor.core.exception.BiometricAuthenticationFailedException;
 import io.mosip.registration.processor.core.exception.BioTypeException;
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
@@ -365,17 +366,44 @@ public class BiometricAuthenticationStage extends MosipVerticleAPIManager {
 						"", e.getMessage() + io.mosip.kernel.core.exception.ExceptionUtils.getStackTrace(e));
 			}
 		} catch (Exception ex) {
-			registrationStatusDto.setSubStatusCode(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getCode());
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
-			registrationStatusDto.setStatusComment(trimExceptionMessage
-					.trimExceptionMessage(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getMessage() + ex.getMessage()));
-			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.EXCEPTION));
-			code = PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_FAILED.getCode();
-			description = PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_FAILED.getMessage();
-			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), code, registrationId,
-					description + ex.getMessage() + ExceptionUtils.getStackTrace(ex));
-			object.setInternalError(Boolean.TRUE);
+			// Check if the exception contains BiometricAuthenticationFailedException or MismatchedInputException in its cause chain
+			if (BiometricAuthenticationFailedException.isBiometricAuthFailure(ex)) {
+				isTransactionSuccessful = false;
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
+				registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
+				registrationStatusDto.setSubStatusCode(StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getCode());
+				registrationStatusDto.setStatusComment(trimExceptionMessage
+						.trimExceptionMessage(StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getMessage() + ex.getMessage()));
+				code = PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_FAILED.getCode();
+				description = PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_FAILED.getMessage();
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), code, registrationId,
+						description + ex.getMessage() + ExceptionUtils.getStackTrace(ex));
+				object.setInternalError(Boolean.FALSE);
+				Map<String, String> notificationAttributes = new HashMap<>();
+				notificationAttributes.put("FAILURE_REASON", StatusUtil.BIOMETRIC_AUTHENTICATION_FAILED.getMessage());
+				object.setNotificationAttributes(notificationAttributes);
+
+				// save MA Data
+				try {
+					saveManualAdjudicationData(object, nin);
+					object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
+				} catch (RegStatusAppException e) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+							"", ex.getMessage() + io.mosip.kernel.core.exception.ExceptionUtils.getStackTrace(ex));
+				}
+			} else {
+				registrationStatusDto.setSubStatusCode(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getCode());
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
+				registrationStatusDto.setStatusComment(trimExceptionMessage
+						.trimExceptionMessage(StatusUtil.UNKNOWN_EXCEPTION_OCCURED.getMessage() + ex.getMessage()));
+				registrationStatusDto.setLatestTransactionStatusCode(
+						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.EXCEPTION));
+				code = PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_FAILED.getCode();
+				description = PlatformErrorMessages.BIOMETRIC_AUTHENTICATION_FAILED.getMessage();
+				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), code, registrationId,
+						description + ex.getMessage() + ExceptionUtils.getStackTrace(ex));
+				object.setInternalError(Boolean.TRUE);
+			}
 		} finally {
 			if (object.getInternalError()) {
 				updateErrorFlags(registrationStatusDto, object);
