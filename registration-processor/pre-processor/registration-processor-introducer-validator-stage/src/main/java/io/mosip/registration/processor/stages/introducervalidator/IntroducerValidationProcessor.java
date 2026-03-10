@@ -30,6 +30,7 @@ import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.abstractverticle.MessageBusAddress;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
 import io.mosip.registration.processor.core.exception.AuthSystemException;
+import io.mosip.registration.processor.core.exception.BiometricAuthenticationFailedException;
 import io.mosip.registration.processor.core.exception.DataMigrationPacketCreationException;
 import io.mosip.registration.processor.core.exception.IntroducerOnHoldException;
 import io.mosip.registration.processor.core.exception.LegacyDataValidationException;
@@ -151,19 +152,6 @@ public class IntroducerValidationProcessor {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
 					StatusUtil.AUTH_SYSTEM_EXCEPTION, RegistrationExceptionTypeCode.AUTH_SYSTEM_EXCEPTION, description,
 					PlatformErrorMessages.RPR_AUTH_SYSTEM_EXCEPTION, e);
-		} catch (com.fasterxml.jackson.databind.exc.MismatchedInputException e) {
-			try {
-				saveManualAdjudicationData(object, nin);
-				object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
-			} catch (RegStatusAppException ex) {
-				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-						"", e.getMessage() + io.mosip.kernel.core.exception.ExceptionUtils.getStackTrace(e));
-			}
-
-			object.setInternalError(Boolean.FALSE);
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
-					StatusUtil.VALIDATION_FAILED_EXCEPTION, RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION,
-					description, PlatformErrorMessages.INTRODUCER_VALIDATION_FAILED, e);
 		} catch (IOException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED, StatusUtil.IO_EXCEPTION,
 					RegistrationExceptionTypeCode.IOEXCEPTION, description, PlatformErrorMessages.RPR_SYS_IO_EXCEPTION,
@@ -177,6 +165,7 @@ public class IntroducerValidationProcessor {
 					StatusUtil.DB_NOT_ACCESSIBLE, RegistrationExceptionTypeCode.TABLE_NOT_ACCESSIBLE_EXCEPTION,
 					description, PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
 		} catch (ValidationFailedException e) {
+			// This also catches BiometricAuthenticationFailedException since it extends ValidationFailedException
 			Map<String, String> notificationAttributes = new HashMap<>();
         	notificationAttributes.put("FAILURE_REASON", e.getErrorText());
         	object.setNotificationAttributes(notificationAttributes);
@@ -213,9 +202,24 @@ public class IntroducerValidationProcessor {
 					StatusUtil.BASE_CHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_CHECKED_EXCEPTION,
 					description, PlatformErrorMessages.INTRODUCER_BASE_CHECKED_EXCEPTION, e);
 		} catch (Exception e) {
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
-					StatusUtil.UNKNOWN_EXCEPTION_OCCURED, RegistrationExceptionTypeCode.EXCEPTION, description,
-					PlatformErrorMessages.INTRODUCER_VALIDATION_FAILED, e);
+			// Check if the exception contains BiometricAuthenticationFailedException or MismatchedInputException in its cause chain
+			if (BiometricAuthenticationFailedException.isBiometricAuthFailure(e)) {
+				try {
+					saveManualAdjudicationData(object, nin);
+					object.setMessageBusAddress(MessageBusAddress.MANUAL_ADJUDICATION_BUS_IN);
+				} catch (RegStatusAppException ex) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+							"", e.getMessage() + io.mosip.kernel.core.exception.ExceptionUtils.getStackTrace(e));
+				}
+				object.setInternalError(Boolean.FALSE);
+				updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+						StatusUtil.VALIDATION_FAILED_EXCEPTION, RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION,
+						description, PlatformErrorMessages.INTRODUCER_VALIDATION_FAILED, e);
+			} else {
+				updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
+						StatusUtil.UNKNOWN_EXCEPTION_OCCURED, RegistrationExceptionTypeCode.EXCEPTION, description,
+						PlatformErrorMessages.INTRODUCER_VALIDATION_FAILED, e);
+			}
 		} finally {
 			if (object.getInternalError()) {
 				int retryCount = registrationStatusDto.getRetryCount() != null
