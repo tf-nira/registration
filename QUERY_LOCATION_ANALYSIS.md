@@ -77,6 +77,8 @@ public List<SyncRegistrationEntity> findByworkflowInstanceId(@Param("workflowIns
 
 **Note:** This is a similar query but uses `SyncRegistrationEntity` which also maps to the same table.
 
+**Naming Inconsistency:** The repository method is named `findByworkflowInstanceId` (lowercase 'w') while the DAO and service methods use `findByWorkflowInstanceId` (uppercase 'W'). Both spellings are actual method names in the codebase.
+
 ## Data Access Layer (DAO)
 
 ### RegistrationStatusDao.java

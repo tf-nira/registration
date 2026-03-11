@@ -88,7 +88,11 @@ The codebase uses "repositary" (a misspelling of "repository") in:
 - Class names: `RegistrationRepositary.java`
 - Interface names: `SyncRegistrationRepository.java` (this one is correct)
 
-This documentation reflects the actual spelling as it exists in the codebase.
+Additionally, there's a method naming inconsistency:
+- Repository layer: `findByworkflowInstanceId` (lowercase 'w')
+- DAO/Service layer: `findByWorkflowInstanceId` (uppercase 'W')
+
+This documentation reflects the actual spelling and casing as it exists in the codebase.
 
 ## How to Use This Documentation
 

@@ -17,7 +17,7 @@ The SQL query that selects from `regprc.registration` table filtering by `workfl
 
 **Line:** 43-44
 
-**Method Name:** `findByworkflowInstanceId`
+**Method Name:** `findByworkflowInstanceId` (Note: lowercase 'w' is intentional - actual method name in codebase)
 
 ## Quick Grep Command
 
