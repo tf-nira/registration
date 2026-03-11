@@ -40,6 +40,12 @@ public SyncRegistrationEntity findByWorkflowInstanceId(String workflowInstanceId
 
 The query is called from 7 processing stages:
 
+**Note**: Line numbers below are from the analysis at the time of this fix. These may change as the codebase evolves. To find current locations, use:
+```bash
+grep -rn "findByWorkflowInstanceId" registration-processor/
+```
+Or refer to `QUERY_CALL_FLOW.md` for the complete call hierarchy.
+
 1. **BiometricAuthenticationStage** (line 171-172)
    - After query: Calls packetManagerService, processes biometrics, validates age
    
