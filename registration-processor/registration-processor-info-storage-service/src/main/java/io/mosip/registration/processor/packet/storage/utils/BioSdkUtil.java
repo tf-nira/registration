@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+
 import io.mosip.kernel.biometrics.commons.CbeffValidator;
 import io.mosip.kernel.biometrics.constant.BiometricFunction;
 import io.mosip.kernel.biometrics.constant.BiometricType;
@@ -24,6 +26,7 @@ import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
+import io.mosip.registration.processor.core.exception.BiometricAuthenticationFailedException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.idrepo.dto.Documents;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
@@ -111,6 +114,15 @@ public class BioSdkUtil {
 			regProcLogger.debug(
 					"BioSdkUtil :: authenticateBiometrics :: Authentication of biometrics done with status " + status);
 
+		} catch (MismatchedInputException mismatchEx) {
+			registrationStatusDto.setLatestTransactionStatusCode(registrationExceptionMapperUtil
+					.getStatusCode(RegistrationExceptionTypeCode.VALIDATION_FAILED_EXCEPTION));
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
+
+			regProcLogger.error(
+					"BioSdkUtil :: authenticateBiometrics :: BioSDK response deserialization error: " + mismatchEx.getMessage());
+			throw new BiometricAuthenticationFailedException(errorCode,
+					"BioSDK authentication failed due to response parsing error: " + mismatchEx.getMessage(), mismatchEx);
 		} catch (RestClientException restEx) {
 			registrationStatusDto.setLatestTransactionStatusCode(registrationExceptionMapperUtil
 					.getStatusCode(RegistrationExceptionTypeCode.CONNECTION_UNAVAILABLE_EXCEPTION));
