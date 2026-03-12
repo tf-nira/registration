@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -797,22 +798,10 @@ public class Utilities {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"Utilities::calculateAge():: entry");
 
-		DateFormat sdf = new SimpleDateFormat(dobFormat);
-		Date birthDate = null;
-		Date creationDate = null;
-		try {
-			birthDate = sdf.parse(applicantDob);
-			creationDate = sdf.parse(packetCreationDate);
-
-		} catch (ParseException e) {
-			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					"", "Utilities::calculateAge():: error with error message "
-							+ PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getMessage());
-			throw new ParsingException(PlatformErrorMessages.RPR_SYS_PARSING_DATE_EXCEPTION.getCode(), e);
-		}
-		LocalDate ld = new java.sql.Date(birthDate.getTime()).toLocalDate();
-		LocalDate creationLocalDate = new java.sql.Date(creationDate.getTime()).toLocalDate();
-		Period p = Period.between(ld, creationLocalDate);
+		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
+		LocalDate dob = LocalDate.parse(applicantDob, dobFormatter);
+		LocalDate creationDate = LocalDate.parse(packetCreationDate.substring(0, 10));
+		Period p = Period.between(dob, creationDate);
 
 		int ageInYears = p.getYears();
 		int ageInMonths = (ageInYears * 12) + p.getMonths();
