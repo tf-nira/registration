@@ -164,6 +164,15 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
+				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
+				if(declaredAsDeceased .equalsIgnoreCase("Y")) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
+					throw new RegistrationProcessorCheckedException(
+							PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getCode(), PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
+				}
+				
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
 				
 				String userServiceType= null;

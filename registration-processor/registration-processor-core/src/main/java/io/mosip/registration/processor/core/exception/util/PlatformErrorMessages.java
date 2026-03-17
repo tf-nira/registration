@@ -420,6 +420,9 @@ public enum PlatformErrorMessages {
 
 	RPR_PVM_ALREADY_CARD_EXISTS(PlatformConstants.RPR_PACKET_VALIDATOR_MODULE + "020",
 			"Already card is present for applicant"),
+	
+	RPR_PVM_DECLARED_AS_DECEASED(PlatformConstants.RPR_PACKET_VALIDATOR_MODULE + "021",
+			"NIN is Deactivated"),
 
 
 	/** The packet classification failed. */
