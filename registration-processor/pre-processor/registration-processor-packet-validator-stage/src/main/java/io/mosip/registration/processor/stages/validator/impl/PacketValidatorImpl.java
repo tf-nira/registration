@@ -165,7 +165,7 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
 				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
-				if(declaredAsDeceased .equalsIgnoreCase("Y")) {
+				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 							LoggerFileConstant.REGISTRATIONID.toString(), id,
 							"ERROR =======>" + PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
