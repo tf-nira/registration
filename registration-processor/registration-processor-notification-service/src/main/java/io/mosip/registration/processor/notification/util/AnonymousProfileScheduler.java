@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -79,6 +80,9 @@ public class AnonymousProfileScheduler {
 	private AnonymousProfileService anonymousProfileService;
 	
 	private ExecutorService executorService;
+
+	// Cache for schema field types to avoid redundant lookups
+	private Map<Double, Map<String, String>> schemaFieldTypesCache = new HashMap<>();
 	
    JSONObject regProcessorIdentityJson = null;	
    String idSchemaVersionValue = null;
@@ -106,11 +110,14 @@ public class AnonymousProfileScheduler {
 		regProcLogger.info("Batch job for anonymous profile started");
 		toBeUpdatedRegStatusRecords.clear();
 		toBeUpdatedAnonymousProfiles.clear();
-		
+		schemaFieldTypesCache.clear(); // Clear cache for each batch run
+
 		List<InternalRegistrationStatusDto> packets = getAnonymousNotAddedPackets();
 		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
+
 		List<CompletableFuture<Void>> allBatches = packets.stream().map(packet -> CompletableFuture
 				.runAsync(() -> insertAnonymousProfile(packet), executorService).exceptionally(ex -> {
+					regProcLogger.error("Error processing packet: " + ex.getMessage(), ex);
 					return null;
 				})).collect(Collectors.toList());
 
@@ -122,6 +129,8 @@ public class AnonymousProfileScheduler {
 		if(toBeUpdatedAnonymousProfiles.size() > 0) {
 			insertAnonymousProfiles(toBeUpdatedAnonymousProfiles);
 		}
+
+		regProcLogger.info("Batch job for anonymous profile completed. Processed: {} records", packets.size());
 	}
 	
 	@Transactional(readOnly = true)
@@ -161,9 +170,22 @@ public class AnonymousProfileScheduler {
 			
 			String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId, idSchemaVersionValue,
 					registrationType, ProviderStageName.WORKFLOW_MANAGER);
-			Map<String, String> fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(Double.parseDouble(schemaVersion));
+			Double schemaVersionDouble = Double.parseDouble(schemaVersion);
+
+			// Optimization 1: Use cached field types to avoid redundant calls
+			Map<String, String> fieldTypeMap;
+			if (schemaFieldTypesCache.containsKey(schemaVersionDouble)) {
+				fieldTypeMap = schemaFieldTypesCache.get(schemaVersionDouble);
+				regProcLogger.debug("Using cached schema field types for version: {}", schemaVersion);
+			} else {
+				fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(schemaVersionDouble);
+				schemaFieldTypesCache.put(schemaVersionDouble, fieldTypeMap);
+				regProcLogger.debug("Cached schema field types for version: {}", schemaVersion);
+			}
+
+			// Optimization 2: Get fields and metadata in batch
 			Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
-					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
+					idSchemaUtil.getDefaultFields(schemaVersionDouble), registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
 			Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(registrationId, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
@@ -177,7 +199,7 @@ public class AnonymousProfileScheduler {
 			addToBeUpdatedAnonymousProfileList(registrationId, packet.getRegistrationStageName(), json);			
 			convertAndAddToBeUpdatedRegStatusRecords(packet);
 		} catch (Exception e) {
-			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
+			regProcLogger.error("Failed to add anonymous profile for registration: " + e.getMessage(), e);
 		}
 	}
 
