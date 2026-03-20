@@ -58,6 +58,7 @@ public static final String GUARDIAN_CLAN = "applicantPlaceOfOriginClan";
 public static final String GUARDIAN_TRIBE = "applicantPlaceOfOriginIndigenousCommunityTribe";
 public static final String APPLICANT_DATEOFBIRTH = "dateOfBirth";
 public static final String APPLICANT_CITIZENSHIPTYPE = "userServiceType";
+public static final String REPLACEMENT_TYPE = "userServiceTypeReplacement";
 public static final String CHANGE_IN_APPLICANT_CITIZENSHIPTYPE = "citizenshipTypeCop";
 public static final String CHANGE_APPLICANT_CITIZENSHIPTYPECOP = "changeInCitizenshipType";
 public static final String DEPENDENT_RID = "dependentRid";
