@@ -530,9 +530,23 @@ public class MVSServiceImpl implements MVSService {
 		requestDto.setIdentity(
 				packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()),
 						process, ProviderStageName.MVS));
+		
+		String userServiceTypeValue =null;
+		String value = null;
+		JSONArray userServiceTypeArray = null;
+		try {
+   			  userServiceTypeArray =
+           		 new JSONArray(requestDto.getIdentity().get("userServiceType"));
 
-		String userServiceTypeValue;
-		if (process.equals("RENEWAL")) {
+   			 if (userServiceTypeArray.length() > 0) {
+      		  value = userServiceTypeArray.getJSONObject(0).optString("value", null);
+   		 }
+		} catch (Exception e) {
+  					  value = null; 
+		}
+		if (value != null){
+          userServiceTypeValue = value;
+		}else if (process.equals("RENEWAL")) {
 			userServiceTypeValue = "Renewal";
 		} else if (process.equals("FIRSTID")) {
 			userServiceTypeValue = "GetFirst ID";
