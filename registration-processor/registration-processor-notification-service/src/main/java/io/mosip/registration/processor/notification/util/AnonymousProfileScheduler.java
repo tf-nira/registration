@@ -81,13 +81,33 @@ public class AnonymousProfileScheduler {
 	
 	private ExecutorService executorService;
 
-	// Cache for schema field types to avoid redundant lookups
+	// Optimization 1: Cache for schema field types to avoid redundant lookups
 	private Map<Double, Map<String, String>> schemaFieldTypesCache = new HashMap<>();
 	
-   JSONObject regProcessorIdentityJson = null;	
+	// Optimization 2: Cache for default fields to avoid redundant lookups
+	private Map<Double, List<String>> defaultFieldsCache = new HashMap<>();
+	
+	// Optimization 3: Unified schema metadata for batch operations
+	private static class SchemaMetadata {
+		final Double schemaVersion;
+		final Map<String, String> fieldTypes;
+		final List<String> defaultFields;
+		
+		SchemaMetadata(Double version, Map<String, String> types, List<String> defaults) {
+			this.schemaVersion = version;
+			this.fieldTypes = types;
+			this.defaultFields = defaults;
+		}
+	}
+	private Map<Double, SchemaMetadata> schemaMetadataCache = new HashMap<>();
+	
+   JSONObject regProcessorIdentityJson = null;
    String idSchemaVersionValue = null;
    List<RegistrationStatusEntity> toBeUpdatedRegStatusRecords = new ArrayList<>();
    List<AnonymousProfileEntity> toBeUpdatedAnonymousProfiles = new ArrayList<>();
+   
+   // Optimization 4: Track which schema versions are used in current batch
+   private Map<Double, Integer> schemaUsageCounter = new HashMap<>();
    
 	@PostConstruct
     public void init() {
@@ -99,18 +119,54 @@ public class AnonymousProfileScheduler {
 					JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.IDSCHEMA_VERSION),
 					MappingJsonConstants.VALUE);
 
+			// Optimization 4: Pre-load default schema version metadata on startup
+			try {
+				Double defaultSchemaVersion = Double.parseDouble(idSchemaVersionValue);
+				preLoadSchemaMetadata(defaultSchemaVersion);
+				regProcLogger.info("Pre-loaded schema metadata for default version: {}", defaultSchemaVersion);
+			} catch (Exception e) {
+				regProcLogger.debug("Could not pre-load default schema metadata: {}", e.getMessage());
+			}
+
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			regProcLogger.error("Failed to initialize AnonymousProfileScheduler: " + e.getMessage(), e);
 		}
     }
 	
+	/**
+	 * Pre-load schema metadata (field types + default fields) for a schema version
+	 * This reduces startup latency for first batch execution
+	 */
+	private void preLoadSchemaMetadata(Double schemaVersion) {
+		try {
+			Map<String, String> fieldTypes = idSchemaUtil.getIdSchemaFieldTypes(schemaVersion);
+			List<String> defaultFields = idSchemaUtil.getDefaultFields(schemaVersion);
+			
+			// Store in both individual caches and unified metadata cache
+			schemaFieldTypesCache.put(schemaVersion, fieldTypes);
+			defaultFieldsCache.put(schemaVersion, defaultFields);
+			schemaMetadataCache.put(schemaVersion, 
+				new SchemaMetadata(schemaVersion, fieldTypes, defaultFields));
+			
+			regProcLogger.debug("Pre-loaded schema metadata: version={}, fields={}, defaults={}", 
+				schemaVersion, fieldTypes.size(), defaultFields.size());
+		} catch (Exception e) {
+			regProcLogger.warn("Failed to pre-load schema metadata for version {}: {}", 
+				schemaVersion, e.getMessage());
+		}
+	}
+
 	@Scheduled(cron = "${mosip.anonymous.profile.scheduler.cron.expression:0 0/3 * * * ?}")
 	public void addAnonymousprofile() {
 		regProcLogger.info("Batch job for anonymous profile started");
 		toBeUpdatedRegStatusRecords.clear();
 		toBeUpdatedAnonymousProfiles.clear();
-		schemaFieldTypesCache.clear(); // Clear cache for each batch run
+		
+		// Optimization 4: Clear all schema caches for fresh batch
+		schemaFieldTypesCache.clear();
+		defaultFieldsCache.clear();
+		schemaMetadataCache.clear();
+		schemaUsageCounter.clear();
 
 		List<InternalRegistrationStatusDto> packets = getAnonymousNotAddedPackets();
 		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
@@ -123,6 +179,7 @@ public class AnonymousProfileScheduler {
 
 		CompletableFuture<Void> allOfFuture = CompletableFuture.allOf(allBatches.toArray(new CompletableFuture[0]));
 		allOfFuture.join();
+		
 		if (toBeUpdatedRegStatusRecords.size() > 0) {
 			updateRegistartionRecords(toBeUpdatedRegStatusRecords);
 		}
@@ -130,6 +187,10 @@ public class AnonymousProfileScheduler {
 			insertAnonymousProfiles(toBeUpdatedAnonymousProfiles);
 		}
 
+		// Optimization 4: Log schema usage statistics for monitoring
+		if (!schemaUsageCounter.isEmpty()) {
+			regProcLogger.info("Schema version usage in batch: {}", schemaUsageCounter);
+		}
 		regProcLogger.info("Batch job for anonymous profile completed. Processed: {} records", packets.size());
 	}
 	
@@ -172,20 +233,20 @@ public class AnonymousProfileScheduler {
 					registrationType, ProviderStageName.WORKFLOW_MANAGER);
 			Double schemaVersionDouble = Double.parseDouble(schemaVersion);
 
-			// Optimization 1: Use cached field types to avoid redundant calls
-			Map<String, String> fieldTypeMap;
-			if (schemaFieldTypesCache.containsKey(schemaVersionDouble)) {
-				fieldTypeMap = schemaFieldTypesCache.get(schemaVersionDouble);
-				regProcLogger.debug("Using cached schema field types for version: {}", schemaVersion);
-			} else {
-				fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(schemaVersionDouble);
-				schemaFieldTypesCache.put(schemaVersionDouble, fieldTypeMap);
-				regProcLogger.debug("Cached schema field types for version: {}", schemaVersion);
-			}
-
+			// Optimization 1+2+3: Use unified schema metadata cache
+			SchemaMetadata metadata = getOrLoadSchemaMetadata(schemaVersionDouble);
+			Map<String, String> fieldTypeMap = metadata.fieldTypes;
+			List<String> defaultFields = metadata.defaultFields;
+			
+			// Optimization 4: Track schema usage
+			schemaUsageCounter.merge(schemaVersionDouble, 1, Integer::sum);
+			
+			regProcLogger.debug("Using cached schema metadata for version: {}. Cache size: {}", 
+				schemaVersion, schemaMetadataCache.size());
+			
 			// Optimization 2: Get fields and metadata in batch
 			Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
-					idSchemaUtil.getDefaultFields(schemaVersionDouble), registrationType,
+					defaultFields, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
 			Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(registrationId, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
@@ -200,6 +261,43 @@ public class AnonymousProfileScheduler {
 			convertAndAddToBeUpdatedRegStatusRecords(packet);
 		} catch (Exception e) {
 			regProcLogger.error("Failed to add anonymous profile for registration: " + e.getMessage(), e);
+		}
+	}
+	
+	/**
+	 * Get or load schema metadata from cache. If not cached, fetch and cache it.
+	 * This method is thread-safe and optimizes schema lookups by keeping both
+	 * field types and default fields in a single cached object.
+	 */
+	private SchemaMetadata getOrLoadSchemaMetadata(Double schemaVersion) {
+		// Optimization 3: Check unified metadata cache first
+		if (schemaMetadataCache.containsKey(schemaVersion)) {
+			regProcLogger.debug("Cache HIT for schema metadata: version={}", schemaVersion);
+			return schemaMetadataCache.get(schemaVersion);
+		}
+		
+		regProcLogger.debug("Cache MISS for schema metadata: version={}. Loading...", schemaVersion);
+		
+		try {
+			// Fetch both field types and default fields
+			Map<String, String> fieldTypes = idSchemaUtil.getIdSchemaFieldTypes(schemaVersion);
+			List<String> defaultFields = idSchemaUtil.getDefaultFields(schemaVersion);
+			
+			// Create and cache unified metadata
+			SchemaMetadata metadata = new SchemaMetadata(schemaVersion, fieldTypes, defaultFields);
+			schemaMetadataCache.put(schemaVersion, metadata);
+			
+			// Also populate individual caches for compatibility
+			schemaFieldTypesCache.put(schemaVersion, fieldTypes);
+			defaultFieldsCache.put(schemaVersion, defaultFields);
+			
+			regProcLogger.debug("Loaded and cached schema metadata: version={}, fieldTypes={}, defaultFields={}", 
+				schemaVersion, fieldTypes.size(), defaultFields.size());
+			
+			return metadata;
+		} catch (Exception e) {
+			regProcLogger.error("Failed to load schema metadata for version {}: {}", schemaVersion, e.getMessage());
+			throw new RuntimeException("Failed to load schema metadata", e);
 		}
 	}
 
