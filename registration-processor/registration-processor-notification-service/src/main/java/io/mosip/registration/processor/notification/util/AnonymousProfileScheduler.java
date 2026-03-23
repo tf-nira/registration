@@ -119,42 +119,10 @@ public class AnonymousProfileScheduler {
 					JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.IDSCHEMA_VERSION),
 					MappingJsonConstants.VALUE);
 
-			// Optimization 4: Pre-load default schema version metadata on startup
-			try {
-				Double defaultSchemaVersion = Double.parseDouble(idSchemaVersionValue);
-				preLoadSchemaMetadata(defaultSchemaVersion);
-				regProcLogger.info("Pre-loaded schema metadata for default version: {}", defaultSchemaVersion);
-			} catch (Exception e) {
-				regProcLogger.debug("Could not pre-load default schema metadata: {}", e.getMessage());
-			}
-
 		} catch (IOException e) {
 			regProcLogger.error("Failed to initialize AnonymousProfileScheduler: " + e.getMessage(), e);
 		}
     }
-	
-	/**
-	 * Pre-load schema metadata (field types + default fields) for a schema version
-	 * This reduces startup latency for first batch execution
-	 */
-	private void preLoadSchemaMetadata(Double schemaVersion) {
-		try {
-			Map<String, String> fieldTypes = idSchemaUtil.getIdSchemaFieldTypes(schemaVersion);
-			List<String> defaultFields = idSchemaUtil.getDefaultFields(schemaVersion);
-			
-			// Store in both individual caches and unified metadata cache
-			schemaFieldTypesCache.put(schemaVersion, fieldTypes);
-			defaultFieldsCache.put(schemaVersion, defaultFields);
-			schemaMetadataCache.put(schemaVersion, 
-				new SchemaMetadata(schemaVersion, fieldTypes, defaultFields));
-			
-			regProcLogger.debug("Pre-loaded schema metadata: version={}, fields={}, defaults={}", 
-				schemaVersion, fieldTypes.size(), defaultFields.size());
-		} catch (Exception e) {
-			regProcLogger.warn("Failed to pre-load schema metadata for version {}: {}", 
-				schemaVersion, e.getMessage());
-		}
-	}
 
 	@Scheduled(cron = "${mosip.anonymous.profile.scheduler.cron.expression:0 0/3 * * * ?}")
 	public void addAnonymousprofile() {
@@ -272,11 +240,11 @@ public class AnonymousProfileScheduler {
 	private SchemaMetadata getOrLoadSchemaMetadata(Double schemaVersion) {
 		// Optimization 3: Check unified metadata cache first
 		if (schemaMetadataCache.containsKey(schemaVersion)) {
-			regProcLogger.debug("Cache HIT for schema metadata: version={}", schemaVersion);
+			regProcLogger.info("Cache HIT for schema metadata: version={}", schemaVersion);
 			return schemaMetadataCache.get(schemaVersion);
 		}
 		
-		regProcLogger.debug("Cache MISS for schema metadata: version={}. Loading...", schemaVersion);
+		regProcLogger.info("Cache MISS for schema metadata: version={}. Loading...", schemaVersion);
 		
 		try {
 			// Fetch both field types and default fields
@@ -291,7 +259,7 @@ public class AnonymousProfileScheduler {
 			schemaFieldTypesCache.put(schemaVersion, fieldTypes);
 			defaultFieldsCache.put(schemaVersion, defaultFields);
 			
-			regProcLogger.debug("Loaded and cached schema metadata: version={}, fieldTypes={}, defaultFields={}", 
+			regProcLogger.info("Loaded and cached schema metadata: version={}, fieldTypes={}, defaultFields={}",
 				schemaVersion, fieldTypes.size(), defaultFields.size());
 			
 			return metadata;
