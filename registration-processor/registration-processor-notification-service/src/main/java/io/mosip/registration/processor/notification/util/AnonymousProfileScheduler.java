@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -81,11 +82,11 @@ public class AnonymousProfileScheduler {
 	
 	private ExecutorService executorService;
 
-	// Optimization 1: Cache for schema field types to avoid redundant lookups
-	private Map<Double, Map<String, String>> schemaFieldTypesCache = new HashMap<>();
+	// Optimization 1: Thread-safe cache for schema field types to avoid redundant lookups
+	private final Map<Double, Map<String, String>> schemaFieldTypesCache = new ConcurrentHashMap<>();
 	
-	// Optimization 2: Cache for default fields to avoid redundant lookups
-	private Map<Double, List<String>> defaultFieldsCache = new HashMap<>();
+	// Optimization 2: Thread-safe cache for default fields to avoid redundant lookups
+	private final Map<Double, List<String>> defaultFieldsCache = new ConcurrentHashMap<>();
 	
 	// Optimization 3: Unified schema metadata for batch operations
 	private static class SchemaMetadata {
@@ -99,15 +100,16 @@ public class AnonymousProfileScheduler {
 			this.defaultFields = defaults;
 		}
 	}
-	private Map<Double, SchemaMetadata> schemaMetadataCache = new HashMap<>();
+	// Thread-safe cache for unified schema metadata
+	private final Map<Double, SchemaMetadata> schemaMetadataCache = new ConcurrentHashMap<>();
 	
    JSONObject regProcessorIdentityJson = null;
    String idSchemaVersionValue = null;
    List<RegistrationStatusEntity> toBeUpdatedRegStatusRecords = new ArrayList<>();
    List<AnonymousProfileEntity> toBeUpdatedAnonymousProfiles = new ArrayList<>();
    
-   // Optimization 4: Track which schema versions are used in current batch
-   private Map<Double, Integer> schemaUsageCounter = new HashMap<>();
+   // Optimization 4: Thread-safe counter for schema usage tracking
+   private final Map<Double, AtomicInteger> schemaUsageCounter = new ConcurrentHashMap<>();
    
 	@PostConstruct
     public void init() {
@@ -129,12 +131,6 @@ public class AnonymousProfileScheduler {
 		regProcLogger.info("Batch job for anonymous profile started");
 		toBeUpdatedRegStatusRecords.clear();
 		toBeUpdatedAnonymousProfiles.clear();
-		
-		// Optimization 4: Clear all schema caches for fresh batch
-		schemaFieldTypesCache.clear();
-		defaultFieldsCache.clear();
-		schemaMetadataCache.clear();
-		schemaUsageCounter.clear();
 
 		List<InternalRegistrationStatusDto> packets = getAnonymousNotAddedPackets();
 		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
@@ -206,8 +202,8 @@ public class AnonymousProfileScheduler {
 			Map<String, String> fieldTypeMap = metadata.fieldTypes;
 			List<String> defaultFields = metadata.defaultFields;
 			
-			// Optimization 4: Track schema usage
-			schemaUsageCounter.merge(schemaVersionDouble, 1, Integer::sum);
+			// Optimization 4: Thread-safe schema usage tracking using AtomicInteger
+			schemaUsageCounter.computeIfAbsent(schemaVersionDouble, k -> new AtomicInteger(0)).incrementAndGet();
 			
 			regProcLogger.debug("Using cached schema metadata for version: {}. Cache size: {}", 
 				schemaVersion, schemaMetadataCache.size());
@@ -236,33 +232,44 @@ public class AnonymousProfileScheduler {
 	 * Get or load schema metadata from cache. If not cached, fetch and cache it.
 	 * This method is thread-safe and optimizes schema lookups by keeping both
 	 * field types and default fields in a single cached object.
+	 * Uses putIfAbsent to ensure only one thread loads the metadata even in concurrent scenarios.
 	 */
 	private SchemaMetadata getOrLoadSchemaMetadata(Double schemaVersion) {
-		// Optimization 3: Check unified metadata cache first
-		if (schemaMetadataCache.containsKey(schemaVersion)) {
-			regProcLogger.info("Cache HIT for schema metadata: version={}", schemaVersion);
-			return schemaMetadataCache.get(schemaVersion);
+		// Optimization 3: Check unified metadata cache first (thread-safe get)
+		SchemaMetadata cached = schemaMetadataCache.get(schemaVersion);
+		if (cached != null) {
+			regProcLogger.debug("Cache HIT for schema metadata: version={}", schemaVersion);
+			return cached;
 		}
 		
-		regProcLogger.info("Cache MISS for schema metadata: version={}. Loading...", schemaVersion);
+		regProcLogger.debug("Cache MISS for schema metadata: version={}. Loading...", schemaVersion);
 		
 		try {
 			// Fetch both field types and default fields
 			Map<String, String> fieldTypes = idSchemaUtil.getIdSchemaFieldTypes(schemaVersion);
 			List<String> defaultFields = idSchemaUtil.getDefaultFields(schemaVersion);
 			
-			// Create and cache unified metadata
+			// Create unified metadata
 			SchemaMetadata metadata = new SchemaMetadata(schemaVersion, fieldTypes, defaultFields);
-			schemaMetadataCache.put(schemaVersion, metadata);
 			
-			// Also populate individual caches for compatibility
-			schemaFieldTypesCache.put(schemaVersion, fieldTypes);
-			defaultFieldsCache.put(schemaVersion, defaultFields);
+			// Thread-safe put: putIfAbsent only puts if key doesn't exist
+			// If another thread already cached it, use theirs instead
+			SchemaMetadata existing = schemaMetadataCache.putIfAbsent(schemaVersion, metadata);
+			SchemaMetadata result = (existing != null) ? existing : metadata;
 			
-			regProcLogger.info("Loaded and cached schema metadata: version={}, fieldTypes={}, defaultFields={}",
-				schemaVersion, fieldTypes.size(), defaultFields.size());
+			// Also populate individual caches for compatibility (thread-safe)
+			schemaFieldTypesCache.putIfAbsent(schemaVersion, fieldTypes);
+			defaultFieldsCache.putIfAbsent(schemaVersion, defaultFields);
 			
-			return metadata;
+			if (existing == null) {
+				// Only log if we actually cached it (not if another thread beat us to it)
+				regProcLogger.info("Loaded and cached schema metadata: version={}, fieldTypes={}, defaultFields={}",
+					schemaVersion, fieldTypes.size(), defaultFields.size());
+			} else {
+				regProcLogger.debug("Another thread already cached schema metadata for version: {}", schemaVersion);
+			}
+			
+			return result;
 		} catch (Exception e) {
 			regProcLogger.error("Failed to load schema metadata for version {}: {}", schemaVersion, e.getMessage());
 			throw new RuntimeException("Failed to load schema metadata", e);
