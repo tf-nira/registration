@@ -47,6 +47,7 @@ import io.mosip.registration.processor.packet.storage.dto.ValidatePacketResponse
 import io.mosip.registration.processor.packet.storage.exception.IdRepoAppException;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
+import io.mosip.registration.processor.stages.exception.DeclaredAsDeceasedException;
 import io.mosip.registration.processor.stages.utils.ApplicantDocumentValidation;
 import io.mosip.registration.processor.stages.utils.BiometricsXSDValidator;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
@@ -74,13 +75,13 @@ public class PacketValidatorImpl implements PacketValidator {
 
 	@Autowired
 	private Environment env;
-	
+
 	@Autowired
 	ObjectMapper mapper;
 
 	@Autowired
 	private BiometricsXSDValidator biometricsXSDValidator;
-	
+
 	@Autowired
 	private BiometricsSignatureValidator biometricsSignatureValidator;
 
@@ -98,16 +99,16 @@ public class PacketValidatorImpl implements PacketValidator {
 
 	@Value("${mosip.regproc.packet.validator.max.number.spouses:4}")
 	private Integer maxNumberOfSpouses;
-	
+
 	@Value("${mosip.regproc.packet.validator.renewal.min-years-to-reapply:10}")
 	private int minYearsBeforeRenewalAllowed;
-	
+
 	@Value("#{'${mosip.regproc.packet.validator.process:RENEWAL}'.split(',')}")
 	private List<String> allowedProcess;
 
 	@Autowired
 	RegistrationRepositary<RegistrationStatusEntity, String> registrationStatusRepositary;
-	
+
 	@SuppressWarnings("unused")
 	@Override
 	public boolean validate(String id, String process, PacketValidationDto packetValidationDto)
@@ -127,7 +128,7 @@ public class PacketValidatorImpl implements PacketValidator {
 						.setPacketValidaionFailureMessage(StatusUtil.PACKET_MANAGER_VALIDATION_FAILURE.getMessage());
 				return false;
 			}
-			
+
 			//Check consent
 			if(!checkConsentForPacket(id,process,ProviderStageName.PACKET_VALIDATOR))
 			{
@@ -140,7 +141,7 @@ public class PacketValidatorImpl implements PacketValidator {
 						.setPacketValidaionFailureMessage(StatusUtil.PACKET_CONSENT_VALIDATION.getMessage());
 				return false;
 			}
-			
+
 
 
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
@@ -164,8 +165,18 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
+
+				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
+				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
+					throw new DeclaredAsDeceasedException(
+							PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getCode(), PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
+				}
+
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
-				
+
 				String userServiceType= null;
 				try {
 				    if (jsonServiceTypeObj != null) {
@@ -191,10 +202,10 @@ public class PacketValidatorImpl implements PacketValidator {
 						return false;
 					}
 				}
-				
-				//validation for Renewal application. 
+
+				//validation for Renewal application.
 				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) {
-					
+
 					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 				            LoggerFileConstant.REGISTRATIONID.toString(), id,
 				            "INFO =======> Renewal validation started for registration");
@@ -202,7 +213,7 @@ public class PacketValidatorImpl implements PacketValidator {
 				    regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 				            LoggerFileConstant.REGISTRATIONID.toString(), id,
 				            "INFO =======> Minimum years before renewal allowed: " + minYearsBeforeRenewalAllowed);
-					
+
 					// Reject if Renewal application is PROCESSED less than 10 years, accept if >= 10 years
 				    if (!validateRenewalExpiryDate(jsonObject, id, process)) {
 				        regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -211,20 +222,20 @@ public class PacketValidatorImpl implements PacketValidator {
 				        packetValidationDto.setPacketValidaionFailureMessage(
 				                "Renewal rejected - Not allowed within " + minYearsBeforeRenewalAllowed + " years");
 				        packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS.getCode());
-				        
+
 				        regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 				                LoggerFileConstant.REGISTRATIONID.toString(), id,
 				                "INFO =======> Renewal packet validation failed and response prepared");
-				        
+
 				        return false;
 				    }
-				    
+
 				    regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 				            LoggerFileConstant.REGISTRATIONID.toString(), id,
 				            "INFO =======> Renewal validation passed");
 				}
-				
-				
+
+
 				if (!checkNumberOfSpouses(jsonObject, id, process)) {
 					packetValidationDto.setPacketValidaionFailureMessage(
 							StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_ADD_SPOUSE.getMessage());
@@ -316,7 +327,7 @@ public class PacketValidatorImpl implements PacketValidator {
 			}
 		}
 		}
-	
+
 
 			// document validation
 			if (!applicantDocumentValidation(id, process, packetValidationDto)) {
@@ -353,10 +364,10 @@ public class PacketValidatorImpl implements PacketValidator {
 		List<String> fields = Arrays.asList(MappingJsonConstants.INDIVIDUAL_BIOMETRICS,
 				MappingJsonConstants.AUTHENTICATION_BIOMETRICS, MappingJsonConstants.INTRODUCER_BIO,
 				MappingJsonConstants.OFFICERBIOMETRICFILENAME, MappingJsonConstants.SUPERVISORBIOMETRICFILENAME);
-		
+
 		Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(id, process,
 				ProviderStageName.PACKET_VALIDATOR);
-		
+
 		for (String field : fields) {
 			BiometricRecord biometricRecord = null;
 			if (field.equals(MappingJsonConstants.OFFICERBIOMETRICFILENAME)
@@ -407,7 +418,7 @@ public class PacketValidatorImpl implements PacketValidator {
 		}
 		return true;
 	}
-	
+
 	private String getOperationsDataFromMetaInfo(String id, String process, String fileName,
 			Map<String, String> metaInfoMap)
 			throws ApisResourceAccessException, PacketManagerException, IOException, JSONException {
@@ -450,7 +461,7 @@ public class PacketValidatorImpl implements PacketValidator {
 			return true;
 		}
 	}
-	
+
 	private boolean checkConsentForPacket(String id, String process, ProviderStageName stageName)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
 
@@ -488,7 +499,7 @@ public class PacketValidatorImpl implements PacketValidator {
 		return true;
 
 	}
-	
+
 	private boolean checkNumberOfSpouses(JSONObject jsonObject, String id, String process)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
 		boolean isValidNumberOfSpouse = true;
@@ -564,29 +575,29 @@ public class PacketValidatorImpl implements PacketValidator {
 			return false;
 		}
 	}
-	
+
 	private boolean validateRenewalExpiryDate(JSONObject jsonObject, String id, String process)
 			throws ApisResourceAccessException, PacketManagerException, JsonProcessingException, IOException {
 		boolean isValidRenewalExpiry = true;
 		try {
 			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 					id, "Starting renewal expiry validation for registration ID: " + id);
-			
+
 			Optional<String> referenceId = registrationStatusRepositary.getReferenceIdByRegId(id);
 			if (referenceId.isPresent()) {
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 						id, "Reference ID found: " + referenceId.get());
-				
+
 				LocalDateTime thresholdDate = LocalDateTime.now().minusYears(minYearsBeforeRenewalAllowed);
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 						id, "Threshold date calculated: " + thresholdDate + " (minYearsBeforeRenewalAllowed: " + minYearsBeforeRenewalAllowed + ")");
-				
+
 				List<Map<String, Object>> otherRegistrations = registrationStatusRepositary
 						.getRegIdAndStatusByReferenceId(referenceId.get(), id, allowedProcess,
 								thresholdDate);
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 						id, "Retrieved " + otherRegistrations.size() + " other registrations for reference ID: " + referenceId.get());
-				
+
 				boolean hasInvalidStatus = otherRegistrations.stream().anyMatch(reg -> {
 					String statusCode = (String) reg.get("statusCode");
 					return statusCode != null
@@ -595,10 +606,10 @@ public class PacketValidatorImpl implements PacketValidator {
 									|| statusCode.equalsIgnoreCase(RegistrationTransactionStatusCode.REPROCESS.toString()));
 				});
 				isValidRenewalExpiry = !hasInvalidStatus;
-				
+
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 						id, "Renewal expiry validation result - hasInvalidStatus: " + hasInvalidStatus + ", isValidRenewalExpiry: " + isValidRenewalExpiry);
-				
+
 				return isValidRenewalExpiry;
 			}
 		} catch (DateTimeParseException e) {

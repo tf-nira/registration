@@ -335,6 +335,7 @@ public enum StatusUtil {
 	JSON_PARSING_EXCEPTION(StatusConstants.SYSTEM_EXCEPTION_CODE, "Error Occurred while Parsing JSON"),
 	BASE_CHECKED_EXCEPTION(StatusConstants.SYSTEM_EXCEPTION_CODE, "Packet validation failed "),
 	BASE_UNCHECKED_EXCEPTION(StatusConstants.SYSTEM_EXCEPTION_CODE, "Packet validation failed "),
+	DECLARED_AS_DECEASED(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED, "NIN is deceased"),
 
 	OFFICER_AUTHENTICATION_FAILED(StatusConstants.SYSTEM_EXCEPTION_CODE, "Officer Authentication Failed: "),
 	SUPERVISOR_AUTHENTICATION_FAILED(StatusConstants.SYSTEM_EXCEPTION_CODE, "Supervisor Authentication Failed: "),
