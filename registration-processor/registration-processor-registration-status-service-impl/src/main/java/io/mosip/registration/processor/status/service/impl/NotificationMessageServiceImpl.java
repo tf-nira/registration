@@ -2,6 +2,7 @@ package io.mosip.registration.processor.status.service.impl;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,6 +38,7 @@ public class NotificationMessageServiceImpl implements NotificationMessageServic
 			
 		}
 		
+		entity.setSentToOpencrvs(false);
 		entity.setCreatedBy("SYSTEM");
 		entity.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 		
@@ -58,6 +60,16 @@ public class NotificationMessageServiceImpl implements NotificationMessageServic
 		}
 		
 		return null;
+	}
+
+	@Override
+	public List<NotificationMessageEntity> getRecordsNotSentToOpencrvs(int fetchSize) {
+		return notificationMessageRepository.getRecordsNotSentToOpencrvs(fetchSize);
+	}
+
+	@Override
+	public void saveRecord(NotificationMessageEntity entity) {
+		notificationMessageRepository.save(entity);
 	}
 
 }
