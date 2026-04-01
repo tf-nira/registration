@@ -1,11 +1,16 @@
 
 package io.mosip.registration.processor.credentialrequestor.stage;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.DateUtils;
+import io.mosip.kernel.core.websub.model.Event;
+import io.mosip.kernel.core.websub.model.EventModel;
 import io.mosip.registration.processor.core.abstractverticle.*;
 import io.mosip.registration.processor.core.code.EventId;
 import io.mosip.registration.processor.core.code.EventName;
@@ -31,11 +36,16 @@ import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.credentialrequestor.dto.CredentialPartner;
 import io.mosip.registration.processor.credentialrequestor.stage.exception.VidNotAvailableException;
 import io.mosip.registration.processor.credentialrequestor.util.CredentialPartnerUtil;
+import io.mosip.registration.processor.credentialrequestor.util.WebSubUtil;
+import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
+import io.mosip.registration.processor.status.entity.NotificationMessageEntity;
+import io.mosip.registration.processor.status.service.NotificationMessageService;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -82,7 +92,9 @@ import java.util.stream.Collectors;
 		"io.mosip.registration.processor.packet.storage.config",
 		"io.mosip.registration.processor.packet.manager.config", 
 		"io.mosip.kernel.idobjectvalidator.config",
-		"io.mosip.registration.processor.core.kernel.beans" })
+		"io.mosip.registration.processor.core.kernel.beans",
+		"io.mosip.kernel.websub.api.client",
+		"io.mosip.kernel.websub.api.config.publisher"})
 public class CredentialRequestorStage extends MosipVerticleAPIManager {
 	
 	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.credentialrequestor.";
@@ -119,6 +131,12 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 	@Value("${mosip.registration.processor.encrypt:false}")
 	private boolean encrypt;
+	
+	@Value("${mosip.opencrvs.credential.scheduler.fetchsize:5}")
+	private Integer fetchSize;
+	
+	@Value("${mosip.opencrvs.failed.scheduler.fetchsize:5}")
+	private Integer failedFetchSize;
 
 	/** Mosip router for APIs */
 	@Autowired
@@ -150,6 +168,12 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 	@Autowired
 	private CredentialPartnerUtil credentialPartnerUtil;
+	
+	@Autowired
+	private NotificationMessageService notificationMessageService;
+	
+	@Autowired
+	private WebSubUtil webSubUtil;
 
 	@Override
 	protected String getPropertyPrefix() {
@@ -388,6 +412,58 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 		}
 		return object;
+	}
+
+	@Scheduled(cron = "${mosip.opencrvs.failed.records.cron.expression:0 0/3 * * * ?}")
+	public void sendOpenCrvsFailedRecords() {
+		regProcLogger.info("Batch job for opencrvs failed records started");
+
+		List<NotificationMessageEntity> records = notificationMessageService.getRecordsNotSentToOpencrvs(failedFetchSize);
+
+		regProcLogger.info("opencrvs failed records picked: ", records.size());
+		
+		records.forEach(record -> {
+			sendFailedRecordToOpencrvs(record);
+		});
+
+		regProcLogger.info("Batch job completed");
+	}
+	
+	private void sendFailedRecordToOpencrvs(NotificationMessageEntity record) {
+		EventModel eventModel = new EventModel();
+		DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		LocalDateTime localdatetime = LocalDateTime
+				.parse(DateUtils.getUTCCurrentDateTimeString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), format);
+		eventModel.setPublishedOn(DateUtils.toISOString(localdatetime));
+		eventModel.setPublisher("CREDENTIAL_REQUEST_STAGE");
+		eventModel.setTopic("OPENCRVS_ERROR");
+		
+		Event event = new Event();
+		event.setId(UUID.randomUUID().toString());
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("registrationId", record.getRegId());
+
+		String failureReason = null;
+        try {
+            Map<String, String> messageMap = mapper.readValue(record.getNotificationMessage(), new TypeReference<Map<String, String>>() {});
+			failureReason = messageMap.get("FAILURE_REASON");
+        } catch (JsonProcessingException ignored) {
+
+        }
+        map.put("failureReason", failureReason);
+		event.setData(map);
+		event.setTimestamp(DateUtils.toISOString(localdatetime));
+		
+		eventModel.setEvent(event);
+		
+		webSubUtil.publishSuccess("OPENCRVS_ERROR", eventModel);
+		
+		record.setUpdatedBy("SYSTEM");
+		record.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+		record.setSentToOpencrvs(true);
+		
+		notificationMessageService.saveRecord(record);
 	}
 
 	private CredentialRequestDto getCredentialRequestDto(String regId, String process, CredentialPartner key) {
