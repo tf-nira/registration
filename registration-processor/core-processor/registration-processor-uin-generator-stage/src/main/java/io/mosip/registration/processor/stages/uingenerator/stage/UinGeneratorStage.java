@@ -277,8 +277,14 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 				loadDemographicIdentity(fieldMap, demographicIdentity);
 
-				if(RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())) {
-					demographicIdentity.put("isCardRequired", "Yes");
+				if (RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())) {
+					List<Map<String, Object>> isCardRequiredList = new ArrayList<>();
+					Map<String, Object> map = new HashMap<>();
+					map.put("language", "eng");
+					map.put("value", "Yes");
+					isCardRequiredList.add(map);
+					demographicIdentity.put("isCardRequired", isCardRequiredList);
+					regProcLogger.info("Final Demographic Identity: " + demographicIdentity.toString());
 				}
 
 				if (StringUtils.isEmpty(uinField) || uinField.equalsIgnoreCase("null") ) {
