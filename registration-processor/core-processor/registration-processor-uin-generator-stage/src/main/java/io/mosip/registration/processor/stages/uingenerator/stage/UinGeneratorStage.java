@@ -276,6 +276,11 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 				loadDemographicIdentity(fieldMap, demographicIdentity);
 
+				if (RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())) {
+					demographicIdentity.put("isCardRequired", "Yes");
+					regProcLogger.info("Final Demographic Identity: " + demographicIdentity.toString());
+				}
+
 				if (StringUtils.isEmpty(uinField) || uinField.equalsIgnoreCase("null") ) {
 
 					idResponseDTO = sendIdRepoWithUin(registrationId, registrationStatusDto.getRegistrationType(), demographicIdentity,
@@ -1092,6 +1097,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						identityObject.put(infoField, fldValue);
 				}
 			}
+			identityObject.put("isCardRequired", "Yes");
 			requestDto.setRegistrationId(lostPacketRegId);
 			requestDto.setIdentity(identityObject);
 
