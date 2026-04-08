@@ -934,7 +934,7 @@ public class RegistrationStatusServiceImpl
 	}
 	
 	@Override
-	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(Integer fetchSize) {
+	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(Integer fetchSize) {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationStatusServiceImpl::getAnonymousNotAddedPackets()::entry");
 		try {
@@ -943,7 +943,7 @@ public class RegistrationStatusServiceImpl
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"RegistrationStatusServiceImpl::getAnonymousNotAddedPackets()::exit");
 
-			return convertEntityListToDtoList(entityList);
+			return entityList;
 
 		} catch (DataAccessException | DataAccessLayerException e) {
 

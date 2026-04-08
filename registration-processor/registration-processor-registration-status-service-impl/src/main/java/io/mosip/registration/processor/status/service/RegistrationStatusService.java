@@ -2,6 +2,7 @@ package io.mosip.registration.processor.status.service;
 
 import java.util.List;
 
+import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
@@ -169,7 +170,7 @@ public interface RegistrationStatusService<T, U, D> {
 
 	public List<InternalRegistrationStatusDto> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes);
 	
-	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(Integer fetchSize);
+	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(Integer fetchSize);
 	
 	public List<String> getProcessForRegIds(List<String> matchedRegIds);
 }
