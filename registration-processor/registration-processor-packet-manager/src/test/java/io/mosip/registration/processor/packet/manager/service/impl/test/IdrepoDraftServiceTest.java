@@ -1,13 +1,18 @@
 package io.mosip.registration.processor.packet.manager.service.impl.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.assertj.core.util.Lists;
@@ -15,6 +20,7 @@ import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -29,6 +35,7 @@ import io.mosip.registration.processor.core.code.ApiName;
 import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
+import io.mosip.registration.processor.core.idrepo.dto.Documents;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.packet.manager.dto.IdRequestDto;
 import io.mosip.registration.processor.packet.manager.dto.IdResponseDTO;
@@ -181,6 +188,11 @@ public class IdrepoDraftServiceTest {
 			throws ApisResourceAccessException, IdrepoDraftException, IOException, IdrepoDraftReprocessableException {
         RequestDto requestDto = new RequestDto();
         requestDto.setIdentity(idResponseDTO.getResponse().getIdentity());
+		List<Documents> docments = new ArrayList<>();
+		Documents doc = new Documents();
+		doc.setValue("doc1");
+		docments.add(doc);
+		requestDto.setDocuments(docments);
         IdRequestDto idRequestDto = new IdRequestDto();
         idRequestDto.setRequest(requestDto);
 
@@ -188,11 +200,23 @@ public class IdrepoDraftServiceTest {
                 (ApiName.IDREPOHASDRAFT, Lists.newArrayList(ID), null, null)).thenReturn(200);
         when(registrationProcessorRestClientService.getApi(
                 ApiName.IDREPOGETDRAFT, Lists.newArrayList(ID), Lists.emptyList(), null, IdResponseDTO.class)).thenReturn(idResponseDTO);
-        when(registrationProcessorRestClientService.patchApi(
-                any(), any(), any(), any(), any(), any())).thenReturn(idResponseDTO);
+		when(registrationProcessorRestClientService.patchApi(any(), any(), any(), any(), any(), any()))
+				.thenReturn(idResponseDTO);
 
-        IdResponseDTO result = idrepoDraftService.idrepoUpdateDraft(ID, null, idRequestDto);
+		IdResponseDTO result = idrepoDraftService.idrepoUpdateDraft(ID, null, idRequestDto);
+		// Capture AFTER execution
+		ArgumentCaptor<Object> requestCaptor = ArgumentCaptor.forClass(Object.class);
 
+        verify(registrationProcessorRestClientService).patchApi(
+				any(), any(), any(), any(), requestCaptor.capture(), eq(IdResponseDTO.class));
+
+		IdRequestDto capturedRequest = (IdRequestDto) requestCaptor.getValue();
+
+		// Assertions
+        assertNotNull(capturedRequest);
+        assertNotNull(capturedRequest.getRequest().getDocuments());
+		assertEquals(1, capturedRequest.getRequest().getDocuments().size());
+		assertEquals("doc1", capturedRequest.getRequest().getDocuments().get(0).getValue());
         assertTrue(result.getResponse().getRegistrationId().equals(ID));
     }
 
