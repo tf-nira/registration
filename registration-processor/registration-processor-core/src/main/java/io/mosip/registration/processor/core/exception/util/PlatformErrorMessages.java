@@ -1472,6 +1472,8 @@ public enum PlatformErrorMessages {
 
 	RPR_LEGACY_DATA_MIGRATION_API_FAILED(PlatformConstants.RPR_LEGACY_DATA_VALIDATOR_MODULE + "003",
 			"Legacy data migration api failed"),
+	RPR_NIN_NOT_AVAILABLE_FAILED(PlatformConstants.RPR_LEGACY_DATA_VALIDATOR_MODULE + "004",
+			"NIN not available in Idrepo"),
 
 	RPR_LEGACY_DATA_FAILED(PlatformConstants.RPR_LEGACY_DATA_MODULE + "001",
 			"Legacy Data Validation failed"),

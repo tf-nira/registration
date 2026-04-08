@@ -450,6 +450,7 @@ public enum StatusUtil {
 			"Applicant is not eligible to GetFirstId service"),
 	DATA_MIGRATION_DATA_ISSUE(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "007",
 			"Migration data is null"),
+	NIN_NOT_AVAILABLE_IN_IDREPO(StatusConstants.LEGACY_DATA_VALIDATION_FAILED + "008", "NIN not available in Idrepo"),
 	LEGACY_DATA_SUCCESS(StatusConstants.LEGACY_DATA_SUCCESS + "001",
 			"Unique biometrics - Person not found in legacy"),
 	LEGACY_DATA_FAILED(StatusConstants.LEGACY_DATA_FAILED + "002",
