@@ -216,7 +216,6 @@ public class AnonymousProfileScheduler {
 
 			packet.setIsAnonymousProfileAdded(true);
 			toBeUpdatedRegStatusRecords.add(packet);
-//			convertAndAddToBeUpdatedRegStatusRecords(packet);
 		} catch (Exception e) {
 			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
 		}
