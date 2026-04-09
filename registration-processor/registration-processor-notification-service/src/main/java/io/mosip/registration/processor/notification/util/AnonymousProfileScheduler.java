@@ -212,10 +212,12 @@ public class AnonymousProfileScheduler {
 			}
 			json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
 					metaInfoMap, packet.getStatusCode(), packet.getRegistrationStageName());
-			addToBeUpdatedAnonymousProfileList(registrationId, packet.getRegistrationStageName(), json);
 
-			packet.setIsAnonymousProfileAdded(true);
-			toBeUpdatedRegStatusRecords.add(packet);
+			synchronized (this) {
+				addToBeUpdatedAnonymousProfileList(registrationId, packet.getRegistrationStageName(), json);
+				packet.setIsAnonymousProfileAdded(true);
+				toBeUpdatedRegStatusRecords.add(packet);
+			}
 		} catch (Exception e) {
 			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
 		}
