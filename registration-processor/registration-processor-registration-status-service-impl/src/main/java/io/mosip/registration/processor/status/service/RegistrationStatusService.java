@@ -120,7 +120,7 @@ public interface RegistrationStatusService<T, U, D> {
 	 * @return the un processed packets
 	 */
 	public List<U> getUnProcessedPackets(Integer fetchSize, long elapseTime, Integer reprocessCount,
-			List<String> status, List<String> excludeStageNames, List<String> processes);
+			List<String> status, List<String> excludeStageNames);
 
 	/**
 	 * Gets the un processed packets count.

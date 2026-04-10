@@ -78,14 +78,11 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	/** The mosip event bus. */
 	MosipEventBus mosipEventBus = null;
 	/** The fetch size. */
-	@Value("${registration.processor.reprocess.instance3.fetchsize}")
+	@Value("${registration.processor.reprocess.processing.fetchsize}")
 	private Integer fetchSize;
 
-	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.instance3.include.processes}')}")
-	private List<String> includeProcesses;
-	
 	/** The elapse time. */
-	@Value("${registration.processor.reprocess.instance3.elapse.time}")
+	@Value("${registration.processor.reprocess.processing.elapse.time}")
 	private long elapseTime;
 
 	/** The reprocess count. */
@@ -352,13 +349,14 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		statusList.add(RegistrationTransactionStatusCode.IN_PROGRESS.toString());
 
 		try {
-			// Fetch resumable packets first
-			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService
-					.getResumablePackets(elapseTime, CACHE_SIZE, reprocessExcludeStageNames, includeProcesses);
-			if (!CollectionUtils.isEmpty(resumablePackets)) {
-				databaseRecords.addAll(resumablePackets);
-				regProcLogger.info("Loaded " + resumablePackets.size() + " resumable packets into cache");
-			}
+			/*
+			 * // Fetch resumable packets first List<InternalRegistrationStatusDto>
+			 * resumablePackets = registrationStatusService .getResumablePackets(elapseTime,
+			 * CACHE_SIZE, reprocessExcludeStageNames, includeProcesses); if
+			 * (!CollectionUtils.isEmpty(resumablePackets)) {
+			 * databaseRecords.addAll(resumablePackets); regProcLogger.info("Loaded " +
+			 * resumablePackets.size() + " resumable packets into cache"); }
+			 */
 
 			// If we need more records, fetch unprocessed packets
 			if (databaseRecords.size() < CACHE_SIZE) {
@@ -367,7 +365,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 						elapseTime,
 						reprocessCount, 
 						statusList, 
-						reprocessExcludeStageNames, includeProcesses);
+						reprocessExcludeStageNames);
 				if (!CollectionUtils.isEmpty(unprocessedPackets)) {
 					databaseRecords.addAll(unprocessedPackets);
 					regProcLogger.info("Loaded " + unprocessedPackets.size() + " unprocessed packets into cache");
