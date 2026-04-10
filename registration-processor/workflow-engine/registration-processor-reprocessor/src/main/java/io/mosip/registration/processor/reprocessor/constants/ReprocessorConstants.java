@@ -33,11 +33,11 @@ public class ReprocessorConstants {
 	public static final String NAME_VALUE = "scheduler:stage_timer";
 	public static final String DESCRIPTION = "description";
 	public static final String REPROCESS_COMPLETE = "Reprocess Completed";
-	public static final String SECONDS_VALUE_3 = "registration.processor.reprocess.processing.seconds";
-	public static final String MINUTES_VALUE_3 = "registration.processor.reprocess.processing.minutes";
-	public static final String HOURS_VALUE_3 = "registration.processor.reprocess.processing.hours";
-	public static final String DAY_OF_MONTH_VALUE_3 = "registration.processor.reprocess.processing.days_of_month";
-	public static final String MONTHS_VALUE_3 = "registration.processor.reprocess.processing.months";
-	public static final String DAYS_OF_WEEK_VALUE_3 = "registration.processor.reprocess.processing.days_of_week";
+	public static final String SECONDS_VALUE_3 = "registration.processor.reprocess.resumable.seconds";
+	public static final String MINUTES_VALUE_3 = "registration.processor.reprocess.resumable.minutes";
+	public static final String HOURS_VALUE_3 = "registration.processor.reprocess.resumable.hours";
+	public static final String DAY_OF_MONTH_VALUE_3 = "registration.processor.resumable.processing.days_of_month";
+	public static final String MONTHS_VALUE_3 = "registration.processor.reprocess.resumable.months";
+	public static final String DAYS_OF_WEEK_VALUE_3 = "registration.processor.reprocess.resumable.days_of_week";
 	
 }
