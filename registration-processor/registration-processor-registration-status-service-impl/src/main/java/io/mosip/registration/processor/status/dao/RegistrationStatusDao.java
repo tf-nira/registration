@@ -251,10 +251,10 @@ public class RegistrationStatusDao {
 	}
 
 	public List<RegistrationStatusEntity> getResumablePackets(long elapseTime, Integer fetchSize,
-			List<String> excludeStageNames, List<String> includeProcesses) {
+			List<String> excludeStageNames) {
 		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
 		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), timeDifference, fetchSize,
-				excludeStageNames, includeProcesses);
+				excludeStageNames);
 	}
 	
 	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {

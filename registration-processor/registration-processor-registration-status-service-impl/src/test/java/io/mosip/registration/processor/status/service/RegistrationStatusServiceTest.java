@@ -563,14 +563,14 @@ public class RegistrationStatusServiceTest {
 	public void testGetResumablePackets()
 	{
 		registrationStatusEntity.setStatusCode("PAUSED");
-		Mockito.when(registrationStatusDao.getResumablePackets(anyLong(), anyInt(), anyList(), anyList()))
+		Mockito.when(registrationStatusDao.getResumablePackets(anyLong(), anyInt(), anyList()))
 				.thenReturn(List.of(registrationStatusEntity));
 		List<String> excludeStageNames = new ArrayList<>();
 		excludeStageNames.add("PacketReceiverStage");
 		List<String> processList = new ArrayList<>();
 		processList.add("MIGRATOR");
 		List<InternalRegistrationStatusDto> dtolist = registrationStatusService.getResumablePackets(1, 1,
-				excludeStageNames, processList);
+				excludeStageNames);
 		assertEquals("PAUSED", dtolist.get(0).getStatusCode());
 	}
 
@@ -582,9 +582,9 @@ public class RegistrationStatusServiceTest {
 		excludeStageNames.add("PacketReceiverStage");
 		List<String> processList = new ArrayList<>();
 		processList.add("MIGRATOR");
-		Mockito.when(registrationStatusDao.getResumablePackets(anyLong(), anyInt(), anyList(), anyList()))
+		Mockito.when(registrationStatusDao.getResumablePackets(anyLong(), anyInt(), anyList()))
 				.thenThrow(exp);
-		registrationStatusService.getResumablePackets(1, 1, excludeStageNames, processList);
+		registrationStatusService.getResumablePackets(1, 1, excludeStageNames);
 
 	}
 

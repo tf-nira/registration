@@ -53,7 +53,7 @@ public class RegistrationStatusDaoTest {
 		Mockito.when(registrationStatusRepositary.getActionablePausedPackets(Matchers.any(),Matchers.any())).thenReturn(list);
 		Mockito.when(
 				registrationStatusRepositary.getResumablePackets(Matchers.any(), Matchers.any(), Matchers.any(),
-						Matchers.anyList(), Matchers.anyList()))
+						Matchers.anyList()))
 				.thenReturn(list);
 		Mockito.when(registrationStatusRepositary.getUnProcessedPacketsCount(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(1);
 		Mockito.when(registrationStatusRepositary.getUnProcessedPackets(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(list);
@@ -156,8 +156,7 @@ public class RegistrationStatusDaoTest {
 		stageList.add("stage");
 		List<String> processList = new ArrayList<>();
 		processList.add("stage");
-		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getResumablePackets(2, 2, stageList,
-				processList);
+		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getResumablePackets(2, 2, stageList);
 		assertEquals(list, rEntityList);
 	}
 
