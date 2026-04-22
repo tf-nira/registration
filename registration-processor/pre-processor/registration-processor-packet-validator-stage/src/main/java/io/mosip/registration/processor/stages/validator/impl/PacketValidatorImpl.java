@@ -47,7 +47,6 @@ import io.mosip.registration.processor.packet.storage.dto.ValidatePacketResponse
 import io.mosip.registration.processor.packet.storage.exception.IdRepoAppException;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
-import io.mosip.registration.processor.stages.exception.DeclaredAsDeceasedException;
 import io.mosip.registration.processor.stages.utils.ApplicantDocumentValidation;
 import io.mosip.registration.processor.stages.utils.BiometricsXSDValidator;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
@@ -168,11 +167,9 @@ public class PacketValidatorImpl implements PacketValidator {
 
 				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
 				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
-					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(), id,
-							"ERROR =======>" + PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
-					throw new DeclaredAsDeceasedException(
-							PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getCode(), PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
+					return false;
 				}
 
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);

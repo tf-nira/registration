@@ -326,6 +326,4 @@ public enum RegistrationExceptionTypeCode {
 
 	ON_HOLD,
 
-	DECLARED_AS_DECEASED;
-
 }
