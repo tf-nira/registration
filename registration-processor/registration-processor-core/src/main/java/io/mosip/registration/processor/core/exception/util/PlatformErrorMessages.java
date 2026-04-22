@@ -421,10 +421,6 @@ public enum PlatformErrorMessages {
 	RPR_PVM_ALREADY_CARD_EXISTS(PlatformConstants.RPR_PACKET_VALIDATOR_MODULE + "020",
 			"Already card is present for applicant"),
 
-	RPR_PVM_DECLARED_AS_DECEASED(PlatformConstants.RPR_PACKET_VALIDATOR_MODULE + "021",
-			"The individual associated with NIN is deceased."),
-
-
 	/** The packet classification failed. */
 	PACKET_CLASSIFICATION_FAILED(PlatformConstants.RPR_PACKET_CLASSIFIER_MODULE + "000", "Packet Classification failed"),
 

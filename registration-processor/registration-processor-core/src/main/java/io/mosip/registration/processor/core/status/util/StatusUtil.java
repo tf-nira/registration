@@ -86,6 +86,8 @@ public enum StatusUtil {
 			"Applicant is not eligible to Renewal service"),
 	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
 			"Renewal is not allowed as the application was processed within the last 10 years"),
+	DECLARED_AS_DECEASED(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "025", "The individual associated with NIN is deceased."),
+
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
@@ -335,7 +337,6 @@ public enum StatusUtil {
 	JSON_PARSING_EXCEPTION(StatusConstants.SYSTEM_EXCEPTION_CODE, "Error Occurred while Parsing JSON"),
 	BASE_CHECKED_EXCEPTION(StatusConstants.SYSTEM_EXCEPTION_CODE, "Packet validation failed "),
 	BASE_UNCHECKED_EXCEPTION(StatusConstants.SYSTEM_EXCEPTION_CODE, "Packet validation failed "),
-	DECLARED_AS_DECEASED(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED, "NIN is deceased"),
 
 	OFFICER_AUTHENTICATION_FAILED(StatusConstants.SYSTEM_EXCEPTION_CODE, "Officer Authentication Failed: "),
 	SUPERVISOR_AUTHENTICATION_FAILED(StatusConstants.SYSTEM_EXCEPTION_CODE, "Supervisor Authentication Failed: "),

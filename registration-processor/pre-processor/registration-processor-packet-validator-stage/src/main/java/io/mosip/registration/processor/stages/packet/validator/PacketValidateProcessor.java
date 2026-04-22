@@ -10,7 +10,6 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
-import io.mosip.registration.processor.stages.exception.DeclaredAsDeceasedException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
@@ -410,20 +409,6 @@ public class PacketValidateProcessor {
 
 			description.setMessage(PlatformErrorMessages.REVERSE_DATA_SYNC_FAILED.getMessage());
 			description.setCode(PlatformErrorMessages.REVERSE_DATA_SYNC_FAILED.getCode());
-		} catch (DeclaredAsDeceasedException e) {
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
-			registrationStatusDto.setStatusComment(
-					trimMessage.trimExceptionMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage() + e.getMessage()));
-			registrationStatusDto.setSubStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
-			registrationStatusDto.setLatestTransactionStatusCode(
-					registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.DECLARED_AS_DECEASED));
-			packetValidationDto.setTransactionSuccessful(false);
-			description.setMessage(PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage());
-			description.setCode(PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getCode());
-			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					description.getCode() + " -- " + registrationId,
-					PlatformErrorMessages.RPR_PVM_DECLARED_AS_DECEASED.getMessage() + e.getMessage()
-							+ ExceptionUtils.getStackTrace(e));
 		} catch (RegistrationProcessorCheckedException e) {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 			registrationStatusDto.setStatusComment(
