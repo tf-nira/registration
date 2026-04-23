@@ -538,6 +538,9 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
         try {
             Map<String, String> messageMap = mapper.readValue(record.getNotificationMessage(), new TypeReference<Map<String, String>>() {});
 			failureReason = messageMap.get("FAILURE_REASON");
+			if(failureReason == null) {
+				failureReason = messageMap.get("REJECTION_COMMENT");
+			}
         } catch (JsonProcessingException ignored) {
 
         }
