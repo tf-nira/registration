@@ -37,8 +37,6 @@ import io.mosip.registration.processor.credentialrequestor.dto.CredentialPartner
 import io.mosip.registration.processor.credentialrequestor.stage.exception.VidNotAvailableException;
 import io.mosip.registration.processor.credentialrequestor.util.CredentialPartnerUtil;
 import io.mosip.registration.processor.credentialrequestor.util.WebSubUtil;
-import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
-import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
@@ -67,6 +65,7 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -131,9 +130,6 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 	@Value("${mosip.registration.processor.encrypt:false}")
 	private boolean encrypt;
-	
-	@Value("${mosip.opencrvs.credential.scheduler.fetchsize:5}")
-	private Integer fetchSize;
 	
 	@Value("${mosip.opencrvs.failed.scheduler.fetchsize:5}")
 	private Integer failedFetchSize;
@@ -448,6 +444,9 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
         try {
             Map<String, String> messageMap = mapper.readValue(record.getNotificationMessage(), new TypeReference<Map<String, String>>() {});
 			failureReason = messageMap.get("FAILURE_REASON");
+			if(failureReason == null) {
+				failureReason = messageMap.get("REJECTION_COMMENT");
+			}
         } catch (JsonProcessingException ignored) {
 
         }
