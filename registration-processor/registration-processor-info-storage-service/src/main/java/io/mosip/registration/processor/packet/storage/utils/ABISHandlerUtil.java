@@ -207,7 +207,7 @@ public class ABISHandlerUtil {
 										String registrationType, ProviderStageName stageName) throws ApisResourceAccessException, IOException,
 			JsonProcessingException, PacketManagerException {
 
-		Map<String, String> filteredRegMap = new LinkedHashMap<>();
+		Map<String, Set<String>> filteredRegMap = new LinkedHashMap<>();
 		Set<String> filteredRIds = new HashSet<>();
 
 		for (String machedRegId : matchedRegistrationIds) {
@@ -220,7 +220,7 @@ public class ABISHandlerUtil {
 					|| registrationType.equalsIgnoreCase(SyncTypeDto.FIRSTID.toString())) {
 				String packetUin = utilities.getUINByHandle(registrationId, registrationType, stageName);
 				if (matchedUin != null && !packetUin.equals(matchedUin)) {
-					filteredRegMap.put(matchedUin, machedRegId);
+					filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
 				}
 			}
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.LOST.toString())) {
@@ -231,23 +231,25 @@ public class ABISHandlerUtil {
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 						registrationId, packetUin + " entered packetUin****************************");
 				if (matchedUin != null && packetUin.equals(matchedUin)) {
-					filteredRegMap.put(matchedUin, machedRegId);
+					filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
 					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 							registrationId,
 							filteredRegMap + " entered condition adding to map ****************************");
 				}
 			}
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.NEW.toString()) && matchedUin != null) {
-				filteredRegMap.put(matchedUin, machedRegId);
+				filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
 			}
 
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.MIGRATOR.toString()) && matchedUin != null) {
-				filteredRegMap.put(matchedUin, machedRegId);
+				filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
 			}
 
 		}
 		if (!filteredRegMap.isEmpty()) {
-			filteredRIds = new HashSet<String>(filteredRegMap.values());
+			for (Set<String> rids : filteredRegMap.values()) {
+				filteredRIds.addAll(rids);
+			}
 		}
 
 		return filteredRIds;
