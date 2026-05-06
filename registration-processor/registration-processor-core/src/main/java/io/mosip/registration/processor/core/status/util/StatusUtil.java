@@ -38,6 +38,8 @@ public enum StatusUtil {
 			"Biometric Quality Check is Successful"),
 	BIOMETRIC_QUALITY_CHECK_FAILED(StatusConstants.QUALITY_CHECKER_MODULE_FAILED + "001",
 			"Quality Score of Biometrics Captured is Below the Threshold"),
+	INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE(StatusConstants.QUALITY_CHECKER_MODULE_SUCCESS + "003",
+			"Biometric classification skipped as applicant age is <= 2 or >= 70"),
 
 	// packet validator stage
 	PACKET_STRUCTURAL_VALIDATION_SUCCESS(StatusConstants.PACKET_VALIDATOR_MODULE_SUCCESS + "001",
@@ -82,6 +84,10 @@ public enum StatusUtil {
 			"Applicant existing userServiceType is not eligible for requested change"),
 	PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "023",
 			"Applicant is not eligible to Renewal service"),
+	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
+			"Renewal is not allowed as the application was processed within the last 10 years"),
+	DECLARED_AS_DECEASED(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "025", "The individual associated with NIN is deceased."),
+
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
@@ -374,6 +380,12 @@ public enum StatusUtil {
 	VID_CREATION_FAILED(StatusConstants.UIN_GENERATOR_MODULE_FAILED + "009", "VID creation failed -"),
 
 	WORKFLOW_INTERNAL_ACTION_SUCCESS(StatusConstants.WORKFLOW_INTERNAL_ACTION + "001",
+			"Packet workflow internal action completed successfully"),
+
+	WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO(StatusConstants.WORKFLOW_INTERNAL_ACTION + "003",
+			"Packet workflow internal action completed successfully"),
+
+	WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO_PARENT_RESTART(StatusConstants.WORKFLOW_INTERNAL_ACTION + "004",
 			"Packet workflow internal action completed successfully"),
 
 	WORKFLOW_INTERNAL_ACTION_REJECTED_ITERATIONS_EXCEEDED_LIMIT(StatusConstants.WORKFLOW_INTERNAL_ACTION + "002",

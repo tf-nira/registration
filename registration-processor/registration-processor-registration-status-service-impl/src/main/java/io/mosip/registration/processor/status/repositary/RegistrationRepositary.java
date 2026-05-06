@@ -5,6 +5,8 @@ package io.mosip.registration.processor.status.repositary;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -75,5 +77,15 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.registrationType = :registrationType AND registration.iteration = :iteration")
 	public List<RegistrationStatusEntity> getByIdAndProcessAndIteration(@Param("regId") String regId, @Param("registrationType") String process, @Param("iteration") int iteration);
+
+	@Query("SELECT registration.referenceId FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.isDeleted = false AND registration.isActive = true")
+	public Optional<String> getReferenceIdByRegId(@Param("regId") String regId);
+
+	@Query("SELECT new map(registration.regId as regId, registration.statusCode as statusCode, registration.latestTransactionTimes as latestTransactionTimes) "
+			+ "FROM RegistrationStatusEntity registration WHERE registration.referenceId = :hashedNationalRefId "
+			+ "AND registration.regId != :excludeRegId AND registration.registrationType IN :registrationTypes "
+			+ "AND registration.latestTransactionTimes >= :latestTransactionTimes AND registration.isDeleted = false AND registration.isActive = true")
+	public List<Map<String, Object>> getRegIdAndStatusByReferenceId(@Param("hashedNationalRefId") String hashedNationalRefId, @Param("excludeRegId") String excludeRegId, @Param("registrationTypes") List<String> registrationTypes, @Param("latestTransactionTimes") LocalDateTime latestTransactionTimes);
 }
+
 

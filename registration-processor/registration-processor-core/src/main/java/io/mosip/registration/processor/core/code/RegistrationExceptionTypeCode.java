@@ -324,6 +324,6 @@ public enum RegistrationExceptionTypeCode {
 
 	LEGACY_FAILED,
 
-	ON_HOLD;
+	ON_HOLD,
 
 }

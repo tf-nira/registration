@@ -538,8 +538,22 @@ public class MVSServiceImpl implements MVSService {
 				packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()),
 						process, ProviderStageName.MVS));
 
-		String userServiceTypeValue;
-		if (process.equals("RENEWAL")) {
+		String userServiceTypeValue =null;
+		String value = null;
+		JSONArray userServiceTypeArray = null;
+		try {
+   			  userServiceTypeArray =
+           		 new JSONArray(requestDto.getIdentity().get("userServiceType"));
+
+   			 if (userServiceTypeArray.length() > 0) {
+      		  value = userServiceTypeArray.getJSONObject(0).optString("value", null);
+   		 }
+		} catch (Exception e) {
+  					  value = null; 
+		}
+		if (value != null){
+          userServiceTypeValue = value;
+		}else if (process.equals("RENEWAL")) {
 			userServiceTypeValue = "Renewal";
 		} else if (process.equals("FIRSTID")) {
 			userServiceTypeValue = "GetFirst ID";
@@ -548,10 +562,9 @@ public class MVSServiceImpl implements MVSService {
 		} else if (process.equals("UPDATE")) {
 			userServiceTypeValue = "Update";
 		} else {
-			JSONArray userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
+			userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
 			userServiceTypeValue = userServiceTypeArray.getJSONObject(0).getString("value");
 		}
-		
 		verReq.setServiceType(userServiceTypeValue);
 		verReq.setSchemaVersion(requestDto.getIdentity().get("IDSchemaVersion"));
 		
@@ -907,7 +920,7 @@ public class MVSServiceImpl implements MVSService {
 				
 				regProcLogger.info("Checking CVS routing flag for reg id : {}, routeToCVS : {}",
 						registrationStatusDto.getRegistrationId(), routeToCVS);
-				if(VerificationConstants.TAG_VALUE_ROUTE_TO_CVS_AFTER_MVS_TRUE.equalsIgnoreCase(routeToCVS)) {
+				if(routeToCVS!= null && VerificationConstants.TAG_VALUE_ROUTE_TO_CVS_AFTER_MVS_TRUE.equalsIgnoreCase(routeToCVS)) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 					regProcLogger.info("MVS APPROVED - Routing to CVS as per stored flag for reg id : {}", registrationStatusDto.getRegistrationId());
 				} else {

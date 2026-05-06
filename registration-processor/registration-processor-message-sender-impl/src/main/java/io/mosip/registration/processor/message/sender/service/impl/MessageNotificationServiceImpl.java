@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Map.Entry;
-
+import org.json.simple.parser.JSONParser;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -191,6 +191,50 @@ public class MessageNotificationServiceImpl
 			for(String lang: preferredLanguages) {
 				StringBuilder emailId = new StringBuilder();
 				StringBuilder phoneNumber = new StringBuilder();
+				attributes.put("IDENTITY", "National Identification Number (NIN)");
+				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, regType, ProviderStageName.MESSAGE_SENDER);
+				String userServiceType= null;
+				try {
+				    if (jsonServiceTypeObj != null) {
+				        if (jsonServiceTypeObj instanceof String) {
+				            JSONParser parser = new JSONParser();
+				            Object parsedObj = parser.parse((String) jsonServiceTypeObj);
+				            if (parsedObj instanceof List<?>) {
+							    List<?> sericeTypeList = (List<?>) parsedObj;
+							    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
+							        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
+							        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+							    }
+							}
+				        }
+				    }
+				} catch (Exception e) {
+				    regProcLogger.error("Error while extracting userServiceType", e);
+				}
+				
+				String userService = "";
+				if("Alien New Registration".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
+				} else if ("Renewal of Alien".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
+				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+				} else if ("NEW".equals(regType)) {
+					userService = "New Registration";
+				} else if ("LOST".equals(regType)) {
+					userService = "Replacement Of Card";
+				} else if ("UPDATE".equals(regType)) {
+					userService = "Change Of Particulars";
+				} else if ("RENEWAL".equals(regType)) {
+					userService = "Renewal Of Card";
+				}else if ("FIRSTID".equals(regType)) {
+					userService = "Get First ID";
+				}
+				
+				attributes.put("service", userService);
+				
 				Map<String, Object> attributesLang=new HashMap<>(attributes);
 				setAttributes(id, process,lang, idType, attributesLang, regType, phoneNumber, emailId);
 				InputStream stream = templateGenerator.getTemplate(templateTypeCode, attributesLang, lang);
@@ -270,6 +314,49 @@ public class MessageNotificationServiceImpl
 			for(String lang: preferredLanguages) {
 				StringBuilder emailId = new StringBuilder();
 				StringBuilder phoneNumber = new StringBuilder();
+				attributes.put("IDENTITY", "National Identification Number (NIN)");
+				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, regType, ProviderStageName.MESSAGE_SENDER);
+				String userServiceType= null;
+				try {
+				    if (jsonServiceTypeObj != null) {
+				        if (jsonServiceTypeObj instanceof String) {
+				            JSONParser parser = new JSONParser();
+				            Object parsedObj = parser.parse((String) jsonServiceTypeObj);
+				            if (parsedObj instanceof List<?>) {
+							    List<?> sericeTypeList = (List<?>) parsedObj;
+							    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
+							        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
+							        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+							    }
+							}
+				        }
+				    }
+				} catch (Exception e) {
+				    regProcLogger.error("Error while extracting userServiceType", e);
+				}
+				
+				String userService = "";
+				if("Alien New Registration".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
+				} else if ("Renewal of Alien".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
+				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+				} else if ("NEW".equals(regType)) {
+					userService = "New Registration";
+				} else if ("LOST".equals(regType)) {
+					userService = "Replacement Of Card";
+				} else if ("UPDATE".equals(regType)) {
+					userService = "Change Of Particulars";
+				} else if ("RENEWAL".equals(regType)) {
+					userService = "Renewal Of Card";
+				}else if ("FIRSTID".equals(regType)) {
+					userService = "Get First ID";
+				}
+				
+				attributes.put("service", userService);
 				Map<String, Object> attributesLang=new HashMap<>(attributes);
 				setAttributes(id, process,lang, idType, attributesLang, regType, phoneNumber, emailId);
 				InputStream stream = templateGenerator.getTemplate(templateTypeCode, attributesLang, lang);
@@ -284,6 +371,9 @@ public class MessageNotificationServiceImpl
 				}
 				String[] mailTo = { emailId.toString() };
 
+				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {
+					subject = "AIN Generated";
+				} 
 				response = sendEmail(mailTo, mailCc, subject, artifact, attachment);
 			}
 

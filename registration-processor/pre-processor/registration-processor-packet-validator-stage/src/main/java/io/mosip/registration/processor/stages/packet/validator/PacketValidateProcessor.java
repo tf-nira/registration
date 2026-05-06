@@ -7,16 +7,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
+import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
@@ -193,6 +192,31 @@ public class PacketValidateProcessor {
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.VALIDATE_PACKET.toString());
 			registrationStatusDto.setRegistrationStageName(stageName);
 			setPacketCreatedDateTime(registrationStatusDto);
+
+			Object jsonServiceTypeObj =  packetManagerService.getField(registrationId, MappingJsonConstants.SERVICE_TYPE, registrationStatusDto.getRegistrationType(), ProviderStageName.PACKET_VALIDATOR);
+			String userServiceType= null;
+			try {
+				if (jsonServiceTypeObj != null) {
+					if (jsonServiceTypeObj instanceof String) {
+						JSONParser parser = new JSONParser();
+						Object parsedObj = parser.parse((String) jsonServiceTypeObj);
+						if (parsedObj instanceof List<?>) {
+							List<?> sericeTypeList = (List<?>) parsedObj;
+							if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
+								Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
+								userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+							}
+						}
+					}
+				}
+			} catch (Exception e) {
+				regProcLogger.error("Error while extracting userServiceType", e);
+			}
+
+			if (userServiceType != null && userServiceType.toLowerCase().contains("alien")) {
+				registrationStatusDto.setApplicantType(userServiceType);
+			}
+
 			SyncRegistrationEntity regEntity = getSyncRegistrationEntity(object);
 			boolean isValidSupervisorStatus = isValidSupervisorStatus(object, regEntity);
 			String supervisorStatusComment = regEntity.getSupervisorComment();
@@ -213,7 +237,7 @@ public class PacketValidateProcessor {
 					// 			LoggerFileConstant.REGISTRATIONID.toString(),
 					// 			description.getCode() + " Inside Runnable ", "");
 
-					// }				
+					// }
 					
 					registrationStatusDto
 							.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
@@ -385,7 +409,7 @@ public class PacketValidateProcessor {
 
 			description.setMessage(PlatformErrorMessages.REVERSE_DATA_SYNC_FAILED.getMessage());
 			description.setCode(PlatformErrorMessages.REVERSE_DATA_SYNC_FAILED.getCode());
-        } catch (RegistrationProcessorCheckedException e) {
+		} catch (RegistrationProcessorCheckedException e) {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 			registrationStatusDto.setStatusComment(
 					trimMessage.trimExceptionMessage(StatusUtil.BASE_CHECKED_EXCEPTION.getMessage() + e.getMessage()));

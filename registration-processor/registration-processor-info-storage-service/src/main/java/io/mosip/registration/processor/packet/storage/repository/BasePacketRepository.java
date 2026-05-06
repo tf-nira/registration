@@ -13,6 +13,7 @@ import io.mosip.registration.processor.packet.storage.entity.AbisRequestEntity;
 import io.mosip.registration.processor.packet.storage.entity.AbisResponseDetEntity;
 import io.mosip.registration.processor.packet.storage.entity.AbisResponseEntity;
 import io.mosip.registration.processor.packet.storage.entity.BasePacketEntity;
+import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
 import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
 import io.mosip.registration.processor.packet.storage.entity.RegBioRefEntity;
 import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
@@ -496,5 +497,11 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 
 	@Query(value = "SELECT t FROM TransactionTypeEntity t WHERE t.id.code =:code")
 	public List<TransactionTypeEntity> getTransactionTypeByCode(@Param("code") String code);
+	
+	@Query(value = "SELECT * FROM regprc.ma_matched_rids WHERE matched_count = 1 AND is_issued = false ORDER BY cr_dtimes LIMIT :fetchSize", nativeQuery = true)
+	public List<MAMatchedRidsEntity> findPendingForIssue(@Param("fetchSize") int fetchSize);
+	
+	@Query(value ="SELECT m FROM MAMatchedRidsEntity m WHERE m.id.regId =:regId")
+	public List<MAMatchedRidsEntity> getMatchedRecordByRegId(@Param("regId") String regId);
 
 }

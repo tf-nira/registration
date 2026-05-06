@@ -262,7 +262,8 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 				        && (RegistrationType.UPDATE.toString().equalsIgnoreCase(object.getReg_type())
 				                || RegistrationType.RES_UPDATE.toString().equalsIgnoreCase(object.getReg_type())
 								|| RegistrationType.RENEWAL.toString().equalsIgnoreCase(object.getReg_type())
-								|| RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type()))) {
+								|| RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())
+						        || RegistrationType.DEACTIVATED.toString().equalsIgnoreCase(object.getReg_type()))) {
 					String handleField = fieldMap.get(MappingJsonConstants.NIN);
 					if (StringUtils.isNotEmpty(handleField) && !handleField.equalsIgnoreCase("null")) {
 						JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(handleField);
@@ -275,6 +276,11 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 				demographicIdentity.put(MappingJsonConstants.IDSCHEMA_VERSION, convertIdschemaToDouble ? Double.valueOf(schemaVersion) : schemaVersion);
 
 				loadDemographicIdentity(fieldMap, demographicIdentity);
+
+				if (RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())) {
+					demographicIdentity.put("isCardRequired", "Yes");
+					regProcLogger.info("Final Demographic Identity: " + demographicIdentity.toString());
+				}
 
 				if (StringUtils.isEmpty(uinField) || uinField.equalsIgnoreCase("null") ) {
 
@@ -943,17 +949,14 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			idResponseDto = idrepoDraftService.idrepoUpdateDraft(id, uin, idRequestDTO);
 
 			if (isIdResponseNotNull(idResponseDto)) {
-				if (idResponseDto.getResponse().getStatus().equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
-					description.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
-					description.setStatusComment(StatusUtil.UIN_DEACTIVATION_SUCCESS.getMessage());
-					description.setSubStatusCode(StatusUtil.UIN_DEACTIVATION_SUCCESS.getCode());
-					description.setMessage(StatusUtil.UIN_DEACTIVATION_SUCCESS.getMessage() + id);
-					description.setMessage(PlatformSuccessMessages.RPR_UIN_DEACTIVATION_SUCCESS.getMessage());
-					description.setCode(PlatformSuccessMessages.RPR_UIN_DEACTIVATION_SUCCESS.getCode());
+				if (IDREPO_STATUS.equalsIgnoreCase(idResponseDto.getResponse().getStatus())) {
+					description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+					description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
+					description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
+					description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
 					description.setTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
 					object.setIsValid(Boolean.TRUE);
 					statusComment = idResponseDto.getResponse().getStatus().toString();
-
 				}
 			} else {
 
@@ -1094,6 +1097,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						identityObject.put(infoField, fldValue);
 				}
 			}
+			identityObject.put("isCardRequired", "Yes");
 			requestDto.setRegistrationId(lostPacketRegId);
 			requestDto.setIdentity(identityObject);
 

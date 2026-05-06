@@ -439,12 +439,16 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				.getAdditionalInfoRequestByRegIdAndProcessAndIteration(workflowInternalActionDTO.getRid(),
 						workflowInternalActionDTO.getReg_type(), workflowInternalActionDTO.getIteration());
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService
-			.getRegistrationStatus(workflowInternalActionDTO.getRid(), workflowInternalActionDTO.getReg_type(),
-				workflowInternalActionDTO.getIteration(), workflowInternalActionDTO.getWorkflowInstanceId());
+				.getRegistrationStatus(workflowInternalActionDTO.getRid(), workflowInternalActionDTO.getReg_type(),
+						workflowInternalActionDTO.getIteration(), workflowInternalActionDTO.getWorkflowInstanceId());
 		registrationStatusDto.setStatusComment(workflowInternalActionDTO.getActionMessage());
 		registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
-		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		if (additionalInfoRequestDto != null) {
+			registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO_PARENT_RESTART.getCode());
+		} else {
+			registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		}
 		registrationStatusDto.setNeedsNotification(true);
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 		if(RegistrationType.MIGRATOR.toString().equalsIgnoreCase(registrationStatusDto.getRegistrationType())){
@@ -726,7 +730,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 			registrationStatusDto.setUpdatedBy(USER);
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
-			registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+			registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO.getCode());
 			registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 			String additionalRequestId = createAdditionalInfoRequest(workflowInternalActionDTO,additionalInfoRequestDtos);
 			sendWorkflowPausedForAdditionalInfoEvent(registrationStatusDto, additionalRequestId,
