@@ -592,22 +592,22 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			}
 			//
 			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadnewalien)){
-				if(response.getAmountPaid().equals(amountnewalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+				if(response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
 					return true;
 				}
 			}
 			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadrenewalalien)){
-				if(response.getAmountPaid().equals(amountrenewalalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+				if(response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
 					return true;
 				}
 			}
 			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadlostalien)){
-				if(response.getAmountPaid().equals(amountlostalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+				if(response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
 					return true;
 				}
 			}
 			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheaddamagedalien)){
-				if(response.getAmountPaid().equals(amountdamagedalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+				if(response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
 					return true;
 				}
 			}
