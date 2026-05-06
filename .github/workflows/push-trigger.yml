@@ -24,6 +24,7 @@ on:
       - tf_nira_prod
       - tf_nira_prod_tmp
       - renewal/renewal-limit-reapply
+      - tf_nira_dev_SR
 
 jobs:
   build-maven-registration:
