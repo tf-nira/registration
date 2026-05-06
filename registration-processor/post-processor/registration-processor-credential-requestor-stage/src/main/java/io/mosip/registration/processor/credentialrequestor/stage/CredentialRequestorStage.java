@@ -290,10 +290,6 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				if (!isAdult && !isAlien) {
 					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
 				}
-
-				if (!isAdult) {
-				    filteredPartners.removeIf(p -> "digitalcardPartner".equals(p.getId()));
-				}
 				
 				for (CredentialPartner key : filteredPartners) {
 					CredentialRequestDto credentialRequestDto = getCredentialRequestDto(regId, registrationStatusDto.getRegistrationType(), key);
