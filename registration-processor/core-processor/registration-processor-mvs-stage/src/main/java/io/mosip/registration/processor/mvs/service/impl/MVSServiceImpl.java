@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.core.idrepo.dto.Documents;
 import io.mosip.registration.processor.core.idrepo.dto.ResponseDTO;
 import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
 import org.apache.commons.lang.StringUtils;
@@ -538,17 +539,14 @@ public class MVSServiceImpl implements MVSService {
 	private String getDataShareUrlDeactivate(String id, String process, VerificationRequestDTO verReq, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 		LinkedHashMap<String, Object> policy = getPolicy();
-
-		Map<String, String> demographicMap = Map.of(
-				"AIN", "AIN",
-				"immigrationFacitityNo", "immigrationFacitityNo",
-				"reasonforCancellation", "reasonforCancellation",
-				"phone", "phone",
-				"email", "email"
-		);
+		Map<String, String> policyMap = getPolicyMap(policy);
+		Map<String, String> demographicMap = policyMap.entrySet().stream()
+				.filter(e -> e.getValue() != null
+						&& (!META_INFO.equalsIgnoreCase(e.getValue()) && !AUDITS.equalsIgnoreCase(e.getValue())))
+				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 
 		Map<String, String> fields = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MVS);
-		String nin = fields.get("AIN");
+		String nin = fields.get("NIN");
 
 		ResponseDTO responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin, true);
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
@@ -566,10 +564,62 @@ public class MVSServiceImpl implements MVSService {
 		fields.put("surname", surname);
 		fields.put("givenName", givenName);
 		fields.put("otherName", otherName);
+		fields.put("AIN", nin);
+		fields.put("NIN", null);
 
 		requestDto.setIdentity(fields);
 
-		// ADD FACE IMAGE
+		// set documents
+		JSONObject docJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT);
+		for (Object doc : docJson.keySet()) {
+			if (doc != null) {
+				HashMap docmap = (HashMap) docJson.get(doc.toString());
+				String docName = docmap != null && docmap.get(MappingJsonConstants.VALUE) != null
+						? docmap.get(MappingJsonConstants.VALUE).toString()
+						: null;
+				if (policyMap.containsValue(docName)) {
+					Document document = packetManagerService.getDocument(id, docName, process,
+							ProviderStageName.MVS);
+					if (document != null) {
+						if (requestDto.getDocuments() != null)
+							requestDto.getDocuments().put(docmap.get(MappingJsonConstants.VALUE).toString(),
+									CryptoUtil.encodeToURLSafeBase64(document.getDocument()));
+						else {
+							Map<String, String> docMap = new HashMap<>();
+							docMap.put(docmap.get(MappingJsonConstants.VALUE).toString(),
+									CryptoUtil.encodeToURLSafeBase64(document.getDocument()));
+							requestDto.setDocuments(docMap);
+						}
+					}
+				}
+			}
+		}
+
+		// set audits
+		if (policyMap.containsValue(AUDITS))
+			requestDto.setAudits(JsonUtils.javaObjectToJsonString(
+					packetManagerService.getAudits(id, process, ProviderStageName.MVS)));
+
+		// set metainfo
+		if (policyMap.containsValue(META_INFO))
+			requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(
+					packetManagerService.getMetaInfo(id, process, ProviderStageName.MVS)));
+
+		JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+		String individualBiometricsLabel = JsonUtil.getJSONValue(
+				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
+				MappingJsonConstants.VALUE);
+
+		List<Documents> documents=responseDTO.getDocuments();
+		if (documents != null) {
+			for(Documents docs:documents) {
+				for(Map.Entry<String,String> entry: policyMap.entrySet()) {
+					if(entry.getValue().contains(individualBiometricsLabel) && docs.getCategory().equalsIgnoreCase(individualBiometricsLabel)){
+						requestDto.setBiometrics(docs.getValue() != null ? docs.getValue() : null);
+					}
+				}
+			}
+		}
 
 		String req = JsonUtils.javaObjectToJsonString(requestDto);
 
