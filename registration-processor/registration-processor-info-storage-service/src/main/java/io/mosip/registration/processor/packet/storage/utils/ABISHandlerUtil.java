@@ -105,7 +105,8 @@ public class ABISHandlerUtil {
 										RegistrationStatusCode.REJECTED.toString());
 						List<RegistrationStatusEntity> processingRegistrationStatusEntities = matchedRegistrationStatusEntities
 								.stream()
-								.filter(e -> RegistrationStatusCode.PROCESSING.toString().equals(e.getStatusCode()))
+								.filter(e -> RegistrationStatusCode.PROCESSING.toString().equals(e.getStatusCode())
+										|| RegistrationStatusCode.RESUMABLE.toString().equals(e.getStatusCode()))
 								.collect(Collectors.toList());
 						List<String> processingRegIds = processingRegistrationStatusEntities.stream()
 								.map(RegistrationStatusEntity::getRegId)
