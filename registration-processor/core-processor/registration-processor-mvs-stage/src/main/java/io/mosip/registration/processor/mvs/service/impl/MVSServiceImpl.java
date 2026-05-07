@@ -1038,6 +1038,7 @@ public class MVSServiceImpl implements MVSService {
 		req.setService(registrationStatusDto.getRegistrationType());
 		req.setSource(messageDTO.getSource());
 		req.setRefId(refId);
+		req.setServiceType(registrationStatusDto.getApplicantType());
 
 		try {
 			req.setReferenceURL(getDataShareUrlDeactivate(messageDTO.getRid(), registrationStatusDto.getRegistrationType(), req,registrationStatusDto));
