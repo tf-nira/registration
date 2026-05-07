@@ -10,16 +10,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.mosip.kernel.core.dataaccess.spi.repository.BaseRepository;
-import io.mosip.registration.processor.packet.storage.entity.AbisRequestEntity;
-import io.mosip.registration.processor.packet.storage.entity.AbisResponseDetEntity;
-import io.mosip.registration.processor.packet.storage.entity.AbisResponseEntity;
-import io.mosip.registration.processor.packet.storage.entity.BasePacketEntity;
-import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
-import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
-import io.mosip.registration.processor.packet.storage.entity.RegBioRefEntity;
-import io.mosip.registration.processor.packet.storage.entity.RegDemoDedupeListEntity;
-import io.mosip.registration.processor.packet.storage.entity.TransactionTypeEntity;
-import io.mosip.registration.processor.packet.storage.entity.VerificationEntity;
 
 /**
  * The Interface BasePacketRepository.
