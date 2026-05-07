@@ -103,12 +103,7 @@ public class ABISHandlerUtil {
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
 								.getWithoutStatusCode(matchedRegIds,
 										RegistrationStatusCode.REJECTED.toString());
-						List<RegistrationStatusEntity> processingRegistrationStatusEntities = matchedRegistrationStatusEntities
-								.stream()
-								.filter(e -> RegistrationStatusCode.PROCESSING.toString().equals(e.getStatusCode())
-										|| RegistrationStatusCode.RESUMABLE.toString().equals(e.getStatusCode()))
-								.collect(Collectors.toList());
-						List<String> processingRegIds = processingRegistrationStatusEntities.stream()
+						List<String> processingRegIds = matchedRegistrationStatusEntities.stream()
 								.map(RegistrationStatusEntity::getRegId)
 								.collect(Collectors.toList());
 						List<String> matchedProcessedRegIds = matchedRegistrationStatusEntities.stream()
