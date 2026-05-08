@@ -2,7 +2,6 @@ package io.mosip.registration.processor.biodedupe.stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -435,8 +434,7 @@ public class BioDedupeProcessor {
 					registrationStatusDto.getRegistrationId(), BioDedupeConstants.ABIS_RESPONSE_NULL);
 
 		} else {
-			if((registrationType.equalsIgnoreCase(SyncTypeDto.NEW.toString())
-					|| registrationType.equalsIgnoreCase(SyncTypeDto.MIGRATOR.toString()))) {
+
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
 				registrationStatusDto.setStatusComment(StatusUtil.BIO_DEDUPE_POTENTIAL_MATCH.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.BIO_DEDUPE_POTENTIAL_MATCH.getCode());
@@ -453,17 +451,7 @@ public class BioDedupeProcessor {
 
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
 						registrationStatusDto.getRegistrationId(), BioDedupeConstants.ABIS_RESPONSE_NOT_NULL);
-			} else {
-				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-				object.setIsValid(Boolean.TRUE);
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.name());
-				registrationStatusDto.setStatusComment(StatusUtil.BIO_DEDUPE_SUCCESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.BIO_DEDUPE_SUCCESS.getCode());
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), registrationStatusDto.getRegistrationId(),
-						BioDedupeConstants.ABIS_RESPONSE_NULL);
-			}
+
 		}
 	}
 
