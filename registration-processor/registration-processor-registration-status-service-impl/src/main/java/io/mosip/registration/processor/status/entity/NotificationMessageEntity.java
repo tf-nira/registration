@@ -22,6 +22,9 @@ public class NotificationMessageEntity {
 	@Column(name = "notification_message")
 	private String notificationMessage;
 	
+	@Column(name = "sent_to_opencrvs")
+	private Boolean sentToOpencrvs;
+	
 	@NotNull
 	@Column(name = "cr_by")
 	private String createdBy;

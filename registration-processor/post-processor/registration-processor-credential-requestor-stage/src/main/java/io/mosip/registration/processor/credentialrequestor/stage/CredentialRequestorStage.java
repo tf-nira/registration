@@ -1,11 +1,16 @@
 
 package io.mosip.registration.processor.credentialrequestor.stage;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.DateUtils;
+import io.mosip.kernel.core.websub.model.Event;
+import io.mosip.kernel.core.websub.model.EventModel;
 import io.mosip.registration.processor.core.abstractverticle.*;
 import io.mosip.registration.processor.core.code.EventId;
 import io.mosip.registration.processor.core.code.EventName;
@@ -14,6 +19,7 @@ import io.mosip.registration.processor.core.code.*;
 import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.*;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
+import io.mosip.registration.processor.core.exception.RegistrationProcessorCheckedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
 import io.mosip.registration.processor.core.http.RequestWrapper;
@@ -31,11 +37,16 @@ import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.credentialrequestor.dto.CredentialPartner;
 import io.mosip.registration.processor.credentialrequestor.stage.exception.VidNotAvailableException;
 import io.mosip.registration.processor.credentialrequestor.util.CredentialPartnerUtil;
+import io.mosip.registration.processor.credentialrequestor.util.WebSubUtil;
+import io.mosip.registration.processor.packet.storage.entity.MAMatchedRidsEntity;
+import io.mosip.registration.processor.packet.storage.repository.BasePacketRepository;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
+import io.mosip.registration.processor.status.entity.NotificationMessageEntity;
+import io.mosip.registration.processor.status.service.NotificationMessageService;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -56,7 +67,9 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -82,7 +95,9 @@ import java.util.stream.Collectors;
 		"io.mosip.registration.processor.packet.storage.config",
 		"io.mosip.registration.processor.packet.manager.config", 
 		"io.mosip.kernel.idobjectvalidator.config",
-		"io.mosip.registration.processor.core.kernel.beans" })
+		"io.mosip.registration.processor.core.kernel.beans",
+		"io.mosip.kernel.websub.api.client",
+		"io.mosip.kernel.websub.api.config.publisher"})
 public class CredentialRequestorStage extends MosipVerticleAPIManager {
 	
 	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.credentialrequestor.";
@@ -108,6 +123,9 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 	/** The registration status service. */
 	@Autowired
 	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
+	
+	@Autowired
+	private BasePacketRepository<MAMatchedRidsEntity, String> matchedRidsRepository;
 
 	/** worker pool size. */
 	@Value("${worker.pool.size}")
@@ -119,6 +137,11 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 	@Value("${mosip.registration.processor.encrypt:false}")
 	private boolean encrypt;
+	
+	@Value("${mosip.opencrvs.failed.scheduler.fetchsize:5}")
+	private Integer failedFetchSize;
+	@Value("${mosip.opencrvs.credential.scheduler.fetchsize:5}")
+	private Integer fetchSize;
 
 	/** Mosip router for APIs */
 	@Autowired
@@ -150,6 +173,12 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 	@Autowired
 	private CredentialPartnerUtil credentialPartnerUtil;
+	
+	@Autowired
+	private NotificationMessageService notificationMessageService;
+	
+	@Autowired
+	private WebSubUtil webSubUtil;
 
 	@Override
 	protected String getPropertyPrefix() {
@@ -388,6 +417,146 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 		}
 		return object;
+	}
+	
+	@Scheduled(cron = "${mosip.opencrvs.credential.cron.expression:0 0/3 * * * ?}")
+	public void issueOpenCrvsCredential() {
+		regProcLogger.info("Batch job for opencrvs credentials started");
+		try {
+			List<CredentialPartner> allIssuerList = credentialPartnerUtil.getAllCredentialPartners().getPartners();
+			Optional<CredentialPartner> issuerOpt = allIssuerList.stream().filter(issuer -> "opencrvsPartner".equals(issuer.getId())).findFirst();
+			
+			if (issuerOpt.isPresent()) {
+				List<MAMatchedRidsEntity> records =
+				        matchedRidsRepository.findPendingForIssue(fetchSize);
+				
+				records.forEach(record -> {
+					issueCredentialToOpenCrvs(record, issuerOpt.get());
+				});
+			} else {
+				regProcLogger.error("Issuer not found");
+			}
+		} catch (RegistrationProcessorCheckedException e) {
+			regProcLogger.error("Batch job failed, unable to get the issuer");
+		}
+		
+		regProcLogger.info("Batch job completed");
+	}
+	
+	private void issueCredentialToOpenCrvs(MAMatchedRidsEntity record, CredentialPartner key) {
+		try {
+			String regId = record.getId().getRegId();
+			String matchedRegId = record.getMatchedRegIds();
+			CredentialRequestDto credentialRequestDto = new CredentialRequestDto();
+			Map<String, Object> additionalAttributes=new HashMap<>();
+
+			credentialRequestDto.setCredentialType(key.getCredentialType());
+			credentialRequestDto.setEncrypt(encrypt);
+
+			credentialRequestDto.setId(matchedRegId);
+
+			credentialRequestDto.setIssuer(key.getPartnerId());
+
+			credentialRequestDto.setEncryptionKey(generatePin());
+			additionalAttributes.put("templateTypeCode", key.getTemplate());
+			additionalAttributes.put("registrationId", regId);
+			credentialRequestDto.setAdditionalData(additionalAttributes);
+			
+			RequestWrapper<CredentialRequestDto> requestWrapper = new RequestWrapper<>();
+			requestWrapper.setId(env.getProperty("mosip.registration.processor.credential.request.service.id"));
+			DateTimeFormatter format = DateTimeFormatter.ofPattern(env.getProperty(DATETIME_PATTERN));
+			requestWrapper.setVersion("1.0");
+			LocalDateTime localdatetime = LocalDateTime.parse(
+					DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)), format);
+			requestWrapper.setRequesttime(localdatetime);
+			requestWrapper.setRequest(credentialRequestDto);
+			
+			ResponseWrapper<?> responseWrapper = null;
+			// issuers with appIdBasedCredentialIdSuffix is calling v1 api and for others stage is calling v2 api for credential
+			if (StringUtils.isNotEmpty(key.getAppIdBasedCredentialIdSuffix())) {
+				List<String> pathsegments = new ArrayList<>();
+				pathsegments.add(regId + key.getAppIdBasedCredentialIdSuffix()); //  #PDF suffix is added to identify the requested credential via rid
+				responseWrapper = (ResponseWrapper<?>) restClientService.postApi(ApiName.CREDENTIALREQUESTV2, MediaType.APPLICATION_JSON, pathsegments, null,
+							null, requestWrapper, ResponseWrapper.class);
+			} else {
+				responseWrapper = (ResponseWrapper<?>) restClientService.postApi(ApiName.CREDENTIALREQUEST, null, null,
+						requestWrapper, ResponseWrapper.class, MediaType.APPLICATION_JSON);
+			}
+			
+			if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+				ErrorDTO error = responseWrapper.getErrors().get(0);
+				record.setRemark(error.getMessage());
+			} else {
+				CredentialResponseDto credentialResponseDto = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()),
+						CredentialResponseDto.class);
+				record.setCredentialId(credentialResponseDto.getRequestId());
+				record.setIssued(true);
+				record.setRemark(null);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			regProcLogger.error("Failed to issue the credential");
+			record.setRemark(e.getMessage());
+		}
+		
+		record.setUpdBy("SYSTEM");
+		record.setUpdDtimes(Timestamp.valueOf(LocalDateTime.now(ZoneId.of("UTC"))));
+		matchedRidsRepository.save(record);
+	}
+
+	@Scheduled(cron = "${mosip.opencrvs.failed.records.cron.expression:0 0/3 * * * ?}")
+	public void sendOpenCrvsFailedRecords() {
+		regProcLogger.info("Batch job for opencrvs failed records started");
+
+		List<NotificationMessageEntity> records = notificationMessageService.getRecordsNotSentToOpencrvs(failedFetchSize);
+
+		regProcLogger.info("opencrvs failed records picked: ", records.size());
+		
+		records.forEach(record -> {
+			sendFailedRecordToOpencrvs(record);
+		});
+
+		regProcLogger.info("Batch job completed");
+	}
+	
+	private void sendFailedRecordToOpencrvs(NotificationMessageEntity record) {
+		EventModel eventModel = new EventModel();
+		DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		LocalDateTime localdatetime = LocalDateTime
+				.parse(DateUtils.getUTCCurrentDateTimeString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), format);
+		eventModel.setPublishedOn(DateUtils.toISOString(localdatetime));
+		eventModel.setPublisher("CREDENTIAL_REQUEST_STAGE");
+		eventModel.setTopic("OPENCRVS_ERROR");
+		
+		Event event = new Event();
+		event.setId(UUID.randomUUID().toString());
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("registrationId", record.getRegId());
+
+		String failureReason = null;
+        try {
+            Map<String, String> messageMap = mapper.readValue(record.getNotificationMessage(), new TypeReference<Map<String, String>>() {});
+			failureReason = messageMap.get("FAILURE_REASON");
+			if(failureReason == null) {
+				failureReason = messageMap.get("REJECTION_COMMENT");
+			}
+        } catch (JsonProcessingException ignored) {
+
+        }
+        map.put("failureReason", failureReason);
+		event.setData(map);
+		event.setTimestamp(DateUtils.toISOString(localdatetime));
+		
+		eventModel.setEvent(event);
+		
+		webSubUtil.publishSuccess("OPENCRVS_ERROR", eventModel);
+		
+		record.setUpdatedBy("SYSTEM");
+		record.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+		record.setSentToOpencrvs(true);
+		
+		notificationMessageService.saveRecord(record);
 	}
 
 	private CredentialRequestDto getCredentialRequestDto(String regId, String process, CredentialPartner key) {
