@@ -231,6 +231,8 @@ public class MessageNotificationServiceImpl
 					userService = "Renewal Of Card";
 				}else if ("FIRSTID".equals(regType)) {
 					userService = "Get First ID";
+				} else if ("Alien Deactivated".equalsIgnoreCase(userServiceType)) {
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				}
 				
 				attributes.put("service", userService);
