@@ -233,6 +233,7 @@ public class MessageNotificationServiceImpl
 				}else if ("FIRSTID".equals(regType)) {
 					userService = "Get First ID";
 				}else if ("Alien Deactivated".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				}
 				
@@ -271,7 +272,7 @@ public class MessageNotificationServiceImpl
 						regProcLogger.error("Error while extracting userServiceType", e);
 					}
 
-					smsDto.setNumber(dcicPhone.toString());
+					smsDto.setNumber(dcicPhone);
 				} else {
 					smsDto.setNumber(phoneNumber.toString());
 				}
@@ -383,6 +384,9 @@ public class MessageNotificationServiceImpl
 					userService = "Renewal Of Card";
 				}else if ("FIRSTID".equals(regType)) {
 					userService = "Get First ID";
+				} else if ("Alien Deactivated".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				}
 				
 				attributes.put("service", userService);
@@ -421,7 +425,7 @@ public class MessageNotificationServiceImpl
 						regProcLogger.error("Error while extracting userServiceType", e);
 					}
 
-					mailTo = new String[]{dcicEmail.toString()};
+					mailTo = new String[]{dcicEmail};
 				}
 				
 				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {
@@ -642,6 +646,11 @@ public class MessageNotificationServiceImpl
 		
 		if (attributes.get("surname_" + lang) == null && attributes.get("givenName_" + lang) == null) {
 			attributes.put("surname_" + lang, "applicant");
+		}
+
+		if (attributes.get("service").equals("Alien Deactivated")) {
+			attributes.put("surname_" + lang, "DCIC");
+			attributes.put("givenName_" + lang, "");
 		}
 
 		return attributes;
