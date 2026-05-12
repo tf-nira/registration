@@ -271,7 +271,7 @@ public class MessageNotificationServiceImpl
 						regProcLogger.error("Error while extracting userServiceType", e);
 					}
 
-					smsDto.setNumber(dcicPhone.toString());
+					smsDto.setNumber(dcicPhone);
 				} else {
 					smsDto.setNumber(phoneNumber.toString());
 				}
@@ -424,7 +424,7 @@ public class MessageNotificationServiceImpl
 						regProcLogger.error("Error while extracting userServiceType", e);
 					}
 
-                    mailTo = new String[]{dcicEmail.toString()};
+                    mailTo = new String[]{dcicEmail};
 				}
 
 				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {
