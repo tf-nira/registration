@@ -271,8 +271,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						demographicIdentity.put("UIN", uinField);
 					}
 				}
-
-
+				
 				demographicIdentity.put(MappingJsonConstants.IDSCHEMA_VERSION, convertIdschemaToDouble ? Double.valueOf(schemaVersion) : schemaVersion);
 
 				loadDemographicIdentity(fieldMap, demographicIdentity);
@@ -281,6 +280,12 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 					demographicIdentity.put("isCardRequired", "Yes");
 					regProcLogger.info("Final Demographic Identity: " + demographicIdentity.toString());
 				}
+				
+				if(RegistrationType.DEACTIVATED.toString().equalsIgnoreCase(object.getReg_type())) {
+					demographicIdentity.put("declaredAsDeceased", "Y");
+					regProcLogger.info("Flag declaredAsDeceased added for the deactivation request reg_id: {}", registrationId);
+				}
+
 
 				if (StringUtils.isEmpty(uinField) || uinField.equalsIgnoreCase("null") ) {
 
