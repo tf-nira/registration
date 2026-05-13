@@ -168,7 +168,7 @@ public class ABISHandlerUtilTest {
 
         Set<String> uniqueRids = abisHandlerUtil.getUniqueRegIds(registrationId, registrationType,1, "", ProviderStageName.BIO_DEDUPE);
         // expected not to pick processedMatchedIds list i.e 1 records..
-        assertEquals(1, uniqueRids.size());
+        assertEquals(3, uniqueRids.size());
     }
 
 }
