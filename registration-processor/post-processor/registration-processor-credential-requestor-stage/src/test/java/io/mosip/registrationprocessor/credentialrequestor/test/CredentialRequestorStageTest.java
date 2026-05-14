@@ -131,13 +131,13 @@ public class CredentialRequestorStageTest {
 
 				@Override
 				public void consume(MessageBusAddress fromAddress,
-						EventHandler<EventDTO, Handler<AsyncResult<MessageDTO>>> eventHandler) {
+									EventHandler<EventDTO, Handler<AsyncResult<MessageDTO>>> eventHandler) {
 
 				}
 
 				@Override
 				public void consumeAndSend(MessageBusAddress fromAddress, MessageBusAddress toAddress,
-						EventHandler<EventDTO, Handler<AsyncResult<MessageDTO>>> eventHandler) {
+										   EventHandler<EventDTO, Handler<AsyncResult<MessageDTO>>> eventHandler) {
 
 				}
 
@@ -162,7 +162,7 @@ public class CredentialRequestorStageTest {
 
 		@Override
 		public void consume(MosipEventBus mosipEventBus, MessageBusAddress fromAddress,
-			long messageExpiryTimeLimit) {
+							long messageExpiryTimeLimit) {
 		}
 
 
@@ -271,8 +271,8 @@ public class CredentialRequestorStageTest {
 	@Test
 	public void testAll() throws Exception {
 		testDeployVerticle();
-        testStart();
-        testPrintStageSuccess();
+		testStart();
+		testPrintStageSuccess();
 	}
 
 	public void testStart() {
@@ -296,6 +296,10 @@ public class CredentialRequestorStageTest {
 
 		dto.setReg_type(RegistrationType.NEW.name());
 
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
+
 		ResponseWrapper<CredentialResponseDto> responseWrapper = new ResponseWrapper<>();
 		CredentialResponseDto credentialResponseDto = new CredentialResponseDto();
 		credentialResponseDto.setRequestId("879664323421");
@@ -310,7 +314,7 @@ public class CredentialRequestorStageTest {
 		assertTrue(result.getIsValid());
 		assertFalse(result.getInternalError());
 	}
-	
+
 
 	@Test
 	public void testPrintStageFailure() throws ApisResourceAccessException {
@@ -319,6 +323,10 @@ public class CredentialRequestorStageTest {
 		dto.setRid("1234567890987654321");
 
 		dto.setReg_type(RegistrationType.NEW.name());
+
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
 
 		ResponseWrapper<?> responseWrapper = new ResponseWrapper<>();
 		ErrorDTO error = new ErrorDTO();
@@ -344,6 +352,10 @@ public class CredentialRequestorStageTest {
 
 		dto.setReg_type(RegistrationType.NEW.name());
 
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
+
 		ResponseWrapper<CredentialResponseDto> responseWrapper = new ResponseWrapper<>();
 		CredentialResponseDto credentialResponseDto = new CredentialResponseDto();
 		credentialResponseDto.setRequestId("879664323421");
@@ -363,6 +375,10 @@ public class CredentialRequestorStageTest {
 		dto.setRid("1234567890987654321");
 
 		dto.setReg_type(RegistrationType.NEW.name());
+
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
 
 		ResponseWrapper<CredentialResponseDto> responseWrapper = new ResponseWrapper<>();
 		CredentialResponseDto credentialResponseDto = new CredentialResponseDto();
@@ -384,6 +400,10 @@ public class CredentialRequestorStageTest {
 
 		dto.setReg_type(RegistrationType.NEW.name());
 
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
+
 		ResponseWrapper<CredentialResponseDto> responseWrapper = new ResponseWrapper<>();
 		CredentialResponseDto credentialResponseDto = new CredentialResponseDto();
 		credentialResponseDto.setRequestId("879664323421");
@@ -396,7 +416,7 @@ public class CredentialRequestorStageTest {
 		JSONObject jsonObject = new JSONObject(map1);
 		Mockito.when(utitilites.idrepoRetrieveIdentityByRid(any())).thenReturn(jsonObject);
 		MessageDTO result = stage.process(dto);
-		
+
 		assertFalse(result.getIsValid());
 		assertFalse(result.getInternalError());
 	}
@@ -408,6 +428,10 @@ public class CredentialRequestorStageTest {
 		dto.setRid("1234567890987654321");
 
 		dto.setReg_type(RegistrationType.NEW.name());
+
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
 
 		ResponseWrapper<CredentialResponseDto> responseWrapper = new ResponseWrapper<>();
 		CredentialResponseDto credentialResponseDto = new CredentialResponseDto();
@@ -425,11 +449,11 @@ public class CredentialRequestorStageTest {
 		vidsInfosDTO.setResponse(vidList);
 		Mockito.when(restClientService.getApi(any(), any(), anyString(), any(), any())).thenReturn(vidsInfosDTO);
 		MessageDTO result = stage.process(dto);
-		
+
 		assertTrue(result.getInternalError());
 		assertTrue(result.getIsValid());
 	}
-	
+
 	@Test
 	public void testVidNotAvailableGETAPIResponseNullException()
 			throws ApisResourceAccessException, JsonParseException, JsonMappingException, IOException {
@@ -437,6 +461,10 @@ public class CredentialRequestorStageTest {
 		dto.setRid("1234567890987654321");
 
 		dto.setReg_type(RegistrationType.NEW.name());
+
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
 
 		VidsInfosDTO vidsInfosDTO = new VidsInfosDTO();
 		vidsInfosDTO.setResponse(null);
@@ -454,6 +482,10 @@ public class CredentialRequestorStageTest {
 		dto.setRid("1234567890987654321");
 
 		dto.setReg_type(RegistrationType.NEW.name());
+
+		Map<String, String> tags = new HashMap<>();
+		tags.put("AGE_GROUP", "ADULT");
+		dto.setTags(tags);
 
 		VidsInfosDTO vidsInfosDTO = new VidsInfosDTO();
 		vidsInfosDTO.setResponse(null);

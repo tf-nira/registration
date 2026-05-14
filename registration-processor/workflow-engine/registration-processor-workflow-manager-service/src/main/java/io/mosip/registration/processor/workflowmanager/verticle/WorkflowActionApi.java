@@ -41,7 +41,7 @@ import io.vertx.ext.web.RoutingContext;
 
 public class WorkflowActionApi extends MosipVerticleAPIManager {
 	
-	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.reprocessor.";
+	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.workflow.action.api.";
 
 	@Value("${vertx.cluster.configuration}")
 	private String clusterManagerUrl;
