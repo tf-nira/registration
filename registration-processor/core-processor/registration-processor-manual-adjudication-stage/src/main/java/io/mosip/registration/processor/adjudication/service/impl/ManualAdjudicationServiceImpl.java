@@ -1018,15 +1018,23 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				manualVerificationDTO.getCandidateList().getCandidates() != null &&
 				!manualVerificationDTO.getCandidateList().getCandidates().isEmpty()) {
 
-			JSONObject analytics = manualVerificationDTO.getCandidateList()
-					.getCandidates().get(0).getAnalytics();
-			String comments = (analytics != null && analytics.get("primaryOperatorComments") != null)
-					? analytics.get("primaryOperatorComments").toString() : "";
+			// Check all candidates and set isMatched to true if any candidate has "MATCHED" comment
+			boolean isMatched = false;
+			List<Candidate> candidates = manualVerificationDTO.getCandidateList().getCandidates();
+
+			for (Candidate candidate : candidates) {
+				JSONObject analytics = candidate.getAnalytics();
+				String comments = (analytics != null && analytics.get("primaryOperatorComments") != null)
+						? analytics.get("primaryOperatorComments").toString() : "";
+
+				if ("MATCHED".equalsIgnoreCase(comments)) {
+					isMatched = true;
+					break;  // Exit once we find a match
+				}
+			}
 
 			boolean isTrnType = Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString()) ||
 					Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString());
-
-			boolean isMatched = "MATCHED".equalsIgnoreCase(comments);
 
 			// For trn types, MATCHED = APPROVED, else MATCHED = REJECTED
 			if (isMatched == isTrnType) {
