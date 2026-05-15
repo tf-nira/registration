@@ -56,7 +56,7 @@ public class CitizenshipVerificationStage extends MosipVerticleAPIManager{
 	
 	@Override
 	public MessageDTO process(MessageDTO object) {
-		return citizenshipVerificationProcessor.process(object);
+		return citizenshipVerificationProcessor.process(object, getStageName());
 	}
 	
 	@Override

@@ -290,6 +290,8 @@ public enum RegistrationExceptionTypeCode {
 	MVS_PACKET_REJECTED,
 
 	REG_PACKET_REJECTED,
+
+	MA_PACKET_REJECTED,
 	
 	VID_CREATION_EXCEPTION, 
 	
@@ -320,6 +322,8 @@ public enum RegistrationExceptionTypeCode {
 
 	ON_DEMAND_MIGRATION_REJECTED,
 
-	LEGACY_FAILED;
+	LEGACY_FAILED,
+
+	ON_HOLD;
 
 }

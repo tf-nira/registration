@@ -237,11 +237,15 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 			if ((RegistrationType.LOST.toString()).equalsIgnoreCase(object.getReg_type())) {
 				String lostPacketRegId = object.getRid();
-				String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(object.getWorkflowInstanceId());
-				
-				if (matchedRegId != null) {
-					regProcLogger.info("Match for lostPacketRegId"+lostPacketRegId +"is "+matchedRegId);
-					lostAndUpdateUin(lostPacketRegId, matchedRegId, registrationStatusDto.getRegistrationType(), object, description);
+				List<String> fieldsToFetch = new ArrayList<>(List.of(MappingJsonConstants.NIN));
+				regProcLogger.info("Sending API request for registration ID: {}", registrationId);
+				Map<String, String> applicantFields = utility.getPacketManagerService().getFields(registrationId,
+						fieldsToFetch, object.getReg_type(), ProviderStageName.UIN_GENERATOR);
+				String lostPacketNin = applicantFields.get(MappingJsonConstants.NIN);
+
+				if (lostPacketNin != null) {
+					regProcLogger.info("Nin for lostPacketRegId "+ lostPacketRegId +" is "+ lostPacketNin);
+					lostAndUpdateUin(lostPacketRegId, lostPacketNin, registrationStatusDto.getRegistrationType(), object, description);
 				}
 
 			} else {
@@ -263,6 +267,9 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(handleField);
 						uinField = JsonUtil.getJSONValue(jsonObject, "UIN");
 						demographicIdentity.put("UIN", uinField);
+						if (RegistrationType.FIRSTID.toString().equalsIgnoreCase(object.getReg_type())) {
+							demographicIdentity.put("isCardRequired", "Yes");
+						}
 					}
 				}
 
@@ -1055,14 +1062,13 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	 * @throws IdrepoDraftReprocessableException
 	 */
 	@SuppressWarnings("unchecked")
-	private IdResponseDTO lostAndUpdateUin(String lostPacketRegId, String matchedRegId, String process, MessageDTO object,
+	private IdResponseDTO lostAndUpdateUin(String lostPacketRegId, String lostPacketNin, String process, MessageDTO object,
 			LogDescription description) throws ApisResourceAccessException, IOException,
 			io.mosip.kernel.core.util.exception.JsonProcessingException, PacketManagerException, IdrepoDraftException,
 			IdrepoDraftReprocessableException {
 
 		IdResponseDTO idResponse = null;
-		JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId,
-				utility.getGetRegProcessorDemographicIdentity());
+		JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
 		String uin = JsonUtil.getJSONValue(jsonObject, "UIN");
 		String nin = JsonUtil.getJSONValue(jsonObject, "NIN");
 
@@ -1112,7 +1118,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 						LoggerFileConstant.REGISTRATIONID.toString() + lostPacketRegId,
-						" UIN LINKED WITH " + matchedRegId, "is : " + description);
+						" UIN LINKED WITH " + lostPacketRegId, "is : " + description);
 			} else {
 
 				statusComment = idResponse != null && idResponse.getErrors() != null
@@ -1132,24 +1138,24 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 				object.setIsValid(Boolean.FALSE);
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 						LoggerFileConstant.REGISTRATIONID.toString() + lostPacketRegId,
-						" UIN NOT LINKED WITH " + matchedRegId, "is : " + statusComment);
+						" UIN NOT LINKED WITH " + lostPacketRegId, "is : " + statusComment);
 			}
 
 		} else {
 			statusComment = UinStatusMessage.PACKET_LOST_UIN_UPDATION_FAILURE_MSG + "  "
-					+ UINConstants.NULL_IDREPO_RESPONSE + " UIN not available for matchedRegId " + matchedRegId;
+					+ UINConstants.NULL_IDREPO_RESPONSE + " UIN not available for matchedRegId " + lostPacketRegId;
 			description.setStatusComment(StatusUtil.LINK_RID_FOR_LOST_PACKET_FAILED.getMessage());
 			description.setSubStatusCode(StatusUtil.LINK_RID_FOR_LOST_PACKET_FAILED.getCode());
 			description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 			description.setTransactionStatusCode(registrationStatusMapperUtil
 					.getStatusCode(RegistrationExceptionTypeCode.PACKET_UIN_GENERATION_REPROCESS));
 			description.setMessage(UinStatusMessage.PACKET_LOST_UIN_UPDATION_FAILURE_MSG + "  "
-					+ UINConstants.NULL_IDREPO_RESPONSE + " UIN not available for matchedRegId " + matchedRegId);
+					+ UINConstants.NULL_IDREPO_RESPONSE + " UIN not available for matchedRegId " + lostPacketRegId);
 
 			object.setIsValid(Boolean.FALSE);
 			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 					LoggerFileConstant.REGISTRATIONID.toString() + lostPacketRegId,
-					" UIN NOT LINKED WITH " + matchedRegId, "is : " + statusComment);
+					" UIN NOT LINKED WITH " + lostPacketRegId, "is : " + statusComment);
 		}
 
 		return idResponse;
@@ -1165,3 +1171,4 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 		}
 	}
 }
+

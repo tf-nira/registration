@@ -7,10 +7,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.xml.bind.JAXBException;
 
@@ -98,7 +95,7 @@ public class CitizenshipVerificationProcessor {
 	@Value("${registration.processor.applicant.age.check.cvs}")
 	private int ageCheckCVS;
 	
-	public MessageDTO process(MessageDTO object) {
+	public MessageDTO process(MessageDTO object, String stageName) {
 
 		LogDescription description = new LogDescription();
 		boolean isTransactionSuccessful = false;
@@ -107,6 +104,7 @@ public class CitizenshipVerificationProcessor {
 		object.setMessageBusAddress(MessageBusAddress.CITIZENSHIP_VERIFICATION_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.FALSE);
+		object.setOnHold(Boolean.FALSE);
 
 		regProcLogger.debug("Process called for registrationId {}", registrationId);
 		
@@ -125,7 +123,7 @@ public class CitizenshipVerificationProcessor {
 
 		registrationStatusDto
 				.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.CITIZENSHIP_VERIFICATION.toString());
-		registrationStatusDto.setRegistrationStageName(ProviderStageName.CITIZENSHIP_VERIFICATION.toString());
+		registrationStatusDto.setRegistrationStageName(stageName);
 
 		try {
 			if (validatePacketCitizenship(registrationId, object, registrationStatusDto, description)) {
@@ -166,13 +164,12 @@ public class CitizenshipVerificationProcessor {
 					StatusUtil.PACKET_MANAGER_EXCEPTION, RegistrationExceptionTypeCode.PACKET_MANAGER_EXCEPTION,
 					description, PlatformErrorMessages.PACKET_MANAGER_EXCEPTION, e);
 		} catch (PacketOnHoldException e) {
-			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", e.getErrorText());
-			object.setNotificationAttributes(notificationAttributes);
-			object.setInternalError(Boolean.TRUE);
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING, StatusUtil.PACKET_ON_HOLD,
-					RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET, description,
-					PlatformErrorMessages.RPR_CITIZENSHIP_VERIFICATION_FAILED, e);
+			registrationStatusDto.setLatestTransactionStatusCode(
+					RegistrationTransactionStatusCode.ON_HOLD.toString());
+			registrationStatusDto.setStatusComment(e.getMessage());
+			registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
+			object.setOnHold(Boolean.TRUE);
 		} catch (DataAccessException e) {
 			object.setInternalError(Boolean.TRUE);
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.PROCESSING,
@@ -202,7 +199,11 @@ public class CitizenshipVerificationProcessor {
 			registrationStatusDto.setUpdatedBy(USER);
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.CITIZENSHIP_VERIFICATION.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			if (Objects.equals(registrationStatusDto.getStatusCode(), RegistrationStatusCode.ON_HOLD.toString())) {
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId, moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
 
@@ -382,36 +383,11 @@ public class CitizenshipVerificationProcessor {
 					registrationStatusDto, description, parentFoundDTO);
 	    }
 		if (parentFoundDTO.isParentNINFoundInMosip() == false && isParentInfoValid == false) {
-			boolean isOnDemandValid = validateOnDemandMigration(registrationStatusDto, motherNIN, fatherNIN);
-			String fatherOrMother = "";
-			if (fatherNIN != null) {
-				fatherOrMother = "Father";
-			} else {
-				fatherOrMother = "Mother";
-			}
-			if (isOnDemandValid == true) {
-				registrationStatusDto.setLatestTransactionStatusCode(
-						registrationStatusMapperUtil.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
-				registrationStatusDto.setStatusComment(
-						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage() + fatherOrMother
-								+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-				regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
-						registrationStatusDto.getRegistrationId(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
-				throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
-			} else {
-
-				logAndSetStatusError(registrationStatusDto,
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getCode(),
-						StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage() + fatherOrMother
-								+ " failed",
-						RegistrationStatusCode.FAILED.toString(), description, applicantFields.get("registrationId"));
-				isParentInfoValid = false;
-			}
+			regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
+					registrationStatusDto.getRegistrationId(),
+					StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
+			throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
+					"NIN : " + (fatherNIN != null ? fatherNIN : motherNIN) + " is not present in ID Repo");
 		}
 		
 		//moving the packet directly to mvs if age >= 25.
@@ -442,24 +418,24 @@ public class CitizenshipVerificationProcessor {
 	    return isParentInfoValid;
 	}
 
-	private boolean validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
+	private String validateOnDemandMigration(InternalRegistrationStatusDto registrationStatusDto, String motherNIN,
 			String fatherNIN) throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException,
 			UnsupportedEncodingException, JsonProcessingException, JsonMappingException,
 			com.fasterxml.jackson.core.JsonProcessingException, DataMigrationPacketCreationException,
 			LegacyDataValidationException {
-		boolean isValid = false;
+		String migrationRid = null;
 		if (fatherNIN != null) {
 			regProcLogger.info("On demand migration of father NIN for rid {} {}", fatherNIN,
 					registrationStatusDto.getRegistrationId());
-			isValid = migrationUtil
+			migrationRid = migrationUtil
 					.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(), fatherNIN);
 		} else if (motherNIN != null) {
 			regProcLogger.info("On demand migration of mother NIN for rid {} {}", motherNIN,
 					registrationStatusDto.getRegistrationId());
-			isValid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
+			migrationRid = migrationUtil.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
 					motherNIN);
 		}
-		return isValid;
+		return migrationRid;
 	}
 
 
@@ -743,34 +719,11 @@ public class CitizenshipVerificationProcessor {
 			    }
 		}
 			else {
-				regProcLogger.info("On demand migration of guardian NIN for rid {} {}", guardianNin,
-						registrationStatusDto.getRegistrationId());
-				boolean isValid = migrationUtil
-						.validateAndCreateOnDemandPacket(registrationStatusDto.getRegistrationId(),
-						guardianNin);
-				if (isValid) {
-					registrationStatusDto.setLatestTransactionStatusCode(registrationStatusMapperUtil
-							.getStatusCode(RegistrationExceptionTypeCode.ON_HOLD_CVS_PACKET));
-					registrationStatusDto
-							.setStatusComment(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage()
-									+ guardianRelationValue
-									+ StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_INPROGRESS.getMessage());
-					registrationStatusDto.setSubStatusCode(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode());
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-					regProcLogger.debug("handleValidationWithParentNinFound call ended for registrationId {} {}",
-							registrationStatusDto.getRegistrationId(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
-					throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
-				} else {
-					logAndSetStatusError(registrationStatusDto,
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getCode(),
-							StatusUtil.CITIZENSHIP_VERIFICATION_ONDEMAND_MIGRATION_FAILED.getMessage()
-									+ guardianRelationValue + " failed",
-							RegistrationStatusCode.FAILED.toString(), description,
-							applicantFields.get("registrationId"));
-				}
+				regProcLogger.debug("handleValidationWithNoParentNinFound call ended for registrationId {} {}",
+						registrationStatusDto.getRegistrationId(),
+						StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getMessage());
+				throw new PacketOnHoldException(StatusUtil.CITIZENSHIP_VERIFICATION_PACKET_ONHOLD.getCode(),
+						"NIN : " + guardianNin + " is not present in ID Repo");
 			}
 			return isValidGuardian;
 

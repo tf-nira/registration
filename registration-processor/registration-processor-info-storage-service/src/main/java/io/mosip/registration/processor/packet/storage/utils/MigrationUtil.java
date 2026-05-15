@@ -10,6 +10,8 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import io.mosip.registration.processor.core.migration.dto.MigrationRequestUpdateDto;
+import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -71,7 +73,7 @@ public class MigrationUtil {
 	@Value("${mosip.regproc.legacydata.validator.tpi.username}")
 	private String username;
 
-	public boolean validateAndCreateOnDemandPacket(String registrationId, String NIN)
+	public String validateAndCreateOnDemandPacket(String registrationId, String NIN)
 			throws JAXBException, ApisResourceAccessException, NoSuchAlgorithmException, UnsupportedEncodingException,
 			JsonProcessingException, JsonMappingException, com.fasterxml.jackson.core.JsonProcessingException,
 			DataMigrationPacketCreationException, LegacyDataValidationException {
@@ -94,21 +96,22 @@ public class MigrationUtil {
 				regProcLogger.info(
 						"NIN is present in legacy system and call for ondemand migration  of applicant relative: {}",
 						registrationId);
-				MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
+				MigrationRequestUpdateDto migrationRequestDto = new MigrationRequestUpdateDto();
 				migrationRequestDto.setNin(NIN.toUpperCase());
-				RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
+				migrationRequestDto.setDependentRid(registrationId);
+				RequestWrapper<MigrationRequestUpdateDto> requestWrapper = new RequestWrapper();
 				requestWrapper.setRequest(migrationRequestDto);
 				ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi.postApi(
-						ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper, ResponseWrapper.class, null);
+						ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class, null);
 				regProcLogger.info("Response from migration api : {}{}", registrationId,
 						JsonUtils.javaObjectToJsonString(responseWrapper));
 				if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
 					ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
 					throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
 				}
-				MigrationPacketCreationResponse migrationResponse = objectMapper
-						.readValue(JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-								MigrationPacketCreationResponse.class);
+				MigrationResponse migrationResponse = objectMapper.readValue(
+						JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
+						MigrationResponse.class);
 				if (migrationResponse != null) {
 					regProcLogger.info("ondemand migration happended for registration id : {}", registrationId);
 					String migratedRegistrationId = migrationResponse.getRid();
@@ -130,6 +133,7 @@ public class MigrationUtil {
 								String.class, MediaType.APPLICATION_JSON);
 						regProcLogger.info("ondemand migration packet status  : {}", secureZoneResponse);
 					}
+					return migratedRegistrationId;
 				}
 				} else {
 					regProcLogger.info("ondemand migration api response is null  for registration id : {}",
@@ -144,7 +148,7 @@ public class MigrationUtil {
 			throw new LegacyDataValidationException(transactionStatus.getError().getCode(),
 					transactionStatus.getError().getMessage());
 		}
-		return isValid;
+		return null;
 	}
 
 	private GetPersonEnvelope createGetPersonRequest(String NIN)

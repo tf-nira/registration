@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONException;
@@ -107,6 +104,9 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
     
     @Value("${mosip.anonymous.profile.eventbus.address}")
 	private String anonymousProfileBusAddress;
+
+	@Value("#{'${mosip.regproc.workflow-manager.failure-reasons}'.split(',')}")
+	private List<String> failureReasonValues;
 
 	@Autowired
 	MosipRouter router;
@@ -333,6 +333,25 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+
+		Map<String, String> notificationAttributes = workflowInternalActionDTO.getNotificationAttributes();
+		String failureReasonValue = notificationAttributes.get("FAILURE_REASON");
+		String candidate = failureReasonValue == null ? null : failureReasonValue.trim();
+
+		boolean shouldNotify = candidate != null && !candidate.isEmpty()
+				&& failureReasonValues != null
+				&& failureReasonValues.stream()
+				.filter(Objects::nonNull)
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.anyMatch(s -> s.equalsIgnoreCase(candidate));
+
+		regProcLogger.info("Should send failure notification for registration id {} : {}", workflowInternalActionDTO.getRid(), shouldNotify);
+
+		if (shouldNotify && workflowInternalActionDTO.getNotificationAttributes() != null) {
+			registrationStatusDto.setNeedsNotification(true);
+		}
+
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 		if (additionalInfoRequestDto != null) {
 			Map<String, String> tags = new HashMap<String, String>();
@@ -365,6 +384,36 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.toString());
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+
+		String regStageName = registrationStatusDto.getRegistrationStageName();
+		boolean shouldNotify = Arrays.stream(new String[]{
+				ProviderStageName.MVS.getValue(),
+				ProviderStageName.MANUAL_ADJUDICATION.getValue(),
+				"MVSStage",
+				"MvsStage",
+				"ManualAdjudicationStage"
+		}).anyMatch(regStageName::contains);
+
+		if (!shouldNotify) {
+			Map<String, String> notificationAttributes = workflowInternalActionDTO.getNotificationAttributes();
+			String failureReasonValue = notificationAttributes.get("FAILURE_REASON");
+			String candidate = failureReasonValue == null ? null : failureReasonValue.trim();
+
+			shouldNotify = candidate != null && !candidate.isEmpty()
+					&& failureReasonValues != null
+					&& failureReasonValues.stream()
+					.filter(Objects::nonNull)
+					.map(String::trim)
+					.filter(s -> !s.isEmpty())
+					.anyMatch(s -> s.equalsIgnoreCase(candidate));
+		}
+
+		regProcLogger.info("Should Notify for notification for registration id {} : {}", workflowInternalActionDTO.getRid(), shouldNotify);
+
+		if (shouldNotify && workflowInternalActionDTO.getNotificationAttributes() != null) {
+			registrationStatusDto.setNeedsNotification(true);
+		}
+
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 		
 		if (additionalInfoRequestDto != null) {
@@ -397,6 +446,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
+		registrationStatusDto.setNeedsNotification(true);
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 		if(RegistrationType.MIGRATOR.toString().equalsIgnoreCase(registrationStatusDto.getRegistrationType())){
 			String dependentRid = packetManagerService.getField(workflowInternalActionDTO.getRid(),

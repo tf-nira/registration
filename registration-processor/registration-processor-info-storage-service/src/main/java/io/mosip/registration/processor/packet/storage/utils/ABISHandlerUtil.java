@@ -103,11 +103,7 @@ public class ABISHandlerUtil {
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
 								.getWithoutStatusCode(matchedRegIds,
 										RegistrationStatusCode.REJECTED.toString());
-						List<RegistrationStatusEntity> processingRegistrationStatusEntities = matchedRegistrationStatusEntities
-								.stream()
-								.filter(e -> RegistrationStatusCode.PROCESSING.toString().equals(e.getStatusCode()))
-								.collect(Collectors.toList());
-						List<String> processingRegIds = processingRegistrationStatusEntities.stream()
+						List<String> processingRegIds = matchedRegistrationStatusEntities.stream()
 								.map(RegistrationStatusEntity::getRegId)
 								.collect(Collectors.toList());
 						List<String> matchedProcessedRegIds = matchedRegistrationStatusEntities.stream()
@@ -207,7 +203,7 @@ public class ABISHandlerUtil {
 										String registrationType, ProviderStageName stageName) throws ApisResourceAccessException, IOException,
 			JsonProcessingException, PacketManagerException {
 
-		Map<String, String> filteredRegMap = new LinkedHashMap<>();
+		Map<String, Set<String>> filteredRegMap = new LinkedHashMap<>();
 		Set<String> filteredRIds = new HashSet<>();
 
 		for (String machedRegId : matchedRegistrationIds) {
@@ -217,24 +213,39 @@ public class ABISHandlerUtil {
 
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.UPDATE.toString())
 					|| registrationType.equalsIgnoreCase(SyncTypeDto.RENEWAL.toString())
-					|| registrationType.equalsIgnoreCase(SyncTypeDto.FIRSTID.toString())
-					|| registrationType.equalsIgnoreCase(SyncTypeDto.LOST.toString())) {
+					|| registrationType.equalsIgnoreCase(SyncTypeDto.FIRSTID.toString())) {
 				String packetUin = utilities.getUINByHandle(registrationId, registrationType, stageName);
 				if (matchedUin != null && !packetUin.equals(matchedUin)) {
-					filteredRegMap.put(matchedUin, machedRegId);
+					filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
+				}
+			}
+			if (registrationType.equalsIgnoreCase(SyncTypeDto.LOST.toString())) {
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						registrationId, matchedUin + " entered matchedUIN*************************");
+
+				String packetUin = utilities.getUINByHandle(registrationId, registrationType, stageName);
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+						registrationId, packetUin + " entered packetUin****************************");
+				if (matchedUin != null && packetUin.equals(matchedUin)) {
+					filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
+							registrationId,
+							filteredRegMap + " entered condition adding to map ****************************");
 				}
 			}
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.NEW.toString()) && matchedUin != null) {
-				filteredRegMap.put(matchedUin, machedRegId);
+				filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
 			}
 
 			if (registrationType.equalsIgnoreCase(SyncTypeDto.MIGRATOR.toString()) && matchedUin != null) {
-				filteredRegMap.put(matchedUin, machedRegId);
+				filteredRegMap.computeIfAbsent(matchedUin, k -> new HashSet<>()).add(machedRegId);
 			}
 
 		}
 		if (!filteredRegMap.isEmpty()) {
-			filteredRIds = new HashSet<String>(filteredRegMap.values());
+			for (Set<String> rids : filteredRegMap.values()) {
+				filteredRIds.addAll(rids);
+			}
 		}
 
 		return filteredRIds;

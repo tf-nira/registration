@@ -38,7 +38,7 @@ public interface RegistrationStatusService<T, U, D> {
 	public U getRegistrationStatus(String regid, String processs, Integer iteration, String workflowInstanceId);
 
 	public List<InternalRegistrationStatusDto> getAllRegistrationStatuses(String registrationId);
-	
+
 	public U getRegistrationStatusforMVS(String regid, String processs, Integer iteration, String workflowInstanceId);
 
 	public InternalRegistrationStatusDto getRegStatusForMainProcess(String registrationId);
@@ -122,7 +122,7 @@ public interface RegistrationStatusService<T, U, D> {
 	 * @return the un processed packets
 	 */
 	public List<U> getUnProcessedPackets(Integer fetchSize, long elapseTime, Integer reprocessCount,
-			List<String> status, List<String> excludeStageNames, List<String> excludeProcesses);
+			List<String> status, List<String> excludeStageNames, List<String> includeProcesses);
 
 	/**
 	 * Gets the un processed packets count.
@@ -164,9 +164,12 @@ public interface RegistrationStatusService<T, U, D> {
 
 	public void updateRegistrationStatusForWorkflow(U registrationStatusDto, String moduleId, String moduleName);
 
-	public List<InternalRegistrationStatusDto> getResumablePackets(long elapseTime, Integer fetchSize, List<String> excludeStageNames);
+	public List<InternalRegistrationStatusDto> getResumablePackets(long elapseTime, Integer fetchSize,
+			List<String> excludeStageNames, List<String> includeProcesses);
 
 	public List<InternalRegistrationStatusDto> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes);
 	
 	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(Integer fetchSize);
+	
+	public List<String> getProcessForRegIds(List<String> matchedRegIds);
 }

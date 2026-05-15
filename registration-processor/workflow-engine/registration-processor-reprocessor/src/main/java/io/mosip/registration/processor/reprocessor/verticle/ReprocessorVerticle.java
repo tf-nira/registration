@@ -79,9 +79,6 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	/** The fetch size. */
 	@Value("${registration.processor.reprocess.fetchsize}")
 	private Integer fetchSize;
-
-	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.exclude.processes}')}")
-	private List<String> excludeProcesses;
 	
 	/** The elapse time. */
 	@Value("${registration.processor.reprocess.elapse.time}")
@@ -100,6 +97,9 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 
 	@Value("#{ T(org.apache.commons.lang3.StringUtils).isBlank('${registration.processor.reprocess.restart-trigger-filter:}') ? new java.util.ArrayList() : '${registration.processor.reprocess.restart-trigger-filter}'.split(',') }")
 	private List<String> reprocessRestartTriggerFilter;
+
+	@Value("#{T(java.util.Arrays).asList('${registration.processor.reprocess.include.processes}')}")
+	private List<String> includeProcesses;
 
 	/** The is transaction successful. */
 	boolean isTransactionSuccessful;
@@ -235,18 +235,19 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		int  totalNumberOfReprocessRecords = 0;
 		try {
 			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
-			reprocessorDtoList = registrationStatusService.getResumablePackets(elapseTime, fetchSize, reprocessExcludeStageNames);
+			reprocessorDtoList = registrationStatusService.getResumablePackets(elapseTime, fetchSize,
+					reprocessExcludeStageNames, includeProcesses);
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
 				if (reprocessorDtoList.size() < fetchSize) {
 					List<InternalRegistrationStatusDto>  reprocessorPacketList = registrationStatusService.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime,
-							reprocessCount, statusList, reprocessExcludeStageNames, excludeProcesses);
+							reprocessCount, statusList, reprocessExcludeStageNames, includeProcesses);
 					if (!CollectionUtils.isEmpty(reprocessorPacketList)) {
 						reprocessorDtoList.addAll(reprocessorPacketList);
 					}
 				}
 			} else {
 				reprocessorDtoList = registrationStatusService.getUnProcessedPackets(fetchSize, elapseTime,
-						reprocessCount, statusList, reprocessExcludeStageNames, excludeProcesses);
+						reprocessCount, statusList, reprocessExcludeStageNames, includeProcesses);
 			}
 
 			

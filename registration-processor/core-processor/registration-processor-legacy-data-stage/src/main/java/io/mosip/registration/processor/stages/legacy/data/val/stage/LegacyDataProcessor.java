@@ -85,6 +85,7 @@ public class LegacyDataProcessor {
 		object.setMessageBusAddress(MessageBusAddress.INTRODUCER_VALIDATOR_BUS_IN);
 		object.setIsValid(Boolean.FALSE);
 		object.setInternalError(Boolean.TRUE);
+		object.setOnHold(false);
 		Map<String, String> attributes = new HashMap<>();
 		regProcLogger.debug("LegacyDataProcessor called for registrationId {}", registrationId);
 		registrationId = object.getRid();
@@ -150,12 +151,13 @@ public class LegacyDataProcessor {
 					description, PlatformErrorMessages.RPR_RGS_REGISTRATION_TABLE_NOT_ACCESSIBLE, e);
 		} catch (ValidationFailedException e) {
 			object.setInternalError(Boolean.FALSE);
-			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.REJECTED,
-					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.PACKET_REJECTED,
+			object.setOnHold(true);
+			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.ON_HOLD,
+					StatusUtil.LEGACY_DATA_FAILED, RegistrationExceptionTypeCode.ON_HOLD,
 					description, PlatformErrorMessages.RPR_LEGACY_DATA_FAILED, e);
-			attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_FAILED.getCode());
-			attributes.put("FAILURE_REASON", StatusUtil.LEGACY_DATA_FAILED.getMessage());
-			object.setNotificationAttributes(attributes);
+			// attributes.put("FAILURE_CODE", StatusUtil.LEGACY_DATA_FAILED.getCode());
+			// attributes.put("FAILURE_REASON", StatusUtil.LEGACY_DATA_FAILED.getMessage());
+			// object.setNotificationAttributes(attributes);
 		} catch (BaseUncheckedException e) {
 			updateDTOsAndLogError(registrationStatusDto, RegistrationStatusCode.FAILED,
 					StatusUtil.BASE_UNCHECKED_EXCEPTION, RegistrationExceptionTypeCode.BASE_UNCHECKED_EXCEPTION,
@@ -180,7 +182,14 @@ public class LegacyDataProcessor {
 			/** Module-Id can be Both Success/Error code */
 			String moduleId = description.getCode();
 			String moduleName = ModuleName.LEGACY_DATA.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			if (registrationStatusDto.getStatusCode().equals(RegistrationStatusCode.ON_HOLD.name())) {
+				registrationStatusDto.setRegistrationStageName("BioDedupeStage");
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
+						moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
+
 			updateAudit(description, isTransactionSuccessful, moduleId, moduleName, registrationId);
 		}
 

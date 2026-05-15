@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -79,6 +82,23 @@ public class AnonymousProfileScheduler {
 	private AnonymousProfileService anonymousProfileService;
 	
 	private ExecutorService executorService;
+
+	private final Map<Double, Map<String, String>> schemaFieldTypesCache = new ConcurrentHashMap<>();
+	private final Map<Double, List<String>> defaultFieldsCache = new ConcurrentHashMap<>();
+	private static class SchemaMetadata {
+		final Double schemaVersion;
+		final Map<String, String> fieldTypes;
+		final List<String> defaultFields;
+
+		SchemaMetadata(Double version, Map<String, String> types, List<String> defaults) {
+			this.schemaVersion = version;
+			this.fieldTypes = types;
+			this.defaultFields = defaults;
+		}
+	}
+	private final Map<Double, SchemaMetadata> schemaMetadataCache = new ConcurrentHashMap<>();
+
+	private final Map<Double, AtomicInteger> schemaUsageCounter = new ConcurrentHashMap<>();
 	
    JSONObject regProcessorIdentityJson = null;	
    String idSchemaVersionValue = null;
@@ -96,8 +116,7 @@ public class AnonymousProfileScheduler {
 					MappingJsonConstants.VALUE);
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			regProcLogger.error("Failed to initialize AnonymousProfileScheduler: " + e.getMessage(), e);
 		}
     }
 	
@@ -111,17 +130,25 @@ public class AnonymousProfileScheduler {
 		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
 		List<CompletableFuture<Void>> allBatches = packets.stream().map(packet -> CompletableFuture
 				.runAsync(() -> insertAnonymousProfile(packet), executorService).exceptionally(ex -> {
+					regProcLogger.error("Error processing packet: " + ex.getMessage(), ex);
 					return null;
 				})).collect(Collectors.toList());
 
 		CompletableFuture<Void> allOfFuture = CompletableFuture.allOf(allBatches.toArray(new CompletableFuture[0]));
 		allOfFuture.join();
+
 		if (toBeUpdatedRegStatusRecords.size() > 0) {
 			updateRegistartionRecords(toBeUpdatedRegStatusRecords);
 		}
 		if(toBeUpdatedAnonymousProfiles.size() > 0) {
 			insertAnonymousProfiles(toBeUpdatedAnonymousProfiles);
 		}
+
+		// Optimization 4: Log schema usage statistics for monitoring
+		if (!schemaUsageCounter.isEmpty()) {
+			regProcLogger.info("Schema version usage in batch: {}", schemaUsageCounter);
+		}
+		regProcLogger.info("Batch job for anonymous profile completed. Processed: {} records", packets.size());
 	}
 	
 	@Transactional(readOnly = true)
@@ -161,9 +188,20 @@ public class AnonymousProfileScheduler {
 			
 			String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId, idSchemaVersionValue,
 					registrationType, ProviderStageName.WORKFLOW_MANAGER);
-			Map<String, String> fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(Double.parseDouble(schemaVersion));
+			Double schemaVersionDouble = Double.parseDouble(schemaVersion);
+
+			SchemaMetadata metadata = getOrLoadSchemaMetadata(schemaVersionDouble);
+			Map<String, String> fieldTypeMap = metadata.fieldTypes;
+			List<String> defaultFields = metadata.defaultFields;
+
+			schemaUsageCounter.computeIfAbsent(schemaVersionDouble, k -> new AtomicInteger(0)).incrementAndGet();
+
+			regProcLogger.debug("Using cached schema metadata for version: {}. Cache size: {}",
+					schemaVersion, schemaMetadataCache.size());
+
+			// Optimization 2: Get fields and metadata in batch
 			Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
-					idSchemaUtil.getDefaultFields(Double.valueOf(schemaVersion)), registrationType,
+					defaultFields, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
 			Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(registrationId, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
@@ -178,6 +216,45 @@ public class AnonymousProfileScheduler {
 			convertAndAddToBeUpdatedRegStatusRecords(packet);
 		} catch (Exception e) {
 			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
+		}
+	}
+
+	private SchemaMetadata getOrLoadSchemaMetadata(Double schemaVersion) {
+		SchemaMetadata cached = schemaMetadataCache.get(schemaVersion);
+		if (cached != null) {
+			regProcLogger.debug("Cache HIT for schema metadata: version={}", schemaVersion);
+			return cached;
+		}
+
+		regProcLogger.debug("Cache MISS for schema metadata: version={}. Loading...", schemaVersion);
+
+		try {
+			// Fetch both field types and default fields
+			Map<String, String> fieldTypes = idSchemaUtil.getIdSchemaFieldTypes(schemaVersion);
+			List<String> defaultFields = idSchemaUtil.getDefaultFields(schemaVersion);
+
+			// Create and cache unified metadata
+			SchemaMetadata metadata = new SchemaMetadata(schemaVersion, fieldTypes, defaultFields);
+
+			SchemaMetadata existing = schemaMetadataCache.putIfAbsent(schemaVersion, metadata);
+			SchemaMetadata result = (existing != null) ? existing : metadata;
+
+			// Also populate individual caches for compatibility
+			schemaFieldTypesCache.putIfAbsent(schemaVersion, fieldTypes);
+			defaultFieldsCache.putIfAbsent(schemaVersion, defaultFields);
+
+			if (existing == null) {
+				// Only log if we actually cached it (not if another thread beat us to it)
+				regProcLogger.info("Loaded and cached schema metadata: version={}, fieldTypes={}, defaultFields={}",
+						schemaVersion, fieldTypes.size(), defaultFields.size());
+			} else {
+				regProcLogger.debug("Another thread already cached schema metadata for version: {}", schemaVersion);
+			}
+
+			return result;
+		} catch (Exception e) {
+			regProcLogger.error("Failed to load schema metadata for version {}: {}", schemaVersion, e.getMessage());
+			throw new RuntimeException("Failed to load schema metadata", e);
 		}
 	}
 

@@ -530,9 +530,23 @@ public class MVSServiceImpl implements MVSService {
 		requestDto.setIdentity(
 				packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()),
 						process, ProviderStageName.MVS));
+		
+		String userServiceTypeValue =null;
+		String value = null;
+		JSONArray userServiceTypeArray = null;
+		try {
+   			  userServiceTypeArray =
+           		 new JSONArray(requestDto.getIdentity().get("userServiceType"));
 
-		String userServiceTypeValue;
-		if (process.equals("RENEWAL")) {
+   			 if (userServiceTypeArray.length() > 0) {
+      		  value = userServiceTypeArray.getJSONObject(0).optString("value", null);
+   		 }
+		} catch (Exception e) {
+  					  value = null; 
+		}
+		if (value != null){
+          userServiceTypeValue = value;
+		}else if (process.equals("RENEWAL")) {
 			userServiceTypeValue = "Renewal";
 		} else if (process.equals("FIRSTID")) {
 			userServiceTypeValue = "GetFirst ID";
@@ -541,7 +555,7 @@ public class MVSServiceImpl implements MVSService {
 		} else if (process.equals("UPDATE")) {
 			userServiceTypeValue = "Update";
 		} else {
-			JSONArray userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
+			userServiceTypeArray = new JSONArray(requestDto.getIdentity().get("userServiceType"));
 			userServiceTypeValue = userServiceTypeArray.getJSONObject(0).getString("value");
 		}
 		
@@ -764,14 +778,30 @@ public class MVSServiceImpl implements MVSService {
 		req.setRefId(refId);
 
 		if ((RegistrationType.LOST.toString()).equalsIgnoreCase(messageDTO.getReg_type())) {
-			String matchedRegId = regLostUinDetEntity.getLostUinMatchedRegIdByWorkflowId(messageDTO.getWorkflowInstanceId());
+			String registrationId = messageDTO.getRid();
+			List<String> fieldsToFetch = new ArrayList<>(List.of(MappingJsonConstants.NIN));
+			regProcLogger.info("Sending API request for registration ID: {}", registrationId);
 
-			JSONObject jsonObject = idRepoService.getIdJsonFromIDRepo(matchedRegId, utility.getGetRegProcessorDemographicIdentity());
-			if (jsonObject.get(MappingJsonConstants.DISTRICT) != null) {
-				LinkedHashMap districtObject = (LinkedHashMap) ((ArrayList<?>) jsonObject.get(MappingJsonConstants.DISTRICT)).get(0);
-				String districtValue = (String) districtObject.get(MappingJsonConstants.VALUE);
+			Map<String, String> applicantFields = utility.getPacketManagerService().getFields(registrationId,
+					fieldsToFetch, messageDTO.getReg_type(), ProviderStageName.MVS);
+			String lostPacketNin = applicantFields.get(MappingJsonConstants.NIN);
 
-				if(districtValue != null) req.setApplicantPlaceOfResidenceDistrict(districtValue);
+			JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
+
+			Object JsonDistrictObj = jsonObject.get(MappingJsonConstants.DISTRICT);
+
+			if (JsonDistrictObj instanceof List<?>) {
+			    List<?> districtList = (List<?>) JsonDistrictObj;
+			    if (!districtList.isEmpty() && districtList.get(0) instanceof Map<?, ?>) {
+			        Map<?, ?> firstMap = (Map<?, ?>) districtList.get(0);
+			        String districtValue = (String) firstMap.get(MappingJsonConstants.VALUE);
+			        regProcLogger.info("District Value for Lost flow: {}", districtValue);
+			        if (districtValue != null && !districtValue.isEmpty()) {
+			            req.setApplicantPlaceOfResidenceDistrict(districtValue);
+			        }
+			    }
+			} else {
+			    regProcLogger.info("Extracted applicant place of residence district is null for NIN");
 			}
 		}
 		if (("CITIZENSHIP_VERIFICATION".equals(registrationStatusDto.getRegistrationStageName()) ||

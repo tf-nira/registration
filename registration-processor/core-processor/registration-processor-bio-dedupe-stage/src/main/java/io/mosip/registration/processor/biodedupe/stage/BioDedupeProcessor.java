@@ -3,14 +3,12 @@ package io.mosip.registration.processor.biodedupe.stage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
@@ -47,12 +45,10 @@ import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessag
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.packet.dto.Identity;
-import io.mosip.registration.processor.core.packet.dto.demographicinfo.JsonValue;
 import io.mosip.registration.processor.core.spi.biodedupe.BioDedupeService;
 import io.mosip.registration.processor.core.spi.packetmanager.PacketInfoManager;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.status.util.TrimExceptionMessage;
-import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
 import io.mosip.registration.processor.packet.storage.dto.ApplicantInfoDto;
@@ -202,10 +198,7 @@ public class BioDedupeProcessor {
 				if (packetStatus.equalsIgnoreCase(AbisConstant.PRE_ABIS_IDENTIFICATION)) {
 					lostPacketPreAbisIdentification(registrationStatusDto, object);
 				} else if (packetStatus.equalsIgnoreCase(AbisConstant.POST_ABIS_IDENTIFICATION)) {
-					Set<String> matchedRegIds = abisHandlerUtil
-							.getUniqueRegIds(registrationStatusDto.getRegistrationId(),
-									registrationType, object.getIteration(), object.getWorkflowInstanceId(), ProviderStageName.BIO_DEDUPE);
-					lostPacketPostAbisIdentification(registrationStatusDto, object, matchedRegIds);
+					lostPacketPostAbisIdentification(registrationStatusDto, object, registrationType);
 				}
 
 			}
@@ -535,11 +528,18 @@ public class BioDedupeProcessor {
 	}
 
 	private void lostPacketPostAbisIdentification(InternalRegistrationStatusDto registrationStatusDto,
-			MessageDTO object, Set<String> matchedRegIds) throws IOException, ApisResourceAccessException, JsonProcessingException, PacketManagerException {
+			MessageDTO object, String registrationType) throws IOException, ApisResourceAccessException, JsonProcessingException, PacketManagerException {
 		String moduleId = "";
 		String moduleName = ModuleName.BIO_DEDUPE.toString();
-		String registrationId = registrationStatusDto.getRegistrationId();
-		if (matchedRegIds.isEmpty()) {
+		Set<String> matchedRegIds = abisHandlerUtil.getUniqueRegIds(registrationStatusDto.getRegistrationId(),
+				registrationType, registrationStatusDto.getIteration(), registrationStatusDto.getWorkflowInstanceId(), ProviderStageName.BIO_DEDUPE);
+		
+		if (matchedRegIds != null && !matchedRegIds.isEmpty()
+				&& matchedRegIds.contains(registrationStatusDto.getRegistrationId())) {
+			matchedRegIds.remove(registrationStatusDto.getRegistrationId());
+		}
+
+		if (matchedRegIds == null || matchedRegIds.isEmpty()) {
 			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
 			object.setIsValid(Boolean.FALSE);
 			Map<String, String> notificationAttributes = new HashMap<>();
@@ -549,140 +549,39 @@ public class BioDedupeProcessor {
 			registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage());
 			registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getCode());
 			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					registrationStatusDto.getRegistrationId(),
-					BioDedupeConstants.NO_MATCH_FOUND_FOR_LOST + registrationId);
-
-		} else if (matchedRegIds.size() == 1) {
-
-			registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
-			object.setIsValid(Boolean.TRUE);
-			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.name());
-			registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_UNIQUE_MATCH_FOUND.getMessage());
-			registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_UNIQUE_MATCH_FOUND.getCode());
-			moduleId = PlatformSuccessMessages.RPR_BIO_LOST_PACKET_UNIQUE_MATCH_FOUND.getCode();
-			packetInfoManager.saveRegLostUinDet(registrationId,
-					object.getWorkflowInstanceId(), matchedRegIds.iterator().next(), moduleId, moduleName);
-			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					registrationStatusDto.getRegistrationId(),
-					BioDedupeConstants.FOUND_UIN_IN_BIO_CHECK + registrationId);
-
+					registrationStatusDto.getRegistrationId(), StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage()
+							+ registrationStatusDto.getRegistrationId());
 		} else {
-
-			List<String> demoMatchedIds = new ArrayList<>();
-			int matchCount = 0;
-
-			for (String matchedRegId : matchedRegIds) {
-				JSONObject matchedDemographicIdentity = idRepoService.getIdJsonFromIDRepo(matchedRegId,
-						utilities.getGetRegProcessorDemographicIdentity());
-				if(matchedDemographicIdentity != null){
-					matchCount = matchCount + 1;
-				}
-				if (matchCount > 1)
-					break;
-			}
-
-			if (matchCount == 1) {
-
-				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+			List<String> processes = registrationStatusService.getProcessForRegIds(new ArrayList<>(matchedRegIds));
+			boolean isAllowed = processes.stream().filter(Objects::nonNull).map(String::toUpperCase)
+					.anyMatch(p -> p.equalsIgnoreCase("RENEWAL") || p.equalsIgnoreCase("UPDATE")
+							|| p.equalsIgnoreCase("FIRSTID") || p.equalsIgnoreCase("NEW"));
+			if(isAllowed) {
+				registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 				object.setIsValid(Boolean.TRUE);
 				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.name());
-				registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_UNIQUE_MATCH_FOUND.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_UNIQUE_MATCH_FOUND.getCode());
-				moduleId = PlatformSuccessMessages.RPR_BIO_LOST_PACKET_UNIQUE_MATCH_FOUND.getCode();
-				packetInfoManager.saveRegLostUinDet(registrationId,
-						object.getWorkflowInstanceId(), demoMatchedIds.get(0), moduleId, moduleName);
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), registrationStatusDto.getRegistrationId(),
-						BioDedupeConstants.FOUND_UIN_IN_DEMO_CHECK + registrationId);
-			} else {
-				Map<String, String> notificationAttributes = new HashMap<>();
-				notificationAttributes.put("FAILURE_REASON", StatusUtil.LOST_PACKET_MULTIPLE_MATCH_FOUND.getMessage());
-				object.setNotificationAttributes(notificationAttributes);
-				registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_MULTIPLE_MATCH_FOUND.getMessage());
-				registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_MULTIPLE_MATCH_FOUND.getCode());
-				registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.name());
+				registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_MATCH_FOUND.getMessage());
+				registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_MATCH_FOUND.getCode());
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						registrationStatusDto.getRegistrationId(), StatusUtil.LOST_PACKET_MATCH_FOUND.getMessage());
+
+			}else {
 				registrationStatusDto
 						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
-
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), registrationStatusDto.getRegistrationId(),
-						BioDedupeConstants.MULTIPLE_RID_FOUND);
-				moduleId = PlatformErrorMessages.RPR_BIO_LOST_PACKET_MULTIPLE_MATCH_FOUND.getCode();
-				packetInfoManager.saveManualAdjudicationData(matchedRegIds,
-						object, DedupeSourceName.BIO, moduleId, moduleName,null,null);
-			}
-		}
-	}
-
-	private int addMactchedRefId(String id, String process, JSONObject matchedDemographicIdentity, int matchCount, List<String> demoMatchedIds,
-			String matchedRegId) throws IOException, ApisResourceAccessException, PacketManagerException, JsonProcessingException {
-		if (matchedDemographicIdentity != null) {
-			Map<String, String> matchedAttribute = getIdJson(matchedDemographicIdentity);
-			if (!matchedAttribute.isEmpty()) {
-				if (compareDemoDedupe(id, process, matchedAttribute)) {
-					matchCount++;
-					demoMatchedIds.add(matchedRegId);
-				}
+				object.setIsValid(Boolean.FALSE);
+				Map<String, String> notificationAttributes = new HashMap<>();
+				notificationAttributes.put("FAILURE_REASON", StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage());
+				object.setNotificationAttributes(notificationAttributes);
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.REJECTED.name());
+				registrationStatusDto.setStatusComment(StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage());
+				registrationStatusDto.setSubStatusCode(StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getCode());
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						registrationStatusDto.getRegistrationId(),
+						StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage() + registrationStatusDto.getRegistrationId());
 
 			}
+		
 		}
-		return matchCount;
-	}
-
-	private boolean compareDemoDedupe(String id, String process, Map<String, String> matchedAttribute) throws ApisResourceAccessException, IOException, PacketManagerException, JsonProcessingException {
-		boolean isMatch = false;
-
-		for (String key : matchedAttribute.keySet()) {
-			String value = priorityBasedPacketManagerService.getField(id, key, process, ProviderStageName.BIO_DEDUPE);
-			if (value != null && value.equalsIgnoreCase(matchedAttribute.get(key))) {
-				isMatch = true;
-			} else {
-				isMatch = false;
-				return isMatch;
-			}
-
-		}
-		return isMatch;
-	}
-
-	private Map<String, String> getIdJson(JSONObject demographicJsonIdentity) throws IOException {
-		Map<String, String> attribute = new LinkedHashMap<>();
-
-
-		JSONObject mapperIdentity = new JSONObject();
-		mapperIdentity.putAll(utilities.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY));
-		mapperIdentity.putAll(utilities.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT));
-
-
-		List<String> mapperJsonKeys = new ArrayList<>(mapperIdentity.keySet());
-
-		for (String key : mapperJsonKeys) {
-			JSONObject jsonValue = JsonUtil.getJSONObject(mapperIdentity, key);
-			Object jsonObject = JsonUtil.getJSONValue(demographicJsonIdentity,
-					(String) jsonValue.get(BioDedupeConstants.VALUE));
-			if (jsonObject instanceof ArrayList) {
-				JSONArray node = JsonUtil.getJSONArray(demographicJsonIdentity,
-						(String) jsonValue.get(BioDedupeConstants.VALUE));
-				JsonValue[] jsonValues = JsonUtil.mapJsonNodeToJavaObject(JsonValue.class, node);
-				if (jsonValues != null)
-					for (int count = 0; count < jsonValues.length; count++) {
-						String lang = jsonValues[count].getLanguage();
-						attribute.put(key + "_" + lang, jsonValues[count].getValue());
-					}
-
-			} else if (jsonObject instanceof LinkedHashMap) {
-				JSONObject json = JsonUtil.getJSONObject(demographicJsonIdentity,
-						(String) jsonValue.get(BioDedupeConstants.VALUE));
-				if (json != null)
-					attribute.put(key, json.get(BioDedupeConstants.VALUE).toString());
-			} else {
-				if (jsonObject != null)
-					attribute.put(key, jsonObject.toString());
-			}
-		}
-
-		return attribute;
 	}
 
 	private void updateErrorFlags(InternalRegistrationStatusDto registrationStatusDto, MessageDTO object) {
@@ -695,3 +594,4 @@ public class BioDedupeProcessor {
 		}
 	}
 }
+

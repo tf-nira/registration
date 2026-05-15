@@ -25,12 +25,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.core.logger.spi.Logger;
-import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.core.util.exception.JsonProcessingException;
 import io.mosip.registration.processor.core.abstractverticle.MessageDTO;
-import io.mosip.registration.processor.core.code.ApiName;
 import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCode;
-import io.mosip.registration.processor.core.common.rest.dto.ErrorDTO;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
@@ -43,12 +40,8 @@ import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.ValidationFailedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
-import io.mosip.registration.processor.core.http.RequestWrapper;
-import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
-import io.mosip.registration.processor.core.migration.dto.MigrationRequestUpdateDto;
-import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.util.JsonUtil;
@@ -126,42 +119,23 @@ public class LegacyDataValidator {
 		JSONObject jSONObject = utility.getIdentityJSONObjectByHandle(NIN);
 		
 		if (jSONObject == null) {
-			regProcLogger.info("call for ondemand migration Started: {}",
+			regProcLogger.info("NIN not available in idrepo: {}",
 					registrationId);
-			MigrationRequestUpdateDto migrationRequestUpdateDto = new MigrationRequestUpdateDto();
-			migrationRequestUpdateDto.setNin(NIN.toUpperCase());
-			migrationRequestUpdateDto.setDependentRid(registrationId);
-			RequestWrapper<MigrationRequestUpdateDto> requestWrapper = new RequestWrapper();
-			requestWrapper.setRequest(migrationRequestUpdateDto);
-			ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-					.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class,
-							null);
-			if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
-				regProcLogger.error("Error from migration api : {}{}", registrationId,
-						JsonUtils.javaObjectToJsonString(responseWrapper));
-				ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-				throw new DataMigrationException(error.getErrorCode(), error.getMessage());
-			}
-			else{
-				MigrationResponse migrationResponse = objectMapper.readValue(
-							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-							MigrationResponse.class);
 				registrationStatusDto.setLatestTransactionStatusCode(
 										RegistrationTransactionStatusCode.ON_HOLD.toString());
 								registrationStatusDto.setStatusComment(
-										StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getMessage() + " and rid is "
-												+ migrationResponse.getRid());
+										NIN + " -- not available in Idrepo");
 								registrationStatusDto
-										.setSubStatusCode(StatusUtil.ON_DEMAND_PACKET_CREATION_SUCCESS.getCode());
+										.setSubStatusCode(StatusUtil.NIN_NOT_AVAILABLE_IN_IDREPO.getCode());
 								registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD.toString());
 
 								description.setMessage(
-										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getMessage()
+										PlatformErrorMessages.RPR_NIN_NOT_AVAILABLE_FAILED.getMessage()
 												+ " -- " + registrationId);
 								description.setCode(
-										PlatformSuccessMessages.RPR_LEGACY_DATA_VALIDATE_ONDEMAND_PACKET.getCode());
+										PlatformErrorMessages.RPR_NIN_NOT_AVAILABLE_FAILED.getCode());
 								object.setOnHold(true);
-			}
+
 		} else {
 			regProcLogger.info("NIN is present in mosip system : {}", registrationId);
 			object.setOnHold(false);

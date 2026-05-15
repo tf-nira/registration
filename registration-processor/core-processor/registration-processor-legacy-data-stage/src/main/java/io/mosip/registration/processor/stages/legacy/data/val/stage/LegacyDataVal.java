@@ -50,8 +50,8 @@ import io.mosip.registration.processor.core.http.RequestWrapper;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
-import io.mosip.registration.processor.core.migration.dto.MigrationOnDemandResponse;
-import io.mosip.registration.processor.core.migration.dto.MigrationRequestDto;
+import io.mosip.registration.processor.core.migration.dto.MigrationRequestUpdateDto;
+import io.mosip.registration.processor.core.migration.dto.MigrationResponse;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.util.JsonUtil;
@@ -134,28 +134,29 @@ public class LegacyDataVal {
 			if (NIN != null) {
 				regProcLogger.info("Single NIN is present in legacy system and call for ondemand migration : {}",
 						registrationId);
-					MigrationRequestDto migrationRequestDto = new MigrationRequestDto();
-					migrationRequestDto.setNin(NIN.toUpperCase());
-					RequestWrapper<MigrationRequestDto> requestWrapper = new RequestWrapper();
-					requestWrapper.setRequest(migrationRequestDto);
+				MigrationRequestUpdateDto migrationRequestUpdateDto = new MigrationRequestUpdateDto();
+				migrationRequestUpdateDto.setNin(NIN.toUpperCase());
+				migrationRequestUpdateDto.setDependentRid(registrationId);
+				RequestWrapper<MigrationRequestUpdateDto> requestWrapper = new RequestWrapper();
+				requestWrapper.setRequest(migrationRequestUpdateDto);
 					ResponseWrapper responseWrapper = (ResponseWrapper<?>) restApi
-							.postApi(ApiName.MIGARTION_PACKET_CREATION, "", "", requestWrapper,
-									ResponseWrapper.class,
+						.postApi(ApiName.MIGARTION_URL_NEW, "", "", requestWrapper, ResponseWrapper.class,
 									null);
 					regProcLogger.info("Response from migration api : {}{}", registrationId,
 							JsonUtils.javaObjectToJsonString(responseWrapper));
 					if (responseWrapper.getErrors() != null && responseWrapper.getErrors().size() > 0) {
 						ErrorDTO error = (ErrorDTO) responseWrapper.getErrors().get(0);
-						throw new DataMigrationPacketCreationException(error.getErrorCode(), error.getMessage());
+						throw new DataMigrationPacketCreationException(error.getErrorCode(),
+								error.getMessage() + " matchedNIN " + NIN);
 					}
-					MigrationOnDemandResponse migrationOnDemandResponse = objectMapper
+					MigrationResponse migrationResponse = objectMapper
 							.readValue(
 							JsonUtils.javaObjectToJsonString(responseWrapper.getResponse()),
-									MigrationOnDemandResponse.class);
-					if (migrationOnDemandResponse != null) {
+									MigrationResponse.class);
+					if (migrationResponse != null) {
 						regProcLogger.info(
 								"ondemand migration happended for registration id  and migration rid is  : {} {}",
-								registrationId, migrationOnDemandResponse.getRid());
+								registrationId, migrationResponse.getRid());
 						throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
 								StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNIN " + NIN);
 					} else {
@@ -253,16 +254,22 @@ public class LegacyDataVal {
 		if (transactionStatus.getTransactionStatus().equalsIgnoreCase("Ok")) {
 			List<Person> persons = identifyPersonResponse.getReturnElement().getPersons();
 			if (persons != null && !persons.isEmpty()) {
-				if (persons.size() == 1) {
+
+				List<String> finalNins = persons.stream().map(Person::getNationalId).filter(Objects::nonNull)
+						.filter(nin -> !(nin.startsWith("nct") || nin.startsWith("tmp"))).collect(Collectors.toList());
+				if (finalNins != null && !finalNins.isEmpty()) {
+					if (finalNins.size() == 1) {
 					regProcLogger.info("Single nin returned from legacy : {}", registrationId);
-					NIN = persons.get(0).getNationalId();
+					NIN = finalNins.get(0);
 				} else {
-					String nins = persons.stream().map(Person::getNationalId).filter(Objects::nonNull)
-							.collect(Collectors.joining(", "));
+					String nins = String.join(", ", finalNins);
 					regProcLogger.error("Multiple NINs returned from legacy for regId {} : {}", registrationId, nins);
 					throw new ValidationFailedException(StatusUtil.LEGACY_DATA_FAILED.getCode(),
 							StatusUtil.LEGACY_DATA_FAILED.getMessage() + " matchedNINs " + nins);
 				}
+			}else {
+				regProcLogger.info("No  nins returned from legacy : {}", registrationId);
+			   }
 			} else {
 				regProcLogger.info("No  nins returned from legacy : {}", registrationId);
 			}

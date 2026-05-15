@@ -81,6 +81,7 @@ import io.mosip.registration.processor.status.exception.TablenotAccessibleExcept
 import io.mosip.registration.processor.status.service.AnonymousProfileService;
 import io.mosip.registration.processor.status.service.SyncRegistrationService;
 import io.mosip.registration.processor.status.utilities.RegistrationUtility;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The Class SyncRegistrationServiceImpl.
@@ -608,11 +609,13 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 	 * @return the sync registration entity
 	 */
 	@Override
+	@Transactional(readOnly = true)
 	public List<SyncRegistrationEntity> findByRegistrationId(String registrationId) {
 		return syncRegistrationDao.findById(registrationId);
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public SyncRegistrationEntity findByWorkflowInstanceId(String workflowInstanceId) {
 		return syncRegistrationDao.findByWorkflowInstanceId(workflowInstanceId);
 	}
@@ -626,16 +629,19 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 	   * @return the sync registration entity
 	   */
 	@Override
+	@Transactional(readOnly = true)
 	public SyncRegistrationEntity findByRegistrationIdAndAdditionalInfoReqId(String registrationId, String additionalInfoRequestId) {
 		return syncRegistrationDao.findByRegistrationIdIdAndAdditionalInfoReqId(registrationId,additionalInfoRequestId);
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public SyncRegistrationEntity findByPacketId(String packetId) {
 		return syncRegistrationDao.findByPacketId(packetId);
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<SyncRegistrationEntity> findByAdditionalInfoReqId(String additionalInfoReqId) {
 		return syncRegistrationDao.findByAdditionalInfoReqId(additionalInfoReqId);
 	}

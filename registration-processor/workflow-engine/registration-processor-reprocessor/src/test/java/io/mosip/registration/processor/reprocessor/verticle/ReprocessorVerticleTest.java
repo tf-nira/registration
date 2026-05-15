@@ -121,7 +121,7 @@ public class ReprocessorVerticleTest {
          ReflectionTestUtils.setField(reprocessorVerticle, "elapseTime", 21600);
          ReflectionTestUtils.setField(reprocessorVerticle, "reprocessCount", 3);
 		 ReflectionTestUtils.setField(reprocessorVerticle, "reprocessExcludeStageNames", new ArrayList<>());
-		 ReflectionTestUtils.setField(reprocessorVerticle, "excludeProcesses", new ArrayList<>());
+			ReflectionTestUtils.setField(reprocessorVerticle, "includeProcesses", new ArrayList<>());
 			List<String> reprocessRestartTriggerFilterList = new ArrayList<>();
 			reprocessRestartTriggerFilterList.add("DemodedupStage:Success");
 			reprocessRestartTriggerFilterList.add("BioDedupeStage:*");
@@ -223,7 +223,7 @@ public class ReprocessorVerticleTest {
 	
 	@Test
 	public void nullPointerExceptionTest() throws Exception {
-		Mockito.when(registrationStatusService.getResumablePackets(anyLong(), anyInt(), anyList()))
+		Mockito.when(registrationStatusService.getResumablePackets(anyLong(), anyInt(), anyList(), anyList()))
 				.thenThrow(NullPointerException.class);
 		dto = reprocessorVerticle.process(dto);
 		assertEquals(null, dto.getIsValid());

@@ -4,6 +4,7 @@ import static io.mosip.registration.processor.adjudication.constants.ManualAdjud
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -1041,6 +1042,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ManualVerificationEntity manualVerificationEntity=entities.get(i);
 			manualVerificationEntity.setStatusCode(statusCode);
 			manualVerificationEntity.setReponseText(responsetext);
+			manualVerificationEntity.setUpdDtimes(Timestamp.valueOf(DateUtils.getUTCCurrentDateTime()));
 			manualVerificationEntity.setStatusComment(statusCode.equalsIgnoreCase(ManualVerificationStatus.APPROVED.name()) ?
 					StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage() :
 					StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
@@ -1124,7 +1126,15 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformErrorMessages.RPR_MANUAL_VERIFICATION_REJECTED.getCode());
 			messageDTO.setIsValid(Boolean.FALSE);
 			Map<String, String> notificationAttributes = new HashMap<>();
-			notificationAttributes.put("FAILURE_REASON", "Application rejected during the Manual Adjudication");
+
+			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
+				notificationAttributes.put("FAILURE_REASON", "Biometric authentication failed");
+			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				notificationAttributes.put("FAILURE_REASON", "Introducer biometric authentication failed");
+			} else {
+				notificationAttributes.put("FAILURE_REASON", "Similar biometrics exists in the system");
+			}
+
 			messageDTO.setNotificationAttributes(notificationAttributes);
 		} else {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());

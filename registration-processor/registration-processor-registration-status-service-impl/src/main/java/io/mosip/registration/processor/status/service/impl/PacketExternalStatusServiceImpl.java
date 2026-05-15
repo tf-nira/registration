@@ -39,14 +39,14 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 	@Autowired
 	SyncRegistrationService<SyncResponseDto, SyncRegistrationDto> syncRegistrationService;
 
-	@Value("#{'${mosip.registration.processor.packet.status.transactiontypecodes-before-uploading-to-objectstore:PACKET_RECEIVER,SECUREZONE_NOTIFICATION}'.split(',')}")
-	private List<String> transactionTypeCodesBeforeUploadingToObjectStore;
+	@Value("#{'${mosip.registration.processor.packet.status.reg-stage-names-before-uploading-to-objectstore:PacketReceiverStage,SecurezoneNotificationStage}'.split(',')}")
+	private List<String> regStageNamesBeforeUploadingToObjectStore;
 
-	@Value("${mosip.registration.processor.packet.status.transactiontypecodes-uploading-to-objectstore:UPLOAD_PACKET}")
-	private String transactionTypeCodeUploadingToObjectStore;
+	@Value("${mosip.registration.processor.packet.status.reg-stage-names-uploading-to-objectstore}")
+	private String regStageNameUploadingToObjectStore;
 
-	@Value("#{'${mosip.registration.processor.packet.status.transactiontypecodes-time-based-resend-required:PACKET_RECEIVER}'.split(',')}")
-	private List<String> transactionTypeCodesTimeBasedResendRequired;
+	@Value("#{'${mosip.registration.processor.packet.status.reg-stage-names-time-based-resend-required:PacketReceiverStage}'.split(',')}")
+	private List<String> regStageNamesTimeBasedResendRequired;
 
 	/** The elapsed time. */
 	@Value("${registration.processor.reprocess.elapse.time}")
@@ -113,15 +113,15 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 			InternalRegistrationStatusDto internalRegistrationStatusDto) {
 		PacketExternalStatusCode mappedValue = null;
 		String status = internalRegistrationStatusDto.getStatusCode();
-		if (transactionTypeCodesBeforeUploadingToObjectStore
-				.contains(internalRegistrationStatusDto.getLatestTransactionTypeCode())
-				|| transactionTypeCodeUploadingToObjectStore
-						.equals(internalRegistrationStatusDto.getLatestTransactionTypeCode())) {
+		if (regStageNamesBeforeUploadingToObjectStore
+				.contains(internalRegistrationStatusDto.getRegistrationStageName())
+				|| regStageNameUploadingToObjectStore
+						.equals(internalRegistrationStatusDto.getRegistrationStageName())) {
 			if (status.equalsIgnoreCase(RegistrationStatusCode.PROCESSING.toString())
 					|| status.equalsIgnoreCase(RegistrationStatusCode.REPROCESS.toString())
 					|| status.equalsIgnoreCase(RegistrationStatusCode.RESUMABLE.toString())) {
-				if (transactionTypeCodesTimeBasedResendRequired
-						.contains(internalRegistrationStatusDto.getLatestTransactionTypeCode())) {
+				if (regStageNamesTimeBasedResendRequired
+						.contains(internalRegistrationStatusDto.getRegistrationStageName())) {
 					long timeElapsedInCurrentStage = checkElapsedTime(internalRegistrationStatusDto);
 					if (timeElapsedInCurrentStage > elapsedTime) {
 						if ((internalRegistrationStatusDto.getRetryCount() < maxRetryCount)) {
@@ -143,8 +143,8 @@ public class PacketExternalStatusServiceImpl implements PacketExternalStatusServ
 					mappedValue = PacketExternalStatusCode.REJECTED;
 				}
 			}
-			else if (!transactionTypeCodeUploadingToObjectStore
-					.equals(internalRegistrationStatusDto.getLatestTransactionTypeCode())) {
+			else if (!regStageNameUploadingToObjectStore
+					.equals(internalRegistrationStatusDto.getRegistrationStageName())) {
 				mappedValue = PacketExternalStatusCode.RECEIVED;
 			} else {
 				mappedValue = PacketExternalStatusCode.ACCEPTED;

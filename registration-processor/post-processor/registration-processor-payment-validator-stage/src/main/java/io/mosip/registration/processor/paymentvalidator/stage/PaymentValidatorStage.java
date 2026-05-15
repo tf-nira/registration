@@ -3,9 +3,13 @@ package io.mosip.registration.processor.paymentvalidator.stage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.registration.processor.core.constant.MappingJsonConstants;
+import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
@@ -100,6 +104,9 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	/** The registration status service. */
 	@Autowired
 	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
+
+	@Autowired
+	private PacketManagerService packetManagerService;
 	
 	@Value("${taxhead.replace.code}")
 	private String taxheadReplaceCode;
@@ -124,6 +131,27 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	
 	@Value("${taxhead.replace_defaced.amount}")
 	private String taxheadDefacedAmount;
+	//alien
+	@Value("${taxhead.new.alien}")
+	private String taxheadnewalien;
+	@Value("${amount.new.alien}")
+	private String amountnewalien;
+
+	@Value("${taxhead.renewal.alien}")
+	private String taxheadrenewalalien;
+	@Value("${amount.renewal.alien}")
+	private String amountrenewalalien;
+
+	@Value("${taxhead.lost.alien}")
+	private String taxheadlostalien;
+	@Value("${amount.lost.alien}")
+	private String amountlostalien;
+
+	@Value("${taxhead.damaged.alien}")
+	private String taxheaddamagedalien;
+	@Value("${amount.damaged.alien}")
+	private String amountdamagedalien;
+
 	
 	private static final String USER = "MOSIP_SYSTEM";
 	
@@ -145,6 +173,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		object.setInternalError(Boolean.FALSE);
 		object.setMessageBusAddress(MessageBusAddress.PAYMENT_VALIDATOR_BUS_IN);
 		LogDescription description = new LogDescription();
+		ObjectMapper objectMapper = new ObjectMapper();
 		
 		boolean isTransactionSuccessful = false;
 
@@ -156,6 +185,27 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 				regId, "PaymentValidatorStage::process()::entry");
 
 		try {
+
+			Object citizenshipType = packetManagerService.getField(regId, MappingJsonConstants.APPLICANT_CITIZENSHIPTYPE, regType, ProviderStageName.PAYMENT_VALIDATOR);
+			Object replacementType = packetManagerService.getField(regId, MappingJsonConstants.REPLACEMENT_TYPE, regType, ProviderStageName.PAYMENT_VALIDATOR);
+			String citizenshipTypePacket = null;
+			String replacementTypePacket = null;
+			if(citizenshipType != null){
+				List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
+						citizenshipType.toString(), new TypeReference<>() {});
+				Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
+				 citizenshipTypePacket = citizenshipTypeOpt.get();
+			}
+			else if(replacementType !=null) {
+				List<Map<String, String>> replacementTypeList = objectMapper.readValue(
+						replacementType.toString(), new TypeReference<>() {
+						});
+				// Extract values if lists are non-empty
+				Optional<String> replacementTypeListOpt = replacementTypeList.stream().findFirst().map(map -> map.get("value"));
+				 replacementTypePacket = replacementTypeListOpt.get();
+			}
+
+
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(regId, object.getReg_type(),
 					object.getIteration(), object.getWorkflowInstanceId());
 			registrationStatusDto
@@ -193,7 +243,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 					
 				} else {
 					regProcLogger.info("In Registration Processor - Payment Validator - Payment status check - passed");
-					if (!validateTaxHeadAndRegType(dataResponse, regType)) {
+					if (!validateTaxHeadAndRegType(dataResponse, regType,citizenshipTypePacket,replacementTypePacket)) {
 						object.setIsValid(Boolean.FALSE);
 						
 						Map<String, String> notificationAttributes = new HashMap<>();
@@ -320,7 +370,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 						trimeExpMessage.trimExceptionMessage(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getMessage()));
 				registrationStatusDto.setSubStatusCode(StatusUtil.PAYMENT_VALIDATION_SUCCESS.getCode());
 				registrationStatusDto
-						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
+						.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 				registrationStatusDto
 						.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PAYMENT_VALIDATION.toString());
 
@@ -501,7 +551,24 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 	 * @param regType
 	 * @return status
 	 */
-	private boolean validateTaxHeadAndRegType(PrnStatusResponseDataDTO response, String regType) {
+	private boolean validateTaxHeadAndRegType(PrnStatusResponseDataDTO response, String regType ,String citizenshipTypePacket , String replacementTypePacket) {
+		String paidFor = "None";
+		if("Alien New Registration".equalsIgnoreCase(citizenshipTypePacket)){
+			paidFor = "NEWAID";
+		}
+		else if("Renewal of Alien".equalsIgnoreCase(citizenshipTypePacket)){
+			paidFor = "RENAID";
+		}
+		else if("Replacement of Alien".equalsIgnoreCase(citizenshipTypePacket)){
+			if("Lost".equalsIgnoreCase(replacementTypePacket)){
+				paidFor = "LOSTAID";
+			}
+			else if ("Damaged/ Defaced".equalsIgnoreCase(replacementTypePacket)){
+				paidFor = "DMGAID";
+			}
+
+		}
+
 		if(regType.equalsIgnoreCase(response.getProcessFlow())) {
 			if(response.getTaxHeadCode().equalsIgnoreCase(taxheadChangeCode)){
 				if(response.getAmountPaid().equals(taxheadChangeAmount)) {
@@ -520,6 +587,27 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			}
 			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadDefacedCode)){
 				if(response.getAmountPaid().equals(taxheadDefacedAmount)) {
+					return true;
+				}
+			}
+			//
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadnewalien)){
+				if(response.getAmountPaid().equals(amountnewalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+					return true;
+				}
+			}
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadrenewalalien)){
+				if(response.getAmountPaid().equals(amountrenewalalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+					return true;
+				}
+			}
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheadlostalien)){
+				if(response.getAmountPaid().equals(amountlostalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
+					return true;
+				}
+			}
+			else if(response.getTaxHeadCode().equalsIgnoreCase(taxheaddamagedalien)){
+				if(response.getAmountPaid().equals(amountdamagedalien) && response.getSubServiceTypePaidFor().equalsIgnoreCase(paidFor)) {
 					return true;
 				}
 			}
