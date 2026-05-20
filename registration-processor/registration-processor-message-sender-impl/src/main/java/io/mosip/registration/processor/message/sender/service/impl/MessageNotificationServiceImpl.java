@@ -251,27 +251,8 @@ public class MessageNotificationServiceImpl
 				}
 
 				if (process.equals("DEACTIVATED")) {
-					Object dcicJsonServiceTypeObj =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
-					String dcicPhone= null;
-					try {
-						if (dcicJsonServiceTypeObj != null) {
-							if (dcicJsonServiceTypeObj instanceof String) {
-								JSONParser parser = new JSONParser();
-								Object parsedObj = parser.parse((String) dcicJsonServiceTypeObj);
-								if (parsedObj instanceof List<?>) {
-									List<?> phoneList = (List<?>) parsedObj;
-									if (!phoneList.isEmpty() && phoneList.get(0) instanceof Map<?, ?>) {
-										Map<?, ?> firstMap = (Map<?, ?>) phoneList.get(0);
-										dcicPhone = (String) firstMap.get(MappingJsonConstants.VALUE);
-									}
-								}
-							}
-						}
-					} catch (Exception e) {
-						regProcLogger.error("Error while extracting userServiceType", e);
-					}
-
-					smsDto.setNumber(dcicPhone);
+					String dcicPhone =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
+					if (dcicPhone != null && !dcicPhone.isEmpty()) smsDto.setNumber(dcicPhone);
 				} else {
 					smsDto.setNumber(phoneNumber.toString());
 				}
@@ -404,27 +385,8 @@ public class MessageNotificationServiceImpl
 				String[] mailTo = { emailId.toString() };
 
 				if (process.equals("DEACTIVATED")) {
-					Object dcicJsonServiceTypeObj =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
-					String dcicEmail= null;
-					try {
-						if (dcicJsonServiceTypeObj != null) {
-							if (dcicJsonServiceTypeObj instanceof String) {
-								JSONParser parser = new JSONParser();
-								Object parsedObj = parser.parse((String) dcicJsonServiceTypeObj);
-								if (parsedObj instanceof List<?>) {
-									List<?> phoneList = (List<?>) parsedObj;
-									if (!phoneList.isEmpty() && phoneList.get(0) instanceof Map<?, ?>) {
-										Map<?, ?> firstMap = (Map<?, ?>) phoneList.get(0);
-										dcicEmail = (String) firstMap.get(MappingJsonConstants.VALUE);
-									}
-								}
-							}
-						}
-					} catch (Exception e) {
-						regProcLogger.error("Error while extracting userServiceType", e);
-					}
-
-                    mailTo = new String[]{dcicEmail};
+					String dcicEmail =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
+					if (dcicEmail != null && !dcicEmail.isEmpty()) mailTo = new String[]{ dcicEmail };
 				}
 
 				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {
