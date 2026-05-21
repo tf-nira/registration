@@ -190,7 +190,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			Object replacementType = packetManagerService.getField(regId, MappingJsonConstants.REPLACEMENT_TYPE, regType, ProviderStageName.PAYMENT_VALIDATOR);
 			String citizenshipTypePacket = null;
 			String replacementTypePacket = null;
-			if(citizenshipType != null && regType != "LOST") {
+			if(citizenshipType != null && !regType.equalsIgnoreCase("LOST")) {
 				List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
 						citizenshipType.toString(), new TypeReference<>() {});
 				Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
