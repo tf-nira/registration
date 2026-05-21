@@ -190,7 +190,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			Object replacementType = packetManagerService.getField(regId, MappingJsonConstants.REPLACEMENT_TYPE, regType, ProviderStageName.PAYMENT_VALIDATOR);
 			String citizenshipTypePacket = null;
 			String replacementTypePacket = null;
-			if(citizenshipType != null){
+			if(citizenshipType != null && regType != "LOST") {
 				List<Map<String, String>> citizenshipTypeList = objectMapper.readValue(
 						citizenshipType.toString(), new TypeReference<>() {});
 				Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
@@ -559,14 +559,11 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 		else if("Renewal of Alien".equalsIgnoreCase(citizenshipTypePacket)){
 			paidFor = "RENAID";
 		}
-		else if("Replacement of Alien".equalsIgnoreCase(citizenshipTypePacket)){
-			if("Lost".equalsIgnoreCase(replacementTypePacket)){
-				paidFor = "LOSTAID";
-			}
-			else if ("Damaged/ Defaced".equalsIgnoreCase(replacementTypePacket)){
-				paidFor = "DMGAID";
-			}
-
+		else if("Lost".equalsIgnoreCase(replacementTypePacket)){
+			paidFor = "LOSTAID";
+		}
+		else if ("Damaged/ Defaced".equalsIgnoreCase(replacementTypePacket)){
+			paidFor = "DMGAID";
 		}
 
 		if(regType.equalsIgnoreCase(response.getProcessFlow())) {
