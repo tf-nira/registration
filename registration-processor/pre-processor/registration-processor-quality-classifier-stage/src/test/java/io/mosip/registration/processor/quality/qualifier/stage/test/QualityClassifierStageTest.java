@@ -241,6 +241,7 @@ public class QualityClassifierStageTest {
 		ReflectionTestUtils.setField(qualityClassifierStage, "biometricNotAvailableTagValue", "NOT_AVAILABLE");
 		
 		Mockito.when(utility.getGetRegProcessorDemographicIdentity()).thenReturn("identity");
+		Mockito.when(utility.getApplicantAge(any(), any(), any())).thenReturn(25.0);
 
 		ClassLoader classLoader = getClass().getClassLoader();
 		File cbeff1 = new File(classLoader.getResource("CBEFF1.xml").getFile());
