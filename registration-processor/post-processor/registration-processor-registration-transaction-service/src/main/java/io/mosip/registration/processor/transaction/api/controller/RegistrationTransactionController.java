@@ -168,9 +168,9 @@ public class RegistrationTransactionController {
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true)))
 	})
 	public ResponseEntity<List<ManualVerificationEntity>> getManualVerification(
-			@PathVariable String regId) {
+			@PathVariable("rid") String rid) {
 
-		List<ManualVerificationEntity> list = packetInfoService.getManualVerification(regId);
+		List<ManualVerificationEntity> list = packetInfoService.getManualVerification(rid);
 
 		return ResponseEntity.ok(list);
 	}
