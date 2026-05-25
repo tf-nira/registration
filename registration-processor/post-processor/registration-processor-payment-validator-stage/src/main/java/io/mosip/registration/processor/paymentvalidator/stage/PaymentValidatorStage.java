@@ -196,7 +196,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 				Optional<String> citizenshipTypeOpt = citizenshipTypeList.stream().findFirst().map(map -> map.get("value"));
 				 citizenshipTypePacket = citizenshipTypeOpt.get();
 			}
-			else if(replacementType !=null) {
+			if(replacementType !=null) {
 				List<Map<String, String>> replacementTypeList = objectMapper.readValue(
 						replacementType.toString(), new TypeReference<>() {
 						});
