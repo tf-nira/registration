@@ -349,6 +349,7 @@ public class QualityClassifierStageTest {
 
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
@@ -372,6 +373,7 @@ public class QualityClassifierStageTest {
 
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
