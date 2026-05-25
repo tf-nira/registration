@@ -89,10 +89,10 @@ public class RegistrationStatusBeanConfig {
 		return new RestApiClient();
 	}
 
-//	@Bean
-//	public SyncRegistrationService<SyncResponseDto, SyncRegistrationDto> getSyncRegistrationService() {
-//		return new SyncRegistrationServiceImpl();
-//	}
+	@Bean
+	public SyncRegistrationService<SyncResponseDto, SyncRegistrationDto> getSyncRegistrationService() {
+		return new SyncRegistrationServiceImpl();
+	}
 
 	@Bean
 	public InternalRegistrationStatusDto internalRegistrationStatusDto() {
