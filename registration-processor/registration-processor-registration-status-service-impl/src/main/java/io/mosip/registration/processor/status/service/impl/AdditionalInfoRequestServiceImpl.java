@@ -11,7 +11,9 @@ import io.mosip.registration.processor.status.entity.AdditionalInfoRequestEntity
 import io.mosip.registration.processor.status.entity.AdditionalInfoRequestPKEntity;
 import io.mosip.registration.processor.status.repositary.BaseRegProcRepository;
 import io.mosip.registration.processor.status.service.AdditionalInfoRequestService;
+import org.springframework.stereotype.Service;
 
+@Service
 public class AdditionalInfoRequestServiceImpl implements AdditionalInfoRequestService {
 
     @Autowired
