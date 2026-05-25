@@ -249,7 +249,7 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 				object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
 	
 		try {
-			double age = utility.getApplicantAge(regId, object.getReg_type(), ProviderStageName.BIO_DEDUPE);
+			double age = utility.getApplicantAge(regId, object.getReg_type(), ProviderStageName.QUALITY_CHECKER);
 			if (age < 3 || age > 69) {
 				// Age outside biometric eligibility range (3-69)
 				// quality classifier success
