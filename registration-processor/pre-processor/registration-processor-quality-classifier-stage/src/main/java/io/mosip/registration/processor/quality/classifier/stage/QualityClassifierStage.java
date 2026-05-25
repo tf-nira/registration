@@ -250,13 +250,6 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 	
 		try {
 			double age = utility.getApplicantAge(regId, object.getReg_type(), ProviderStageName.BIO_DEDUPE);
-			if(age == -1) {
-				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
-										regId, "Missing required date fields for age calculation");
-				packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, null));
-				handleAgeCheckError(regId, object, registrationStatusDto, description);
-				return object;
-			}
 			if (age < 3 || age > 69) {
 				// Age outside biometric eligibility range (3-69)
 				// quality classifier success
@@ -629,23 +622,5 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 		} else {
 			object.setIsValid(false);
 		}
-	}
-	private void handleAgeCheckError(String regId, MessageDTO object, InternalRegistrationStatusDto registrationStatusDto,
-	        LogDescription description) {description.setCode(StatusUtil.INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE.getCode());
-	    description.setMessage("Unable to calculate age - missing date fields");
-	    object.setIsValid(Boolean.FALSE);
-	    registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.FAILED.toString());
-	    registrationStatusDto.setStatusCode(RegistrationStatusCode.FAILED.toString());
-	    registrationStatusDto.setStatusComment("Age calculation skipped due to missing dates");
-	    registrationStatusDto.setSubStatusCode(StatusUtil.INDIVIDUAL_AGE_OUTSIDE_BIOMETRIC_ELIGIBILITY_RANGE.getCode());
-	}
-
-	
-	private int calculateAgeInYears(String dateOfBirth, String packetCreationDate) {
-		DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern(dobFormat);
-		LocalDate dob = LocalDate.parse(dateOfBirth, dobFormatter);
-		LocalDate creationDate = LocalDate.parse(packetCreationDate.substring(0, 10));
-		Period period = Period.between(dob, creationDate);
-		return period.getYears();
 	}
 }
