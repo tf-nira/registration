@@ -6,6 +6,8 @@ import java.util.Objects;
 import javax.servlet.http.HttpServletRequest;
 
 import io.mosip.registration.processor.core.http.ResponseWrapper;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.service.impl.PacketInfoManagerImpl;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import io.mosip.registration.processor.status.repositary.RegistrationRepositary;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +74,9 @@ public class RegistrationTransactionController {
 
 	@Autowired
 	private RegistrationRepositary registrationRepositary;
+
+	@Autowired
+	private PacketInfoManagerImpl packetInfoService;
 
 	private static final String INVALIDTOKENMESSAGE = "Authorization Token Not Available In The Header";
 	private static final String REG_TRANSACTION_SERVICE_ID = "mosip.registration.processor.registration.transaction.id";
@@ -149,6 +154,25 @@ public class RegistrationTransactionController {
 		}
 
 		return responseWrapper;
+	}
+
+	@PreAuthorize("hasAnyRole(@authorizedTransactionRoles.getGetsearchrid())")
+	@GetMapping(path = "/manual-verification/{rid}")
+	@Operation(summary = "Get Manual Verification details", description = "Fetch MA match records using registration ID",
+			tags = { "Registration Status" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Transaction Entity/Entities successfully fetched"),
+			@ApiResponse(responseCode = "400", description = "Unable to fetch Transaction Entity/Entities", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true)))
+	})
+	public ResponseEntity<List<ManualVerificationEntity>> getManualVerification(
+			@PathVariable String regId) {
+
+		List<ManualVerificationEntity> list = packetInfoService.getManualVerification(regId);
+
+		return ResponseEntity.ok(list);
 	}
 
 	public String processing(String rid) {
