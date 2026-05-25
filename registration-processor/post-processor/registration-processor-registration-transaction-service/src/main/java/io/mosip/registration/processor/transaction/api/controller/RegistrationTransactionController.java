@@ -1,5 +1,6 @@
 package io.mosip.registration.processor.transaction.api.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -172,20 +173,25 @@ public class RegistrationTransactionController {
 			@PathVariable("rid") String rid) {
 
 		List<ManualVerificationEntity> list = packetInfoService.getManualVerification(rid);
-		List<String> result = list.stream()
-				.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
-				.map(e -> {
-					String type = e.getId().getMatchedRefType();
-					if ("rid".equalsIgnoreCase(type)) {
-						return e.getId().getMatchedRefId();
-					} else if ("NIN".equalsIgnoreCase(type)) {
-						return e.getReasonCode() + " - " + e.getTrnTypCode();
-					}
-					return null;
-				})
-				.filter(val -> val != null)
-				.collect(Collectors.toList());
-
+		List<String> result = new ArrayList<>();
+		if (list != null && !list.isEmpty()) {
+			result = list.stream()
+					.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
+					.map(e -> {
+						String type = e.getId().getMatchedRefType();
+						if ("rid".equalsIgnoreCase(type)) {
+							return e.getId().getMatchedRefId();
+						} else if ("NIN".equalsIgnoreCase(type)) {
+							return e.getReasonCode() + " - " + e.getTrnTypCode();
+						}
+						return null;
+					})
+					.filter(val -> val != null)
+					.collect(Collectors.toList());
+		}
+		else {
+			result.add("Application id is not present");
+		}
 		return ResponseEntity.ok(result);
 	}
 
