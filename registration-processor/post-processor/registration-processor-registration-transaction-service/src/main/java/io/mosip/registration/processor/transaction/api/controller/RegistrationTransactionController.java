@@ -2,6 +2,7 @@ package io.mosip.registration.processor.transaction.api.controller;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -167,12 +168,25 @@ public class RegistrationTransactionController {
 			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true)))
 	})
-	public ResponseEntity<List<ManualVerificationEntity>> getManualVerification(
+	public ResponseEntity<List<String>> getManualVerification(
 			@PathVariable("rid") String rid) {
 
 		List<ManualVerificationEntity> list = packetInfoService.getManualVerification(rid);
+		List<String> result = list.stream()
+				.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
+				.map(e -> {
+					String type = e.getId().getMatchedRefType();
+					if ("rid".equalsIgnoreCase(type)) {
+						return e.getId().getMatchedRefId();
+					} else if ("NIN".equalsIgnoreCase(type)) {
+						return e.getReasonCode() + " - " + e.getTrnTypCode();
+					}
+					return null;
+				})
+				.filter(val -> val != null)
+				.collect(Collectors.toList());
 
-		return ResponseEntity.ok(list);
+		return ResponseEntity.ok(result);
 	}
 
 	public String processing(String rid) {
