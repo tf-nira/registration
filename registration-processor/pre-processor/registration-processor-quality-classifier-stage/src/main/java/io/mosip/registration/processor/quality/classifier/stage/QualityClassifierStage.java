@@ -16,15 +16,12 @@ import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.StringUtils;
-import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.kernel.biometrics.constant.BiometricFunction;
 import io.mosip.kernel.biometrics.constant.BiometricType;
@@ -55,12 +52,10 @@ import io.mosip.registration.processor.core.exception.ApisResourceAccessExceptio
 import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
-import io.mosip.registration.processor.core.idrepo.dto.ResponseDTO;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.logger.RegProcessorLogger;
 import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.status.util.TrimExceptionMessage;
-import io.mosip.registration.processor.core.util.JsonUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.PriorityBasedPacketManagerService;
@@ -197,10 +192,6 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 	@Autowired
 	private Utilities utility;
 	
-	@Autowired
-	private ObjectMapper mapper;
-	 
-
 	@PostConstruct
 	private void generateParsedQualityRangeMap() {
 		parsedQualityRangeMap = new HashMap<>();
@@ -258,26 +249,14 @@ public class QualityClassifierStage extends MosipVerticleAPIManager {
 				object.getReg_type(), object.getIteration(), object.getWorkflowInstanceId());
 	
 		try {
-			String dateOfBirth;
-			if(object.getReg_type().equals("NEW")) {
-				dateOfBirth = packetManagerService.getField(regId, "dateOfBirth", registrationStatusDto.getRegistrationType(), ProviderStageName.QUALITY_CHECKER);
-			} else {
-				String nin = packetManagerService.getField(regId, "NIN", registrationStatusDto.getRegistrationType(), ProviderStageName.QUALITY_CHECKER);
-				ResponseDTO responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin, false);
-				String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
-				JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
-				dateOfBirth = mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, "dateOfBirth"));
-			}
-			Map<String, String> metaInfo = packetManagerService.getMetaInfo(regId, registrationStatusDto.getRegistrationType(), ProviderStageName.QUALITY_CHECKER);
-			String packetCreationDate = metaInfo.get("creationDate");
-			if(dateOfBirth == null || metaInfo == null || metaInfo.get("creationDate") == null) {
+			double age = utility.getApplicantAge(regId, object.getReg_type(), ProviderStageName.BIO_DEDUPE);
+			if(age == -1) {
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(),
 										regId, "Missing required date fields for age calculation");
 				packetManagerService.addOrUpdateTags(regId, getQualityTags(regId, null));
 				handleAgeCheckError(regId, object, registrationStatusDto, description);
 				return object;
 			}
-			int age = calculateAgeInYears(dateOfBirth, packetCreationDate);
 			if (age < 3 || age > 69) {
 				// Age outside biometric eligibility range (3-69)
 				// quality classifier success
