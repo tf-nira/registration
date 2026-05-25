@@ -241,6 +241,7 @@ public class QualityClassifierStageTest {
 		ReflectionTestUtils.setField(qualityClassifierStage, "biometricNotAvailableTagValue", "NOT_AVAILABLE");
 		
 		Mockito.when(utility.getGetRegProcessorDemographicIdentity()).thenReturn("identity");
+		Mockito.when(utility.getApplicantAge(any(), any(), any())).thenReturn(25.0);
 
 		ClassLoader classLoader = getClass().getClassLoader();
 		File cbeff1 = new File(classLoader.getResource("CBEFF1.xml").getFile());
@@ -349,6 +350,7 @@ public class QualityClassifierStageTest {
 
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
@@ -372,6 +374,7 @@ public class QualityClassifierStageTest {
 
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
@@ -478,6 +481,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("REPROCESS");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO messageDTO = qualityClassifierStage.process(dto);
 		assertTrue(messageDTO.getIsValid());
 		assertTrue(messageDTO.getInternalError());
@@ -492,6 +496,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("ERROR");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO messageDTO = qualityClassifierStage.process(dto);
 		assertFalse(messageDTO.getIsValid());
 		assertTrue(messageDTO.getInternalError());
@@ -506,6 +511,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("REPROCESS");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO messageDTO = qualityClassifierStage.process(dto);
 		assertTrue(messageDTO.getIsValid());
 		assertTrue(messageDTO.getInternalError());
@@ -521,6 +527,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("REPROCESS");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
@@ -535,6 +542,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("REPROCESS");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
@@ -548,6 +556,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("ERROR");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertFalse(result.getIsValid());
@@ -564,6 +573,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("REPROCESS");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertTrue(result.getIsValid());
@@ -578,6 +588,7 @@ public class QualityClassifierStageTest {
 
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 
 		assertFalse(result.getInternalError());
@@ -593,6 +604,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("REPROCESS");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 		assertTrue(result.getInternalError());
 		assertTrue(result.getIsValid());
@@ -608,6 +620,7 @@ public class QualityClassifierStageTest {
 		.thenReturn("ERROR");
 		MessageDTO dto = new MessageDTO();
 		dto.setRid("1234567890");
+		dto.setReg_type("NEW");
 		MessageDTO result = qualityClassifierStage.process(dto);
 		assertFalse(result.getIsValid());
 		assertTrue(result.getInternalError());
