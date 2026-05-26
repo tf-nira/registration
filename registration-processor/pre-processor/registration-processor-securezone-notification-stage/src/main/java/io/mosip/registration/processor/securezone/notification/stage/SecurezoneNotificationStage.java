@@ -220,7 +220,6 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 		messageDTO.setInternalError(Boolean.FALSE);
 		messageDTO.setIsValid(Boolean.FALSE);
 		boolean isTransactionSuccessful = false;
-		boolean migratorPacketResumable = false;
 		try {
 			registrationStatusDto = registrationStatusService.getRegistrationStatus(messageDTO.getRid(),
 					messageDTO.getReg_type(), messageDTO.getIteration(), messageDTO.getWorkflowInstanceId());
@@ -244,12 +243,7 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 				messageDTO.setIsValid(Boolean.TRUE);
 				registrationStatusDto.setStatusComment(StatusUtil.NOTIFICATION_RECEIVED_TO_SECUREZONE.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.NOTIFICATION_RECEIVED_TO_SECUREZONE.getCode());
-				if (registrationStatusDto.getRegistrationType().equalsIgnoreCase("MIGRATOR") && packetResumable) {
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
-					migratorPacketResumable = true;
-				} else {
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-				}
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 
 				isTransactionSuccessful = true;
 				description.setMessage(PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getMessage() + " -- "
@@ -315,12 +309,7 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 					? PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.SECUREZONE_NOTIFICATION.toString();
-			if (migratorPacketResumable) {
-				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId,
-						moduleName);
-			} else {
-				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
-			}
+			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
 
 			if (isTransactionSuccessful)
 				description.setMessage(PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getMessage());
