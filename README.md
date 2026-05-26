@@ -8,7 +8,7 @@ This repository contains source code and design documents for MOSIP Registration
 
 [Overview of Registration Processor](https://docs.mosip.io/1.2.0/modules/registration-processor)
 
-The front end UI application called Registration Client is available in a separate repo [here](https://github.com/mosip/registration-client)
+The front end UI application called Registration Client is available in a separate repo [here](https://github.com/mosip/registration-client).
 
 ## Registration stages and pipeline
 
