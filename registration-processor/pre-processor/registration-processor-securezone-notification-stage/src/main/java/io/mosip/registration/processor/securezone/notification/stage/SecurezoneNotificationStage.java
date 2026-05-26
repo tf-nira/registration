@@ -244,12 +244,7 @@ public class SecurezoneNotificationStage extends MosipVerticleAPIManager {
 				messageDTO.setIsValid(Boolean.TRUE);
 				registrationStatusDto.setStatusComment(StatusUtil.NOTIFICATION_RECEIVED_TO_SECUREZONE.getMessage());
 				registrationStatusDto.setSubStatusCode(StatusUtil.NOTIFICATION_RECEIVED_TO_SECUREZONE.getCode());
-				if (registrationStatusDto.getRegistrationType().equalsIgnoreCase("MIGRATOR") && packetResumable) {
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.RESUMABLE.toString());
-					migratorPacketResumable = true;
-				} else {
-					registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-				}
+				registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 
 				isTransactionSuccessful = true;
 				description.setMessage(PlatformSuccessMessages.RPR_SEZ_SECUREZONE_NOTIFICATION.getMessage() + " -- "
