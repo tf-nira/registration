@@ -182,7 +182,12 @@ public class RegistrationTransactionController {
 						if ("rid".equalsIgnoreCase(type)) {
 							return e.getId().getMatchedRefId();
 						} else if ("NIN".equalsIgnoreCase(type)) {
-							return e.getReasonCode() + " - " + e.getTrnTypCode();
+							String trntype =  e.getTrnTypCode();
+							if("INTRODUCER_VALIDATION_FAILURE".equalsIgnoreCase(trntype)){
+								return "Biometric Authentication failed for Introducer";
+							} else if("BIO_AUTH_FAILURE".equalsIgnoreCase(trntype)){
+								return "Biometric Authentication failed for applicant";
+							}
 						}
 						return null;
 					})
@@ -190,7 +195,7 @@ public class RegistrationTransactionController {
 					.collect(Collectors.toList());
 		}
 		else {
-			result.add("Application id is not present");
+			result.add("No records found for the given Application ID.");
 		}
 		return ResponseEntity.ok(result);
 	}
