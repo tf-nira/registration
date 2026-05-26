@@ -579,7 +579,7 @@ public class MVSServiceImpl implements MVSService {
 		if (givenName != null) {
 			JSONArray givenNameArray = new JSONArray(givenName);
 			String givenNameValue = givenNameArray.getJSONObject(0).getString("value");
-			verReq.setSurname(givenNameValue);
+			verReq.setGivenName(givenNameValue);
 		}
 
 		// set documents
