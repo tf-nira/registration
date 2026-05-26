@@ -570,6 +570,8 @@ public class MVSServiceImpl implements MVSService {
 		requestDto.setIdentity(fields);
 
 		verReq.setSchemaVersion(requestDto.getIdentity().get("IDSchemaVersion"));
+		verReq.setSurname(surname);
+		verReq.setGivenName(givenName);
 
 		// set documents
 		JSONObject docJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT);
