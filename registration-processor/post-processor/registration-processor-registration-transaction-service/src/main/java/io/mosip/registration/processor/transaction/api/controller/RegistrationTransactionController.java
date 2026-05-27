@@ -12,6 +12,7 @@ import io.mosip.registration.processor.packet.storage.entity.ManualVerificationE
 import io.mosip.registration.processor.packet.storage.service.impl.PacketInfoManagerImpl;
 import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import io.mosip.registration.processor.status.repositary.RegistrationRepositary;
+import io.mosip.registration.processor.transaction.api.service.impl.RegistrationTransactionServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -79,6 +80,9 @@ public class RegistrationTransactionController {
 
 	@Autowired
 	private PacketInfoManagerImpl packetInfoService;
+
+	@Autowired
+	private RegistrationTransactionServiceImpl RegistrationTransactionService;
 
 	private static final String INVALIDTOKENMESSAGE = "Authorization Token Not Available In The Header";
 	private static final String REG_TRANSACTION_SERVICE_ID = "mosip.registration.processor.registration.transaction.id";
@@ -172,31 +176,7 @@ public class RegistrationTransactionController {
 	public ResponseEntity<List<String>> getManualVerification(
 			@PathVariable("rid") String rid) {
 
-		List<ManualVerificationEntity> list = packetInfoService.getManualVerification(rid);
-		List<String> result = new ArrayList<>();
-		if (list != null && !list.isEmpty()) {
-			result = list.stream()
-					.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
-					.map(e -> {
-						String type = e.getId().getMatchedRefType();
-						if ("rid".equalsIgnoreCase(type)) {
-							return e.getId().getMatchedRefId();
-						} else if ("NIN".equalsIgnoreCase(type)) {
-							String trntype =  e.getTrnTypCode();
-							if("INTRODUCER_VALIDATION_FAILURE".equalsIgnoreCase(trntype)){
-								return "Biometric Authentication failed for Introducer";
-							} else if("BIO_AUTH_FAILURE".equalsIgnoreCase(trntype)){
-								return "Biometric Authentication failed for applicant";
-							}
-						}
-						return null;
-					})
-					.filter(val -> val != null)
-					.collect(Collectors.toList());
-		}
-		else {
-			result.add("No records found for the given Application ID.");
-		}
+		List<String> result = RegistrationTransactionService.getManualVerificationDetails(rid);
 		return ResponseEntity.ok(result);
 	}
 
