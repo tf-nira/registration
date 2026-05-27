@@ -1063,4 +1063,8 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 
 	}
 
+	public List<ManualVerificationEntity> getManualVerification(String regId) {
+		return packetInfoDao.getManualVerificationByRegId(regId);
+	}
+
 }
