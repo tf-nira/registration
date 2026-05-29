@@ -14,8 +14,12 @@ import java.util.stream.Collectors;
 @Service
 public class RegistrationTransactionServiceImpl implements RegistrationTransactionService {
 
+    private final PacketInfoManagerImpl packetInfoService;
+
     @Autowired
-    private PacketInfoManagerImpl packetInfoService;
+    public RegistrationTransactionServiceImpl(PacketInfoManagerImpl packetInfoService) {
+        this.packetInfoService = packetInfoService;
+    }
 
     @Override
     public List<String> getManualVerificationDetails(String rid) {
