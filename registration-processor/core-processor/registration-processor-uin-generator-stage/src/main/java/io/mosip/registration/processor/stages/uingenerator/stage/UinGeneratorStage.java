@@ -887,6 +887,35 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 		return isTransactionSuccessful;
 	}
 
+	@SuppressWarnings("unchecked")
+	private boolean isAlienDeactivated(JSONObject demographicIdentity) {
+		try {
+			Object serviceTypeObj = demographicIdentity.get(MappingJsonConstants.SERVICE_TYPE);
+			if (serviceTypeObj == null) {
+				return false;
+			}
+			List<Map<String, String>> serviceTypeList = null;
+			if (serviceTypeObj instanceof List) {
+				serviceTypeList = (List<Map<String, String>>) serviceTypeObj;
+			} else if (serviceTypeObj instanceof String) {
+				// Field may have been stored as a JSON string; parse it
+				org.json.simple.parser.JSONParser parser = new org.json.simple.parser.JSONParser();
+				Object parsed = parser.parse((String) serviceTypeObj);
+				if (parsed instanceof List) {
+					serviceTypeList = (List<Map<String, String>>) parsed;
+				}
+			}
+			if (serviceTypeList != null && !serviceTypeList.isEmpty()) {
+				Map<String, String> firstEntry = serviceTypeList.get(0);
+				String value = firstEntry.get(MappingJsonConstants.VALUE);
+				return "Alien Deactivated".equalsIgnoreCase(value);
+			}
+		} catch (Exception e) {
+			regProcLogger.error("Error while reading userServiceType from demographicIdentity", e);
+		}
+		return false;
+	}
+
 	private boolean isIdResponseNotNull(IdResponseDTO result) {
 		return result != null && result.getResponse() != null;
 	}
@@ -945,37 +974,88 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			requestDto.setBiometricReferenceId(uin);
 
 			IdRequestDto idRequestDTO = new IdRequestDto();
-			idRequestDTO.setId(idRepoUpdate);
 			idRequestDTO.setMetadata(null);
 			idRequestDTO.setRequest(requestDto);
 			idRequestDTO.setRequesttime(DateUtils.getUTCCurrentDateTimeString());
 			idRequestDTO.setVersion(UINConstants.idRepoApiVersion);
 
-			idResponseDto = idrepoDraftService.idrepoUpdateDraft(id, uin, idRequestDTO);
+			if (isAlienDeactivated(demographicIdentity)) {
+				// "Alien Deactivated" service type: directly call the identity PATCH API,
+				// bypassing the draft flow so the Finalization stage can be skipped.
+				demographicIdentity.put("UIN", uin);
+				idRequestDTO.setId("mosip.id.update");
 
-			if (isIdResponseNotNull(idResponseDto)) {
-				if (IDREPO_STATUS.equalsIgnoreCase(idResponseDto.getResponse().getStatus())) {
+				regProcLogger.info("Alien Deactivated service type detected. Calling direct identity update API " +
+						"(bypassing draft) for DEACTIVATE reg_id: {}", id);
+				idResponseDto = idrepoDraftService.idrepoUpdateIdentity(idRequestDTO);
+
+				if (isIdResponseNotNull(idResponseDto)) {
+					if (RegistrationType.DEACTIVATED.toString()
+							.equalsIgnoreCase(idResponseDto.getResponse().getStatus())) {
+						description.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
+						description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
+						description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
+						description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
+						description.setTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+						object.setIsValid(Boolean.TRUE);
+						statusComment = idResponseDto.getResponse().getStatus();
+					} else {
+						regProcLogger.warn("Unexpected status from direct identity update API for reg_id: {} status: {}",
+								id, idResponseDto.getResponse().getStatus());
+						description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+						description.setStatusComment(trimExceptionMessage
+								.trimExceptionMessage(StatusUtil.UIN_DEACTIVATION_FAILED.getMessage()
+										+ " Unexpected status: " + idResponseDto.getResponse().getStatus()));
+						description.setSubStatusCode(StatusUtil.UIN_DEACTIVATION_FAILED.getCode());
+						description.setMessage(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getMessage());
+						description.setCode(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getCode());
+						description.setTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+						object.setIsValid(Boolean.FALSE);
+					}
+				} else {
+					statusComment = idResponseDto != null && idResponseDto.getErrors() != null
+							? idResponseDto.getErrors().get(0).getMessage()
+							: UINConstants.NULL_IDREPO_RESPONSE;
 					description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-					description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
-					description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
-					description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
-					description.setTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
-					object.setIsValid(Boolean.TRUE);
-					statusComment = idResponseDto.getResponse().getStatus().toString();
+					description.setStatusComment(trimExceptionMessage
+							.trimExceptionMessage(StatusUtil.UIN_DEACTIVATION_FAILED.getMessage() + statusComment));
+					description.setSubStatusCode(StatusUtil.UIN_DEACTIVATION_FAILED.getCode());
+					description.setMessage(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getMessage());
+					description.setCode(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getCode());
+					description.setTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+					object.setIsValid(Boolean.FALSE);
 				}
-			} else {
 
-				statusComment = idResponseDto != null && idResponseDto.getErrors() != null
-						? idResponseDto.getErrors().get(0).getMessage()
-						: UINConstants.NULL_IDREPO_RESPONSE;
-				description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
-				description.setStatusComment(trimExceptionMessage
-						.trimExceptionMessage(StatusUtil.UIN_DEACTIVATION_FAILED.getMessage() + statusComment));
-				description.setSubStatusCode(StatusUtil.UIN_DEACTIVATION_FAILED.getCode());
-				description.setMessage(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getMessage());
-				description.setCode(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getCode());
-				description.setTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
-				object.setIsValid(Boolean.FALSE);
+			} else {
+				// All other DEACTIVATE service types: use the standard draft update flow
+				idRequestDTO.setId(idRepoUpdate);
+
+				regProcLogger.info("Non-Alien-Deactivated service type. Using draft update flow for DEACTIVATE reg_id: {}", id);
+				idResponseDto = idrepoDraftService.idrepoUpdateDraft(id, uin, idRequestDTO);
+
+				if (isIdResponseNotNull(idResponseDto)) {
+					if (IDREPO_STATUS.equalsIgnoreCase(idResponseDto.getResponse().getStatus())) {
+						description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+						description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
+						description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
+						description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
+						description.setTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
+						object.setIsValid(Boolean.TRUE);
+						statusComment = idResponseDto.getResponse().getStatus();
+					}
+				} else {
+					statusComment = idResponseDto != null && idResponseDto.getErrors() != null
+							? idResponseDto.getErrors().get(0).getMessage()
+							: UINConstants.NULL_IDREPO_RESPONSE;
+					description.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
+					description.setStatusComment(trimExceptionMessage
+							.trimExceptionMessage(StatusUtil.UIN_DEACTIVATION_FAILED.getMessage() + statusComment));
+					description.setSubStatusCode(StatusUtil.UIN_DEACTIVATION_FAILED.getCode());
+					description.setMessage(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getMessage());
+					description.setCode(PlatformErrorMessages.UIN_DEACTIVATION_FAILED.getCode());
+					description.setTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
+					object.setIsValid(Boolean.FALSE);
+				}
 			}
 
 		}
