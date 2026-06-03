@@ -165,13 +165,6 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
 
-				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
-				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
-					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage());
-					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
-					return false;
-				}
-
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
 
 				String userServiceType= null;
@@ -264,6 +257,13 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
 					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
 					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PACKET_STATUS_VALIDATION.getCode());
+					return false;
+				}
+
+				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
+				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
 					return false;
 				}
 
