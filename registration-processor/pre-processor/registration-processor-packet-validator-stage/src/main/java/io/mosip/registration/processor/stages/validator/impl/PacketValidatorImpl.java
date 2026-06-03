@@ -201,7 +201,7 @@ public class PacketValidatorImpl implements PacketValidator {
 				}
 
 				//validation for Renewal application.
-				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) {
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())&& !"Renewal of Alien".equalsIgnoreCase(userServiceType)) {
 
 					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 				            LoggerFileConstant.REGISTRATIONID.toString(), id,
