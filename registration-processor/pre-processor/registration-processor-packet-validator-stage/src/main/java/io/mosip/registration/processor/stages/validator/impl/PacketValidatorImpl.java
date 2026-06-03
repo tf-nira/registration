@@ -258,6 +258,15 @@ public class PacketValidatorImpl implements PacketValidator {
 							PlatformErrorMessages.RPR_PVM_UPDATE_DEACTIVATED.getCode(), "UIN is Deactivated");
 				}
 
+				if (status != null && status.equalsIgnoreCase("DEACTIVATED")) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PACKET_STATUS_VALIDATION.getCode());
+					return false;
+				}
+
 			// check if uin is in idrepisitory
 			if (RegistrationType.UPDATE.name().equalsIgnoreCase(process)
 					|| RegistrationType.RES_UPDATE.name().equalsIgnoreCase(process)
