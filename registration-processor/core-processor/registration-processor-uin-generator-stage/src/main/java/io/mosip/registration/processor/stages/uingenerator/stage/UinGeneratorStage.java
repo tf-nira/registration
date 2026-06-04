@@ -890,24 +890,10 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	@SuppressWarnings("unchecked")
 	private boolean isAlienDeactivated(JSONObject demographicIdentity) {
 		try {
-			Object serviceTypeObj = demographicIdentity.get(MappingJsonConstants.SERVICE_TYPE);
-			if (serviceTypeObj == null) {
-				return false;
-			}
-			List<Map<String, String>> serviceTypeList = null;
-			if (serviceTypeObj instanceof List) {
-				serviceTypeList = (List<Map<String, String>>) serviceTypeObj;
-			} else if (serviceTypeObj instanceof String) {
-				// Field may have been stored as a JSON string; parse it
-				org.json.simple.parser.JSONParser parser = new org.json.simple.parser.JSONParser();
-				Object parsed = parser.parse((String) serviceTypeObj);
-				if (parsed instanceof List) {
-					serviceTypeList = (List<Map<String, String>>) parsed;
-				}
-			}
+			List<Map<String, String>> serviceTypeList =
+					(List<Map<String, String>>) demographicIdentity.get(MappingJsonConstants.SERVICE_TYPE);
 			if (serviceTypeList != null && !serviceTypeList.isEmpty()) {
-				Map<String, String> firstEntry = serviceTypeList.get(0);
-				String value = firstEntry.get(MappingJsonConstants.VALUE);
+				String value = serviceTypeList.get(0).get(MappingJsonConstants.VALUE);
 				return "Alien Deactivated".equalsIgnoreCase(value);
 			}
 		} catch (Exception e) {
@@ -996,7 +982,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
 						description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
 						description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
-						description.setTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+						description.setTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
 						object.setIsValid(Boolean.TRUE);
 						statusComment = idResponseDto.getResponse().getStatus();
 					} else {
