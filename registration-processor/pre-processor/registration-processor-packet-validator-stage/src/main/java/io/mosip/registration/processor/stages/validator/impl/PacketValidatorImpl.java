@@ -143,6 +143,7 @@ public class PacketValidatorImpl implements PacketValidator {
 
 
 
+			String userServiceType = null;
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
@@ -167,7 +168,7 @@ public class PacketValidatorImpl implements PacketValidator {
 
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
 
-				String userServiceType= null;
+				userServiceType = null;
 				try {
 				    if (jsonServiceTypeObj != null) {
 				        if (jsonServiceTypeObj instanceof String) {
@@ -319,7 +320,7 @@ public class PacketValidatorImpl implements PacketValidator {
 			}
 
 		}
-		if (process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+		if (process.equalsIgnoreCase(RegistrationType.LOST.toString()) && !"Alien Replacement".equalsIgnoreCase(userServiceType)) {
 			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
 					ProviderStageName.PACKET_VALIDATOR);
 			if (StringUtils.isNotEmpty(handle)) {
