@@ -148,7 +148,8 @@ public class PacketValidatorImpl implements PacketValidator {
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
 					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())
-					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())
+					|| process.equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
 				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
 				// In production we need to enable isEnabled property so added or condition
 				if (uin != null || isEnabled) {
