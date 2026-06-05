@@ -148,7 +148,8 @@ public class PacketValidatorImpl implements PacketValidator {
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
 					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())
-					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())
+					|| process.equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
 				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
 				// In production we need to enable isEnabled property so added or condition
 				if (uin != null || isEnabled) {
@@ -250,6 +251,15 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PVM_UPDATE_DEACTIVATED.getMessage());
 					throw new RegistrationProcessorCheckedException(
 							PlatformErrorMessages.RPR_PVM_UPDATE_DEACTIVATED.getCode(), "UIN is Deactivated");
+				}
+
+				if (status != null && status.equalsIgnoreCase("DEACTIVATED")) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PACKET_STATUS_VALIDATION.getCode());
+					return false;
 				}
 
 			// check if uin is in idrepisitory
