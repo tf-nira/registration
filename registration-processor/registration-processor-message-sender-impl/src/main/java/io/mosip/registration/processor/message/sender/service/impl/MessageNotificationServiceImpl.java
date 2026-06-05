@@ -247,34 +247,14 @@ public class MessageNotificationServiceImpl
 				}else {
 				artifact = artifact + LINE_SEPARATOR + IOUtils.toString(stream, ENCODING);;
 				}
-				if (phoneNumber == null || phoneNumber.length() == 0) {
-					throw new PhoneNumberNotFoundException(PlatformErrorMessages.RPR_SMS_PHONE_NUMBER_NOT_FOUND.getCode());
-				}
 
 				if (process.equals("DEACTIVATED")) {
-					Object dcicJsonServiceTypeObj =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
-					String dcicPhone= null;
-					try {
-						if (dcicJsonServiceTypeObj != null) {
-							if (dcicJsonServiceTypeObj instanceof String) {
-								JSONParser parser = new JSONParser();
-								Object parsedObj = parser.parse((String) dcicJsonServiceTypeObj);
-								if (parsedObj instanceof List<?>) {
-									List<?> phoneList = (List<?>) parsedObj;
-									if (!phoneList.isEmpty() && phoneList.get(0) instanceof Map<?, ?>) {
-										Map<?, ?> firstMap = (Map<?, ?>) phoneList.get(0);
-										dcicPhone = (String) firstMap.get(MappingJsonConstants.VALUE);
-									}
-								}
-							}
-						}
-					} catch (Exception e) {
-						regProcLogger.error("Error while extracting userServiceType", e);
-					}
-
-					smsDto.setNumber(dcicPhone);
-				} else {
+					String dcicPhone =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
+					if (dcicPhone != null && !dcicPhone.isEmpty()) smsDto.setNumber(dcicPhone);
+				} else if (phoneNumber != null && phoneNumber.length() != 0) {
 					smsDto.setNumber(phoneNumber.toString());
+				} else {
+					throw new PhoneNumberNotFoundException(PlatformErrorMessages.RPR_SMS_PHONE_NUMBER_NOT_FOUND.getCode());
 				}
 
 			}
@@ -399,33 +379,16 @@ public class MessageNotificationServiceImpl
 				InputStream subStream = templateGenerator.getTemplate(subjectCode, attributesLang, lang);
 
 				subject=IOUtils.toString(subStream, ENCODING);
-				if (emailId == null || emailId.length() == 0) {
-					throw new EmailIdNotFoundException(PlatformErrorMessages.RPR_EML_EMAILID_NOT_FOUND.getCode());
-				}
-				String[] mailTo = { emailId.toString() };
+
+				String[] mailTo = null;
 
 				if (process.equals("DEACTIVATED")) {
-					Object dcicJsonServiceTypeObj =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
-					String dcicEmail= null;
-					try {
-						if (dcicJsonServiceTypeObj != null) {
-							if (dcicJsonServiceTypeObj instanceof String) {
-								JSONParser parser = new JSONParser();
-								Object parsedObj = parser.parse((String) dcicJsonServiceTypeObj);
-								if (parsedObj instanceof List<?>) {
-									List<?> phoneList = (List<?>) parsedObj;
-									if (!phoneList.isEmpty() && phoneList.get(0) instanceof Map<?, ?>) {
-										Map<?, ?> firstMap = (Map<?, ?>) phoneList.get(0);
-										dcicEmail = (String) firstMap.get(MappingJsonConstants.VALUE);
-									}
-								}
-							}
-						}
-					} catch (Exception e) {
-						regProcLogger.error("Error while extracting userServiceType", e);
-					}
-
-					mailTo = new String[]{dcicEmail};
+					String dcicEmail =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
+					if (dcicEmail != null && !dcicEmail.isEmpty()) mailTo = new String[]{ dcicEmail };
+				} else if (emailId != null && emailId.length() != 0) {
+					mailTo = new String[]{ emailId.toString() };
+				} else {
+					throw new EmailIdNotFoundException(PlatformErrorMessages.RPR_EML_EMAILID_NOT_FOUND.getCode());
 				}
 				
 				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {

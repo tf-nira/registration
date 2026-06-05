@@ -10,6 +10,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -164,17 +165,38 @@ public class PacketValidatorImpl implements PacketValidator {
 							"ERROR =======>" + PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
-				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())){
+				
+				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
+
+				String userServiceType= null;
+				try {
+				    if (jsonServiceTypeObj != null) {
+				        if (jsonServiceTypeObj instanceof String) {
+				            JSONParser parser = new JSONParser();
+				            Object parsedObj = parser.parse((String) jsonServiceTypeObj);
+				            if (parsedObj instanceof List<?>) {
+							    List<?> sericeTypeList = (List<?>) parsedObj;
+							    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
+							        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
+							        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+							    }
+							}
+				        }
+				    }
+				} catch (Exception e) {
+				    regProcLogger.error("Error while extracting userServiceType", e);
+				}
+				
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString()) && !"Renewal of Alien".equalsIgnoreCase(userServiceType)){
 					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
 						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
 						packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getCode());
 						return false;
 					}
 				}
-				
-				//validation for Renewal application. 
-				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())) {
-					
+				//validation for Renewal application.
+				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())&& !"Renewal of Alien".equalsIgnoreCase(userServiceType)) {
+
 					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 				            LoggerFileConstant.REGISTRATIONID.toString(), id,
 				            "INFO =======> Renewal validation started for registration");

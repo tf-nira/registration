@@ -568,6 +568,20 @@ public class MVSServiceImpl implements MVSService {
 
 		requestDto.setIdentity(fields);
 
+		verReq.setSchemaVersion(requestDto.getIdentity().get("IDSchemaVersion"));
+
+		if (surname != null) {
+			JSONArray surnameArray = new JSONArray(surname);
+			String surnameValue = surnameArray.getJSONObject(0).getString("value");
+			verReq.setSurname(surnameValue);
+		}
+
+		if (givenName != null) {
+			JSONArray givenNameArray = new JSONArray(givenName);
+			String givenNameValue = givenNameArray.getJSONObject(0).getString("value");
+			verReq.setGivenName(givenNameValue);
+		}
+
 		// set documents
 		JSONObject docJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.DOCUMENT);
 		for (Object doc : docJson.keySet()) {
