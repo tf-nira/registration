@@ -321,6 +321,12 @@ public class PacketValidatorImpl implements PacketValidator {
 			}
 
 		}
+				regProcLogger.info(
+						LoggerFileConstant.SESSIONID.toString(),
+						LoggerFileConstant.REGISTRATIONID.toString(),
+						id,
+						"INFO =======> userServiceType for LOST validation: " + userServiceType);
+
 		if (process.equalsIgnoreCase(RegistrationType.LOST.toString()) && !"Alien Replacement".equalsIgnoreCase(userServiceType)) {
 			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
 					ProviderStageName.PACKET_VALIDATOR);
