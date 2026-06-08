@@ -180,6 +180,11 @@ public class PacketValidatorImpl implements PacketValidator {
 							    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
 							        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
 							        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
+									regProcLogger.info(
+											LoggerFileConstant.SESSIONID.toString(),
+											LoggerFileConstant.REGISTRATIONID.toString(),
+											id,
+											"INFO INSIDE FOR LOOP1 =======> userServiceType for LOST validation: " + userServiceType);
 							    }
 							}
 				        }
