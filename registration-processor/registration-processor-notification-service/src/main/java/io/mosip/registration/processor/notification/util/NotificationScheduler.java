@@ -116,7 +116,7 @@ public class NotificationScheduler {
 					if (dto != null) {
 						workflowDto.setResultCode(ResultCode.PROCESSED.toString());
 					} else {
-						if (Objects.equals(packet.getRegistrationStageName(), "PacketValidatorStage")) {
+						if (Objects.equals(packet.getRegistrationStageName(), "PacketValidatorStage") && packet.getLatestTransactionStatusCode().equalsIgnoreCase("REJECTED")) {
 							workflowDto.setErrorCode(RegistrationExceptionTypeCode.REG_PACKET_REJECTED.name());
 						} else {
 							workflowDto.setErrorCode(RegistrationExceptionTypeCode.PACKET_FAILED.name());
