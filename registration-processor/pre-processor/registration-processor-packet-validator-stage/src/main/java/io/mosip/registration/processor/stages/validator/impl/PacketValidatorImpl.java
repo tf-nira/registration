@@ -187,6 +187,11 @@ public class PacketValidatorImpl implements PacketValidator {
 				} catch (Exception e) {
 				    regProcLogger.error("Error while extracting userServiceType", e);
 				}
+					regProcLogger.info(
+							LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(),
+							id,
+							"INFO INSIDE FOR LOOP =======> userServiceType for LOST validation: " + userServiceType);
 				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString()) && !"Renewal of Alien".equalsIgnoreCase(userServiceType)){
 					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
 						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
