@@ -144,6 +144,13 @@ public class PacketValidatorImpl implements PacketValidator {
 
 
 			String userServiceType = null;
+
+			regProcLogger.info(
+					LoggerFileConstant.SESSIONID.toString(),
+					LoggerFileConstant.REGISTRATIONID.toString(),
+					id,
+					"INFO =======> Registration Type (process): " + process);
+
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
