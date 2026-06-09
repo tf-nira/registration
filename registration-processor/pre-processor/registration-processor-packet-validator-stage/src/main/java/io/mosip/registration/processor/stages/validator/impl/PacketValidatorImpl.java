@@ -167,7 +167,25 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
 
+					regProcLogger.info(
+							LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(),
+							id,
+							"BEFORE SERVICE_TYPE FETCH");
+
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
+					regProcLogger.info(
+							LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(),
+							id,
+							"SERVICE_TYPE RAW VALUE = " + jsonServiceTypeObj);
+
+					regProcLogger.info(
+							LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(),
+							id,
+							"SERVICE_TYPE CLASS = "
+									+ (jsonServiceTypeObj == null ? "null" : jsonServiceTypeObj.getClass().getName()));
 
 				userServiceType = null;
 				try {
