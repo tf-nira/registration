@@ -36,5 +36,7 @@ public enum RegistrationTransactionStatusCode {
 
 	ON_HOLD,
 	
-	RESUMABLE;
+	RESUMABLE,
+
+	ON_HOLD_ALIEN;
 }

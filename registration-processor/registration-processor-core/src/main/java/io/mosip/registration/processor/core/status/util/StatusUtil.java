@@ -87,6 +87,8 @@ public enum StatusUtil {
 	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
 			"Renewal is not allowed as the application was processed within the last 10 years"),
 	PACKET_STATUS_VALIDATION(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "026", "NIN validation failed as the status is deactivated"),
+	ALIEN_PACKET_ON_HOLD(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "027",
+			"Packet is on hold as the applicant is an alien."),
 	
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",

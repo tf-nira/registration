@@ -10,6 +10,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 
 import io.mosip.registration.processor.core.constant.MappingJsonConstants;
+import io.mosip.registration.processor.core.exception.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
@@ -45,9 +46,6 @@ import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode
 import io.mosip.registration.processor.core.constant.JsonConstant;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
 import io.mosip.registration.processor.core.constant.ProviderStageName;
-import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
-import io.mosip.registration.processor.core.exception.PacketManagerException;
-import io.mosip.registration.processor.core.exception.RegistrationProcessorCheckedException;
 import io.mosip.registration.processor.core.exception.util.PlatformErrorMessages;
 import io.mosip.registration.processor.core.exception.util.PlatformSuccessMessages;
 import io.mosip.registration.processor.core.logger.LogDescription;
@@ -215,6 +213,8 @@ public class PacketValidateProcessor {
 
 			if (userServiceType != null && userServiceType.toLowerCase().contains("alien")) {
 				registrationStatusDto.setApplicantType(userServiceType);
+				throw new AlienOnHoldException(StatusUtil.PACKET_ON_HOLD.getCode(),
+						"Packet is on hold as the applicant is an alien.");
 			}
 
 			SyncRegistrationEntity regEntity = getSyncRegistrationEntity(object);
@@ -327,6 +327,13 @@ public class PacketValidateProcessor {
 			description.setMessage(PlatformErrorMessages.PACKET_MANAGER_EXCEPTION.getMessage());
 			description.setCode(PlatformErrorMessages.PACKET_MANAGER_EXCEPTION.getCode());
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.name());
+		} catch (AlienOnHoldException e) {
+			registrationStatusDto.setLatestTransactionStatusCode(
+					RegistrationTransactionStatusCode.ON_HOLD_ALIEN.toString());
+			registrationStatusDto.setStatusComment(e.getMessage());
+			registrationStatusDto.setSubStatusCode(StatusUtil.ALIEN_PACKET_ON_HOLD.getCode());
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.ON_HOLD_ALIEN.toString());
+			object.setOnHold(Boolean.TRUE);
 		} catch (DataAccessException e) {
 			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSING.toString());
 			registrationStatusDto.setStatusComment(
@@ -465,7 +472,13 @@ public class PacketValidateProcessor {
 					? PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.PACKET_VALIDATOR.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+
+			if (registrationStatusDto.getStatusCode() == RegistrationStatusCode.ON_HOLD_ALIEN.toString()) {
+				registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId, moduleName);
+			} else {
+				registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+			}
+
 			if (packetValidationDto.isTransactionSuccessful())
 				description.setMessage(PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getMessage());
 			String eventId = packetValidationDto.isTransactionSuccessful() ? EventId.RPR_402.toString()
