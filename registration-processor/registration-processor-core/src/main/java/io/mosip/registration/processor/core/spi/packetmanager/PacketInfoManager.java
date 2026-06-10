@@ -362,4 +362,6 @@ public interface PacketInfoManager<T, /** D, M, */
 
 	public void saveTransactionType(TransactionTypeDto transactionTypeDto, String moduleId, String moduleName);
 
+	List<String> getManualVerificationDetails(String regId);
+
 }

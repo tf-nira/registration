@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.packet.storage.service.impl;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -12,7 +13,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -1061,6 +1067,70 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), code,
 				"PacketInfoManagerImpl::saveAbisRef()::exit");
 
+	}
+
+	@Override
+	public List<String> getManualVerificationDetails(String regId) {
+		List<ManualVerificationEntity> list = packetInfoDao.getManualVerificationByRegId(regId);
+		if (list == null || list.isEmpty()) {
+			return Collections.singletonList("No records found for the given Application ID.");
+		}
+		return list.stream()
+				.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
+				.flatMap(e -> {
+					String statusCode = e.getStatusCode();
+					String type = e.getId().getMatchedRefType();
+					if(MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
+						return Stream.of("Application ID is in queue status.");
+					} else if (MappingJsonConstants.RID.equalsIgnoreCase(type)) {
+						return getMatchedRidFromResponse(e).stream();
+					} else if (MappingJsonConstants.NIN.equalsIgnoreCase(type)) {
+						String trnType = e.getTrnTypCode();
+						String message;
+						switch (trnType != null ? trnType.toUpperCase() : "") {
+							case MappingJsonConstants.INTRODUCER_VALIDATION_FAILURE:
+								message = "Biometric Authentication failed for Introducer";
+								break;
+							case MappingJsonConstants.BIO_AUTH_FAILURE:
+								message = "Biometric Authentication failed for applicant";
+								break;
+							default:
+								message = "Manual verification failed due to " + trnType;
+						}
+						return Stream.of(message);
+					}
+					return Stream.empty();
+				})
+				.filter(Objects::nonNull)
+				.distinct()
+				.collect(Collectors.toList());
+	}
+
+	private List<String> getMatchedRidFromResponse(ManualVerificationEntity e) {
+		List<String> matchedRefs = new ArrayList<>();
+		if (e.getReponseText() == null) {
+			return matchedRefs;
+		}
+		try {
+			String responseStr = new String(e.getReponseText(), StandardCharsets.UTF_8);
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(responseStr);
+			JsonNode candidates = root.path(MappingJsonConstants.CANDIDATE_LIST).path(MappingJsonConstants.CANDIDATES);
+			if (candidates.isArray()) {
+				for (JsonNode candidate : candidates) {
+					String comment = candidate
+							.path(MappingJsonConstants.ANALYTICS)
+							.path(MappingJsonConstants.PRIMARY_OPERATOR_COMMENTS)
+							.asText();
+					if (MappingJsonConstants.MATCHED.equalsIgnoreCase(comment)) {
+						matchedRefs.add(candidate.path(MappingJsonConstants.REF_ID).asText());
+					}
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return matchedRefs;
 	}
 
 }
