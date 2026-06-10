@@ -8,6 +8,8 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationEntity;
+import io.mosip.registration.processor.packet.storage.entity.ManualVerificationPKEntity;
 import io.mosip.registration.processor.core.packet.dto.abis.AbisResponseDetDto;
 import io.mosip.registration.processor.core.packet.dto.abis.AbisResponseDto;
 import io.mosip.registration.processor.core.packet.dto.demographicinfo.DemographicInfoDto;
@@ -58,6 +60,9 @@ public class PacketInfoDao {
 
 	@Autowired
 	private BasePacketRepository<TransactionTypeEntity, String> transactionTypeRepositary;
+
+	@Autowired
+	private BasePacketRepository<ManualVerificationEntity, ManualVerificationPKEntity> manualVerificationRepository;
 
 	/** The applicant info. */
 	private List<Object[]> applicantInfo = new ArrayList<>();
@@ -212,6 +217,21 @@ public class PacketInfoDao {
 		query.append(alias + ".isActive=:isActive");
 		params.put("isActive", IS_ACTIVE_TRUE);
 		return demographicDedupeRepository.createQuerySelect(query.toString(), params);
+	}
+
+	public List<ManualVerificationEntity> getManualVerificationByRegId(String regId) {
+		Map<String, Object> params = new HashMap<>();
+		String className = ManualVerificationEntity.class.getSimpleName();
+		String alias = "mv";
+		StringBuilder query = new StringBuilder();
+
+		query.append(SELECT + alias + FROM + className + EMPTY_STRING + alias + WHERE + alias);
+		query.append(".regId = :regId")
+			 .append(AND).append(alias).append(".isDeleted = false")
+			 .append(AND).append(alias).append(".isActive = true");
+
+		params.put("regId", regId);
+		return manualVerificationRepository.createQuerySelect(query.toString(), params);
 	}
 
 	/**
