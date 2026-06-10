@@ -1095,6 +1095,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						identityObject.put(infoField, fldValue);
 				}
 			}
+			identityObject.put("isCardRequired", "Yes");
 			requestDto.setRegistrationId(lostPacketRegId);
 			requestDto.setIdentity(identityObject);
 
