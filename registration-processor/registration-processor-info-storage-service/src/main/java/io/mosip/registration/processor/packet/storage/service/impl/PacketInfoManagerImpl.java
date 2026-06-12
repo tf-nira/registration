@@ -1097,7 +1097,7 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 								message = "Biometric Authentication is Failed for Introducer.";
 								break;
 							case MappingJsonConstants.BIO_AUTH_FAILURE:
-								message = "Biometric Authentication is Failed for Applicant";
+								message = "Biometric Authentication is Failed for Applicant.";
 								break;
 							default:
 								message = "Manual verification failed due to " + trnType;
