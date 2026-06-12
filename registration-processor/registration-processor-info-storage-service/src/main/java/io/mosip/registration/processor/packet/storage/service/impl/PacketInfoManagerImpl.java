@@ -1081,7 +1081,7 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 					String statusCode = e.getStatusCode();
 					String type = e.getId().getMatchedRefType();
 					if(MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
-						return Stream.of("Application ID is in queue status.");
+						return Stream.of("Application is in queue.");
 					} else if (MappingJsonConstants.RID.equalsIgnoreCase(type)) {
 						List<String> rids = getMatchedRidFromResponse(e);
 						if (rids != null && !rids.isEmpty()) {
