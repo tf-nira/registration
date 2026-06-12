@@ -1083,7 +1083,12 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 					if(MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
 						return Stream.of("Application ID is in queue status.");
 					} else if (MappingJsonConstants.RID.equalsIgnoreCase(type)) {
-						return getMatchedRidFromResponse(e).stream();
+						List<String> rids = getMatchedRidFromResponse(e);
+						if (rids != null && !rids.isEmpty()) {
+							return rids.stream();
+						} else {
+							return Stream.of("No matched RID found for the given Application ID.");
+						}
 					} else if (MappingJsonConstants.NIN.equalsIgnoreCase(type)) {
 						String trnType = e.getTrnTypCode();
 						String message;
