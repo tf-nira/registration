@@ -8,10 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.json.JSONException;
@@ -848,7 +845,9 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 			lostRidDto.setRegistartionDate(null!=syncEntity.getRegistrationDate()?syncEntity.getRegistrationDate().toString():null);
 			lostRidDto.setSyncDateTime(null!=syncEntity.getCreateDateTime()?syncEntity.getCreateDateTime().toString():null);
 			if(syncEntity.getOptionalValues()!=null) {
-				getAdditionalInfo(syncEntity.getReferenceId(), syncEntity.getOptionalValues(), lostRidDto.getAdditionalInfo());
+				Map<String, String> additionalInfo = new HashMap<>();
+				getAdditionalInfo(syncEntity.getReferenceId(), syncEntity.getOptionalValues(), additionalInfo);
+				lostRidDto.setAdditionalInfo(additionalInfo);
 			}
 			lostRidDtos.add(lostRidDto);
 		});
