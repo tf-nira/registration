@@ -849,6 +849,11 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 				getAdditionalInfo(syncEntity.getReferenceId(), syncEntity.getOptionalValues(), additionalInfo);
 				lostRidDto.setAdditionalInfo(additionalInfo);
 			}
+			regProcLogger.info(
+					LoggerFileConstant.SESSIONID.toString(),
+					LoggerFileConstant.REGISTRATIONID.toString(),
+					syncEntity.getRegistrationId(),
+					"LOSTRIDDTO before add : " + lostRidDto);
 			lostRidDtos.add(lostRidDto);
 		});
 		return lostRidDtos.stream().distinct().collect(Collectors.toList());
