@@ -144,13 +144,6 @@ public class PacketValidatorImpl implements PacketValidator {
 
 
 			String userServiceType = null;
-
-			regProcLogger.info(
-					LoggerFileConstant.SESSIONID.toString(),
-					LoggerFileConstant.REGISTRATIONID.toString(),
-					id,
-					"INFO =======> Registration Type (process): " + process);
-
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
@@ -174,25 +167,7 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
 
-					regProcLogger.info(
-							LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(),
-							id,
-							"BEFORE SERVICE_TYPE FETCH");
-
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
-					regProcLogger.info(
-							LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(),
-							id,
-							"SERVICE_TYPE RAW VALUE = " + jsonServiceTypeObj);
-
-					regProcLogger.info(
-							LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(),
-							id,
-							"SERVICE_TYPE CLASS = "
-									+ (jsonServiceTypeObj == null ? "null" : jsonServiceTypeObj.getClass().getName()));
 
 				userServiceType = null;
 				try {
@@ -205,11 +180,6 @@ public class PacketValidatorImpl implements PacketValidator {
 							    if (!sericeTypeList.isEmpty() && sericeTypeList.get(0) instanceof Map<?, ?>) {
 							        Map<?, ?> firstMap = (Map<?, ?>) sericeTypeList.get(0);
 							        userServiceType = (String) firstMap.get(MappingJsonConstants.VALUE);
-									regProcLogger.info(
-											LoggerFileConstant.SESSIONID.toString(),
-											LoggerFileConstant.REGISTRATIONID.toString(),
-											id,
-											"INFO INSIDE FOR LOOP1 =======> userServiceType for LOST validation: " + userServiceType);
 							    }
 							}
 				        }
@@ -217,11 +187,6 @@ public class PacketValidatorImpl implements PacketValidator {
 				} catch (Exception e) {
 				    regProcLogger.error("Error while extracting userServiceType", e);
 				}
-					regProcLogger.info(
-							LoggerFileConstant.SESSIONID.toString(),
-							LoggerFileConstant.REGISTRATIONID.toString(),
-							id,
-							"INFO INSIDE FOR LOOP =======> userServiceType for LOST validation: " + userServiceType);
 				if(process.equalsIgnoreCase(RegistrationType.RENEWAL.toString()) && !"Renewal of Alien".equalsIgnoreCase(userServiceType)){
 					if (!validateAgeToRenewal(id, process, packetValidationDto)) {
 						packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PVM_APPLICANT_NOT_ELIGIBLE_RENEWAL.getMessage());
@@ -356,12 +321,6 @@ public class PacketValidatorImpl implements PacketValidator {
 			}
 
 		}
-				regProcLogger.info(
-						LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(),
-						id,
-						"INFO =======> userServiceType for LOST validation: " + userServiceType);
-
 		if (process.equalsIgnoreCase(RegistrationType.LOST.toString()) && !"Alien Replacement".equalsIgnoreCase(userServiceType)) {
 			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
 					ProviderStageName.PACKET_VALIDATOR);
