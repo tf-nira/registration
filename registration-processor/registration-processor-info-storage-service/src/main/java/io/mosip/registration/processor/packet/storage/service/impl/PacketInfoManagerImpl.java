@@ -1090,19 +1090,7 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 							return Stream.of("No Active MA Matches.");
 						}
 					} else if (MappingJsonConstants.NIN.equalsIgnoreCase(type)) {
-						String trnType = e.getTrnTypCode();
-						String message;
-						switch (trnType != null ? trnType.toUpperCase() : "") {
-							case MappingJsonConstants.INTRODUCER_VALIDATION_FAILURE:
-								message = "Biometric Authentication is Failed for Introducer.";
-								break;
-							case MappingJsonConstants.BIO_AUTH_FAILURE:
-								message = "Biometric Authentication is Failed for Applicant.";
-								break;
-							default:
-								message = "Manual verification failed due to " + trnType;
-						}
-						return Stream.of(message);
+						return Stream.of("No Active MA Matches.");
 					}
 					return Stream.empty();
 				})
