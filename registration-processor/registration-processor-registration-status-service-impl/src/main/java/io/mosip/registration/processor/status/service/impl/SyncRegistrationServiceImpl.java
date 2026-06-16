@@ -844,6 +844,10 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 			lostRidDto.setRegistrationId(syncEntity.getRegistrationId());
 			lostRidDto.setRegistartionDate(null!=syncEntity.getRegistrationDate()?syncEntity.getRegistrationDate().toString():null);
 			lostRidDto.setSyncDateTime(null!=syncEntity.getCreateDateTime()?syncEntity.getCreateDateTime().toString():null);
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					syncEntity.getRegistrationId(),
+					"entityToDtoMapper :: optionalValues is "
+							+ (syncEntity.getOptionalValues() != null ? "present, length=" + syncEntity.getOptionalValues().length : "NULL - skipping getAdditionalInfo"));
 			if(syncEntity.getOptionalValues()!=null) {
 				Map<String, String> additionalInfo = new HashMap<>();
 				getAdditionalInfo(syncEntity.getReferenceId(), syncEntity.getOptionalValues(), additionalInfo);
@@ -862,12 +866,45 @@ public class SyncRegistrationServiceImpl implements SyncRegistrationService<Sync
 	private void getAdditionalInfo(String referenceId, byte[] optionalValues, Map<String, String> additionalInfo)  {
 		String name=null;
 		try {
-			String decryptedData=decryptor.decrypt(CryptoUtil.encodeBase64String(optionalValues),referenceId, DateUtils.formatToISOString(DateUtils.getUTCCurrentDateTime()));
-			JSONObject jsonObject=new JSONObject(decryptedData);
-			name=jsonObject.getString("name");
-			additionalInfo.put("name",name);
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", "getAdditionalInfo :: referenceId=" + referenceId
+							+ " :: optionalValues length=" + (optionalValues != null ? optionalValues.length : "NULL"));
+
+			String base64Encoded = CryptoUtil.encodeBase64String(optionalValues);
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", "getAdditionalInfo :: base64Encoded value=" + base64Encoded);
+
+			String decryptedData = decryptor.decrypt(base64Encoded, referenceId,
+					DateUtils.formatToISOString(DateUtils.getUTCCurrentDateTime()));
+
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", "getAdditionalInfo :: decryptedData=" + decryptedData);
+
+			JSONObject jsonObject = new JSONObject(decryptedData);
+
+			if (jsonObject.has("name") && !jsonObject.isNull("name")) {
+				additionalInfo.put("name", jsonObject.getString("name"));
+				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", "getAdditionalInfo :: name extracted=" + jsonObject.getString("name"));
+			} else {
+				regProcLogger.warn(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						"", "getAdditionalInfo :: 'name' key missing or null in decrypted JSON");
+			}
+
+			if (jsonObject.has("email") && !jsonObject.isNull("email")) {
+				additionalInfo.put("email", jsonObject.getString("email"));
+			}
+			if (jsonObject.has("phone") && !jsonObject.isNull("phone")) {
+				additionalInfo.put("phone", jsonObject.getString("phone"));
+			}
+
+			regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", "getAdditionalInfo :: final additionalInfo map=" + additionalInfo);
 
 		} catch (PacketDecryptionFailureException | ApisResourceAccessException |JSONException  e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", "getAdditionalInfo :: EXCEPTION - " + e.getClass().getSimpleName()
+							+ " :: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
 			throw new TablenotAccessibleException(
 					PlatformErrorMessages.RPR_RGS_DECRYPTION_FAILED.getMessage(),e);		}
 	}
