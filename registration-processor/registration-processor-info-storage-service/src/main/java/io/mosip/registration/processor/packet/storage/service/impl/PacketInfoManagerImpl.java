@@ -1082,23 +1082,16 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 					String statusCode = e.getStatusCode();
 					String type = e.getId().getMatchedRefType();
 					if(MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
-						return Stream.of("Application ID is in queue status.");
+						return Stream.of("Application is In Queue.");
 					} else if (MappingJsonConstants.RID.equalsIgnoreCase(type)) {
-						return getMatchedRidFromResponse(e).stream();
-					} else if (MappingJsonConstants.NIN.equalsIgnoreCase(type)) {
-						String trnType = e.getTrnTypCode();
-						String message;
-						switch (trnType != null ? trnType.toUpperCase() : "") {
-							case MappingJsonConstants.INTRODUCER_VALIDATION_FAILURE:
-								message = "Biometric Authentication failed for Introducer";
-								break;
-							case MappingJsonConstants.BIO_AUTH_FAILURE:
-								message = "Biometric Authentication failed for applicant";
-								break;
-							default:
-								message = "Manual verification failed due to " + trnType;
+						List<String> rids = getMatchedRidFromResponse(e);
+						if (rids != null && !rids.isEmpty()) {
+							return rids.stream();
+						} else {
+							return Stream.of("No Active MA Matches.");
 						}
-						return Stream.of(message);
+					} else if (MappingJsonConstants.NIN.equalsIgnoreCase(type)) {
+						return Stream.of("No Active MA Matches.");
 					}
 					return Stream.empty();
 				})
