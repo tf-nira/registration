@@ -227,6 +227,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 			registrationStatusDto
 					.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PRINT_SERVICE.toString());
 			registrationStatusDto.setRegistrationStageName(getStageName());
+			String registrationType = registrationStatusDto.getRegistrationType();
 			JSONObject jsonObject = utilities.idrepoRetrieveIdentityByRid(regId);
 			uin = JsonUtil.getJSONValue(jsonObject, IdType.UIN.toString());
 			if (uin == null) {
@@ -277,7 +278,10 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				}
 				
 				boolean isAdult = object.getTags() != null && "ADULT".equals(object.getTags().get("AGE_GROUP"));
-				
+				if (!RegistrationType.NEW.toString().equalsIgnoreCase(registrationType)) {
+					isAdult = true;
+				}
+
 				Map<String, String> tags = object.getTags();
 				String userServiceType = null;
 				if (tags != null) {
