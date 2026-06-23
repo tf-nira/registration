@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.core.constant.RegistrationType;
+import io.mosip.registration.processor.status.entity.CancelledRegistrationsEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -100,6 +102,27 @@ public class ABISHandlerUtil {
 				if (!CollectionUtils.isEmpty(machedRefIds)) {
 					List<String> matchedRegIds = packetInfoDao.getAbisRefRegIdsByMatchedRefIds(machedRefIds);
 					if (!CollectionUtils.isEmpty(matchedRegIds)) {
+						List<RegistrationStatusEntity> registrationData = packetInfoDao.getStatusAndProcessForRegIds(matchedRegIds);
+
+						Set<String> migratorRejectedRids = new HashSet<>();
+
+						for (RegistrationStatusEntity registration : registrationData) {
+
+							String rid = registration.getRegId();
+							String statusCode = registration.getStatusCode();
+							String process = registration.getRegistrationType();
+
+							if (RegistrationType.MIGRATOR.toString().equalsIgnoreCase(process)
+									&& RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(statusCode)) {
+								migratorRejectedRids.add(rid);
+							}
+						}
+						List<CancelledRegistrationsEntity> existing = packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids));
+
+						for (CancelledRegistrationsEntity entity : existing) {
+							uniqueRIDs.add(entity.getRid());
+						}
+
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
 								.getWithoutStatusCode(matchedRegIds,
 										RegistrationStatusCode.REJECTED.toString());
