@@ -103,27 +103,15 @@ public class ABISHandlerUtil {
 					List<String> matchedRegIds = packetInfoDao.getAbisRefRegIdsByMatchedRefIds(machedRefIds);
 					if (!CollectionUtils.isEmpty(matchedRegIds)) {
 						List<RegistrationStatusEntity> registrationData = packetInfoDao.getStatusAndProcessForRegIds(matchedRegIds);
+						Set<String> migratorRejectedRids = registrationData.stream()
+								.filter(r -> RegistrationType.MIGRATOR.toString().equalsIgnoreCase(r.getRegistrationType())
+										&& RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(r.getStatusCode()))
+								.map(RegistrationStatusEntity::getRegId)
+								.collect(Collectors.toSet());
 
-						Set<String> migratorRejectedRids = new HashSet<>();
-
-						for (RegistrationStatusEntity registration : registrationData) {
-
-							String rid = registration.getRegId();
-							String statusCode = registration.getStatusCode();
-							String process = registration.getRegistrationType();
-
-							if (RegistrationType.MIGRATOR.toString().equalsIgnoreCase(process) && RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(statusCode)) {
-								migratorRejectedRids.add(rid);
-							}
-						}
-
-						if (!migratorRejectedRids.isEmpty()) {
-
-							List<CancelledRegistrationsEntity> existing = packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids));
-							for (CancelledRegistrationsEntity entity : existing) {
-								uniqueRIDs.add(entity.getRid());
-							}
-						}
+						if (!migratorRejectedRids.isEmpty())
+							uniqueRIDs.addAll(packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids))
+									.stream().map(CancelledRegistrationsEntity::getRid).collect(Collectors.toSet()));
 
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
 								.getWithoutStatusCode(matchedRegIds,
