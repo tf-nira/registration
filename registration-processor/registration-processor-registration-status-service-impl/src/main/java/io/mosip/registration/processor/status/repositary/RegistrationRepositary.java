@@ -79,6 +79,9 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId = :regId AND registration.registrationType = :registrationType AND registration.iteration = :iteration")
 	public List<RegistrationStatusEntity> getByIdAndProcessAndIteration(@Param("regId") String regId, @Param("registrationType") String process, @Param("iteration") int iteration);
+
+	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId IN :regIds")
+	List<RegistrationStatusEntity> getStatusAndProcessForRegIds(@Param("regIds") List<String> regIds);
 }
 
 

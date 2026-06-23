@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.processor.core.constant.RegistrationType;
+import io.mosip.registration.processor.status.entity.CancelledRegistrationsEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -100,6 +102,34 @@ public class ABISHandlerUtil {
 				if (!CollectionUtils.isEmpty(machedRefIds)) {
 					List<String> matchedRegIds = packetInfoDao.getAbisRefRegIdsByMatchedRefIds(machedRefIds);
 					if (!CollectionUtils.isEmpty(matchedRegIds)) {
+						List<RegistrationStatusEntity> registrationData = packetInfoDao.getStatusAndProcessForRegIds(matchedRegIds);
+						regProcLogger.info(
+								LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.USERID.toString(),
+								registrationId,
+								"ABISHandlerUtil::getUniqueRegIds() :: registrationData regIds: "
+										+ registrationData.stream()
+										.map(RegistrationStatusEntity::getRegId)
+										.collect(Collectors.toList())
+						);
+						Set<String> migratorRejectedRids = registrationData.stream()
+								.filter(r -> RegistrationType.MIGRATOR.toString().equalsIgnoreCase(r.getRegistrationType())
+										&& RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(r.getStatusCode()))
+								.map(RegistrationStatusEntity::getRegId)
+								.collect(Collectors.toSet());
+
+						regProcLogger.info(
+								LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.USERID.toString(),
+								registrationId,
+								"ABISHandlerUtil::getUniqueRegIds() :: migratorRejectedRids: "
+										+ migratorRejectedRids
+						);
+
+						if (!migratorRejectedRids.isEmpty())
+							uniqueRIDs.addAll(packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids))
+									.stream().map(CancelledRegistrationsEntity::getRid).collect(Collectors.toSet()));
+
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
 								.getWithoutStatusCode(matchedRegIds,
 										RegistrationStatusCode.REJECTED.toString());

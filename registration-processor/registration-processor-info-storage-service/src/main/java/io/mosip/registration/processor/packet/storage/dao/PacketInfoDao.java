@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.mosip.registration.processor.status.entity.CancelledRegistrationsEntity;
+import io.mosip.registration.processor.status.repositary.CancelledRegistrationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -57,6 +59,9 @@ public class PacketInfoDao {
 	/** The registration repositary. */
 	@Autowired
 	private RegistrationRepositary<BaseRegistrationEntity, String> registrationRepositary;
+
+	@Autowired
+	private CancelledRegistrationRepository cancelledRepo;
 
 	@Autowired
 	private BasePacketRepository<TransactionTypeEntity, String> transactionTypeRepositary;
@@ -622,6 +627,22 @@ public class PacketInfoDao {
 	public List<RegistrationStatusEntity> getWithoutStatusCode(List<String> matchedRegIds,
 			String statusCode) {
 		return registrationRepositary.getWithoutStatusCode(matchedRegIds, statusCode);
+	}
+
+	/**
+	 * Gets the processed or processing reg ids.
+	 *
+	 */
+	public List<RegistrationStatusEntity> getStatusAndProcessForRegIds(List<String> regIds) {
+		return registrationRepositary.getStatusAndProcessForRegIds(regIds);
+	}
+
+	/**
+	 * Gets the processed or processing reg ids.
+	 *
+	 */
+	public List<CancelledRegistrationsEntity> getExistingCancelledRids(List<String> rids) {
+		return cancelledRepo.findByRidIn(rids);
 	}
 
 	/**
