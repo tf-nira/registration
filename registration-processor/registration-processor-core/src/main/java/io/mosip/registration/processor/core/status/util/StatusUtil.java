@@ -86,6 +86,8 @@ public enum StatusUtil {
 			"Applicant is not eligible to Renewal service"),
 	ALIEN_PACKET_ON_HOLD(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "027",
 			"Packet is on hold as the applicant is an alien."),
+	PACKET_STATUS_VALIDATION(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "026", "NIN validation failed as the status is deactivated."),
+
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
