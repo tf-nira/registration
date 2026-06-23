@@ -103,11 +103,28 @@ public class ABISHandlerUtil {
 					List<String> matchedRegIds = packetInfoDao.getAbisRefRegIdsByMatchedRefIds(machedRefIds);
 					if (!CollectionUtils.isEmpty(matchedRegIds)) {
 						List<RegistrationStatusEntity> registrationData = packetInfoDao.getStatusAndProcessForRegIds(matchedRegIds);
+						regProcLogger.info(
+								LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.USERID.toString(),
+								registrationId,
+								"ABISHandlerUtil::getUniqueRegIds() :: registrationData regIds: "
+										+ registrationData.stream()
+										.map(RegistrationStatusEntity::getRegId)
+										.collect(Collectors.toList())
+						);
 						Set<String> migratorRejectedRids = registrationData.stream()
 								.filter(r -> RegistrationType.MIGRATOR.toString().equalsIgnoreCase(r.getRegistrationType())
 										&& RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(r.getStatusCode()))
 								.map(RegistrationStatusEntity::getRegId)
 								.collect(Collectors.toSet());
+
+						regProcLogger.info(
+								LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.USERID.toString(),
+								registrationId,
+								"ABISHandlerUtil::getUniqueRegIds() :: migratorRejectedRids: "
+										+ migratorRejectedRids
+						);
 
 						if (!migratorRejectedRids.isEmpty())
 							uniqueRIDs.addAll(packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids))
