@@ -17,10 +17,10 @@ import lombok.NoArgsConstructor;
 public class CancelledRegistrationsEntity {
 
     @Id
-    @Column(name = "rid", length = 20)
+    @Column(name = "rid")
     private String rid;
 
-    @Column(name = "nin", length = 20)
+    @Column(name = "nin")
     private String nin;
 
     @Column(name = "deactivated")
