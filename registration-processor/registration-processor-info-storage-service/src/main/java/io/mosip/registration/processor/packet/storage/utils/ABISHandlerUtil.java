@@ -112,15 +112,17 @@ public class ABISHandlerUtil {
 							String statusCode = registration.getStatusCode();
 							String process = registration.getRegistrationType();
 
-							if (RegistrationType.MIGRATOR.toString().equalsIgnoreCase(process)
-									&& RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(statusCode)) {
+							if (RegistrationType.MIGRATOR.toString().equalsIgnoreCase(process) && RegistrationStatusCode.REJECTED.toString().equalsIgnoreCase(statusCode)) {
 								migratorRejectedRids.add(rid);
 							}
 						}
-						List<CancelledRegistrationsEntity> existing = packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids));
 
-						for (CancelledRegistrationsEntity entity : existing) {
-							uniqueRIDs.add(entity.getRid());
+						if (!migratorRejectedRids.isEmpty()) {
+
+							List<CancelledRegistrationsEntity> existing = packetInfoDao.getExistingCancelledRids(new ArrayList<>(migratorRejectedRids));
+							for (CancelledRegistrationsEntity entity : existing) {
+								uniqueRIDs.add(entity.getRid());
+							}
 						}
 
 						List<RegistrationStatusEntity> matchedRegistrationStatusEntities = packetInfoDao
