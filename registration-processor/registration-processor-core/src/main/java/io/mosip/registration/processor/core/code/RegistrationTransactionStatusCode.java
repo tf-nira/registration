@@ -34,8 +34,6 @@ public enum RegistrationTransactionStatusCode {
 
 	MERGED,
 
-	ON_HOLD,
-
-	ON_HOLD_ALIEN;
+	ON_HOLD;
 	
 }
