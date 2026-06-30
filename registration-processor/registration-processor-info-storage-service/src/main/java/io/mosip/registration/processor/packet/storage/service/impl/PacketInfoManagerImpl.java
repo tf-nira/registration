@@ -1075,28 +1075,35 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 		if (list == null || list.isEmpty()) {
 			return Collections.singletonList("No records found for the given Application ID.");
 		}
-		return list.stream()
+		List<ManualVerificationEntity> validList = list.stream()
 				.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
+				.collect(Collectors.toList());
+		boolean allNin = validList.stream()
+				.allMatch(e -> MappingJsonConstants.NIN.equalsIgnoreCase(e.getId().getMatchedRefType()));
+		if (allNin) {
+			return Collections.singletonList("No Active MA Matches.");
+		}
+		List<String> result = validList.stream()
+				.filter(e -> MappingJsonConstants.RID.equalsIgnoreCase(e.getId().getMatchedRefType()))
 				.flatMap(e -> {
 					String statusCode = e.getStatusCode();
-					String type = e.getId().getMatchedRefType();
-					if(MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
+					if (MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
 						return Stream.of("Application is In Queue.");
-					} else if (MappingJsonConstants.RID.equalsIgnoreCase(type)) {
-						List<String> rids = getMatchedRidFromResponse(e);
-						if (rids != null && !rids.isEmpty()) {
-							return rids.stream();
-						} else {
-							return Stream.of("No Active MA Matches.");
-						}
-					} else if (MappingJsonConstants.NIN.equalsIgnoreCase(type)) {
-						return Stream.of("No Active MA Matches.");
 					}
-					return Stream.empty();
+					List<String> rids = getMatchedRidFromResponse(e);
+					if (rids != null && !rids.isEmpty()) {
+						return rids.stream();
+					} else {
+						return Stream.empty();
+					}
 				})
 				.filter(Objects::nonNull)
 				.distinct()
 				.collect(Collectors.toList());
+		if (result.isEmpty()) {
+			return Collections.singletonList("No Active MA Matches.");
+		}
+		return result;
 	}
 
 	private List<String> getMatchedRidFromResponse(ManualVerificationEntity e) {
