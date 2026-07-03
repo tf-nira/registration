@@ -607,11 +607,6 @@ public class MessageNotificationServiceImpl
 			attributes.put("surname_" + lang, "applicant");
 		}
 
-		if (attributes.get("service").equals("Alien Deactivated")) {
-			attributes.put("surname_" + lang, "DCIC");
-			attributes.put("givenName_" + lang, "");
-		}
-
 		return attributes;
 	}
 
