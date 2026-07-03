@@ -221,6 +221,7 @@ public class MessageNotificationServiceImpl
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("NEW".equals(regType)) {
 					userService = "New Registration";
 				} else if ("LOST".equals(regType)) {
@@ -246,15 +247,16 @@ public class MessageNotificationServiceImpl
 				}else {
 				artifact = artifact + LINE_SEPARATOR + IOUtils.toString(stream, ENCODING);;
 				}
+				smsDto.setNumber(phoneNumber.toString());
 
-				if (process.equals("DEACTIVATED")) {
-					String dcicPhone =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
-					if (dcicPhone != null && !dcicPhone.isEmpty()) smsDto.setNumber(dcicPhone);
-				} else if (phoneNumber != null && phoneNumber.length() != 0) {
-					smsDto.setNumber(phoneNumber.toString());
-				} else {
-					throw new PhoneNumberNotFoundException(PlatformErrorMessages.RPR_SMS_PHONE_NUMBER_NOT_FOUND.getCode());
-				}
+//				if (process.equals("DEACTIVATED")) {
+//					String dcicPhone =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
+//					if (dcicPhone != null && !dcicPhone.isEmpty()) smsDto.setNumber(dcicPhone);
+//				} else if (phoneNumber != null && phoneNumber.length() != 0) {
+//					smsDto.setNumber(phoneNumber.toString());
+//				} else {
+//					throw new PhoneNumberNotFoundException(PlatformErrorMessages.RPR_SMS_PHONE_NUMBER_NOT_FOUND.getCode());
+//				}
 
 			}
 
@@ -353,6 +355,7 @@ public class MessageNotificationServiceImpl
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("NEW".equals(regType)) {
 					userService = "New Registration";
 				} else if ("LOST".equals(regType)) {
@@ -379,16 +382,16 @@ public class MessageNotificationServiceImpl
 
 				subject=IOUtils.toString(subStream, ENCODING);
 
-				String[] mailTo = null;
+				String[] mailTo = new String[]{ emailId.toString() };
 
-				if (process.equals("DEACTIVATED")) {
-					String dcicEmail =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
-					if (dcicEmail != null && !dcicEmail.isEmpty()) mailTo = new String[]{ dcicEmail };
-				} else if (emailId != null && emailId.length() != 0) {
-					mailTo = new String[]{ emailId.toString() };
-				} else {
-					throw new EmailIdNotFoundException(PlatformErrorMessages.RPR_EML_EMAILID_NOT_FOUND.getCode());
-				}
+//				if (process.equals("DEACTIVATED")) {
+//					String dcicEmail =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
+//					if (dcicEmail != null && !dcicEmail.isEmpty()) mailTo = new String[]{ dcicEmail };
+//				} else if (emailId != null && emailId.length() != 0) {
+//					mailTo = new String[]{ emailId.toString() };
+//				} else {
+//					throw new EmailIdNotFoundException(PlatformErrorMessages.RPR_EML_EMAILID_NOT_FOUND.getCode());
+//				}
 
 				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {
 					subject = "AIN Generated";
