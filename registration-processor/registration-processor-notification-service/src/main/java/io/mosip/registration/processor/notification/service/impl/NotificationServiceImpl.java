@@ -397,7 +397,7 @@ public class NotificationServiceImpl implements NotificationService {
 					String countryCodeVal = packetManagerService.getField(id, "CountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
 
 					String countryCode = null;
-					if (countryCodeVal != null) {
+					if (countryCodeVal != null && !process.equals("DEACTIVATED")) {
 						JSONArray countryCodeArray = new JSONArray(countryCodeVal);
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
 					}  else {
