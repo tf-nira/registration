@@ -222,6 +222,7 @@ public class MessageNotificationServiceImpl
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("NEW".equals(regType)) {
 					userService = "New Registration";
 				} else if ("LOST".equals(regType)) {
@@ -248,10 +249,7 @@ public class MessageNotificationServiceImpl
 				artifact = artifact + LINE_SEPARATOR + IOUtils.toString(stream, ENCODING);;
 				}
 
-				if (process.equals("DEACTIVATED")) {
-					String dcicPhone =  packetManagerService.getField(id, "DCICphone", regType, ProviderStageName.MESSAGE_SENDER);
-					if (dcicPhone != null && !dcicPhone.isEmpty()) smsDto.setNumber(dcicPhone);
-				} else if (phoneNumber != null && phoneNumber.length() != 0) {
+				if (phoneNumber != null && phoneNumber.length() != 0) {
 					smsDto.setNumber(phoneNumber.toString());
 				} else {
 					throw new PhoneNumberNotFoundException(PlatformErrorMessages.RPR_SMS_PHONE_NUMBER_NOT_FOUND.getCode());
@@ -354,6 +352,7 @@ public class MessageNotificationServiceImpl
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("NEW".equals(regType)) {
 					userService = "New Registration";
 				} else if ("LOST".equals(regType)) {
@@ -382,10 +381,7 @@ public class MessageNotificationServiceImpl
 
 				String[] mailTo = null;
 
-				if (process.equals("DEACTIVATED")) {
-					String dcicEmail =  packetManagerService.getField(id, "DCICemail", regType, ProviderStageName.MESSAGE_SENDER);
-					if (dcicEmail != null && !dcicEmail.isEmpty()) mailTo = new String[]{ dcicEmail };
-				} else if (emailId != null && emailId.length() != 0) {
+				if (emailId != null && emailId.length() != 0) {
 					mailTo = new String[]{ emailId.toString() };
 				} else {
 					throw new EmailIdNotFoundException(PlatformErrorMessages.RPR_EML_EMAILID_NOT_FOUND.getCode());
@@ -609,11 +605,6 @@ public class MessageNotificationServiceImpl
 		
 		if (attributes.get("surname_" + lang) == null && attributes.get("givenName_" + lang) == null) {
 			attributes.put("surname_" + lang, "applicant");
-		}
-
-		if (attributes.get("service").equals("Alien Deactivated")) {
-			attributes.put("surname_" + lang, "DCIC");
-			attributes.put("givenName_" + lang, "");
 		}
 
 		return attributes;
