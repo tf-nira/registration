@@ -162,6 +162,22 @@ public class IdrepoDraftService {
         return response;
 	}
 
+	public IdResponseDTO idrepoUpdateIdentity(IdRequestDto idRequestDto) throws ApisResourceAccessException {
+		regProcLogger.debug("idrepoUpdateIdentity entry");
+		IdResponseDTO response = (IdResponseDTO) registrationProcessorRestClientService.patchApi(
+				ApiName.IDREPOUPDATEIDENTITY, null, null, null, idRequestDto, IdResponseDTO.class);
+		if (response == null) {
+			regProcLogger.error("Null response received from idrepoUpdateIdentity");
+			return null;
+		}
+		if (response.getErrors() != null && !response.getErrors().isEmpty()) {
+			ErrorDTO error = response.getErrors().get(0);
+			regProcLogger.error("Error occured while updating identity directly: " + error.toString());
+		}
+		regProcLogger.debug("idrepoUpdateIdentity exit");
+		return response;
+	}
+
 	public Boolean idrepoDiscardDraft(String id)
 			throws ApisResourceAccessException, IdrepoDraftReprocessableException, IdrepoDraftException {
 		regProcLogger.debug("idrepoDiscardDraft entry " + id);
