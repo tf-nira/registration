@@ -399,14 +399,7 @@ public class NotificationServiceImpl implements NotificationService {
 					if (countryCodeVal != null && !process.equals("DEACTIVATED")) {
 						JSONArray countryCodeArray = new JSONArray(countryCodeVal);
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
-					} else if (dcicCountryCodeVal != null) {
-						JSONArray countryCodeArray = new JSONArray(dcicCountryCodeVal);
-						countryCode = countryCodeArray.getJSONObject(0).getString("value");
-					}
-					
-					if (countryCode != null && "Uganda (256)".equals(countryCode)) {
-						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
-					} else {
+					}  else {
 						JSONObject jsonObject = utilities.idrepoRetrieveIdentityByRid(id);
 						if (jsonObject != null && jsonObject.containsKey(MappingJsonConstants.COUNTRY_CODE)) {
 							JSONArray countryArray = (JSONArray) jsonObject.get(MappingJsonConstants.COUNTRY_CODE);
@@ -418,6 +411,15 @@ public class NotificationServiceImpl implements NotificationService {
 										"SMS notification allowed for this country code.");
 							}
 						}
+					}
+					
+					if (countryCode != null && "Uganda (256)".equals(countryCode)) {
+						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
+					} else {
+						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+								LoggerFileConstant.REGISTRATIONID.toString(), id,
+								"SMS notification not allowed for this country code.");
+						isSMSSuccess = true;
 					}
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
 						&& isTemplateAvailable(messageSenderDto)) {
