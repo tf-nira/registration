@@ -399,13 +399,15 @@ public class NotificationServiceImpl implements NotificationService {
 					if (countryCodeVal != null && !process.equals("DEACTIVATED")) {
 						JSONArray countryCodeArray = new JSONArray(countryCodeVal);
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
-					}  else {
+					} else {
 						JSONObject jsonObject = utilities.idrepoRetrieveIdentityByRid(id);
 						if (jsonObject != null && jsonObject.containsKey(MappingJsonConstants.COUNTRY_CODE)) {
-							JSONArray countryArray = (JSONArray) jsonObject.get(MappingJsonConstants.COUNTRY_CODE);
+							org.json.simple.JSONArray simpleArray =
+									(org.json.simple.JSONArray) jsonObject.get(MappingJsonConstants.COUNTRY_CODE);
+							org.json.JSONArray countryArray = new org.json.JSONArray(simpleArray);
 							if (countryArray != null && countryArray.length() > 0) {
-								JSONObject countryObj = (JSONObject) countryArray.get(0);
-								countryCode = (String) countryObj.get(MappingJsonConstants.VALUE);
+								org.json.JSONObject countryObj = (org.json.JSONObject) countryArray.get(0);
+								countryCode = countryObj.getString(MappingJsonConstants.VALUE);
 								regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 										LoggerFileConstant.REGISTRATIONID.toString(), countryCode,
 										"SMS notification allowed for this country code.");
