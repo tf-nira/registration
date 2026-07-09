@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -1162,11 +1163,19 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			regProcLogger.info("Fields to be updated "+updateInfo);
 			if (null != updateInfo && !updateInfo.isEmpty()) {
 				String[] upd = updateInfo.split(",");
+				ObjectMapper mapper = new ObjectMapper();
 				for (String infoField : upd) {
 					String fldValue = packetManagerService.getField(lostPacketRegId, infoField, process,
 							ProviderStageName.UIN_GENERATOR);
-					if (null != fldValue)
-						identityObject.put(infoField, fldValue);
+					if (fldValue != null) {
+						if (MappingJsonConstants.SERVICE_TYPE.equalsIgnoreCase(infoField)) {
+								List<Map<String, Object>> listValue = mapper.readValue(
+										fldValue, new TypeReference<List<Map<String, Object>>>() {});
+								identityObject.put(infoField, listValue);
+						} else {
+							identityObject.put(infoField, fldValue);
+						}
+					}
 				}
 			}
 			identityObject.put("isCardRequired", "Yes");
