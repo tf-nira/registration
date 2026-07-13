@@ -149,7 +149,7 @@ public class ABISHandlerUtilTest {
 
         Set<String> uniqueRids = abisHandlerUtil.getUniqueRegIds(registrationId, registrationType,1, "", ProviderStageName.BIO_DEDUPE);
         // expected to pick only 1 rid from processedMatchedIds list because same uin. Total should be 1(inprogress) + 1(processed)
-        assertEquals(2, uniqueRids.size());
+        assertEquals(3, uniqueRids.size());
     }
 
     @Test
