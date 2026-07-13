@@ -1045,4 +1045,9 @@ public class RegistrationStatusServiceImpl
 
 	}
 	
+	@Override
+	public List<String> getProcessForRegIds(List<String> matchedRegIds) {
+		return registrationStatusDao.getProcessForRegIds(matchedRegIds);
+	}
+	
 }
