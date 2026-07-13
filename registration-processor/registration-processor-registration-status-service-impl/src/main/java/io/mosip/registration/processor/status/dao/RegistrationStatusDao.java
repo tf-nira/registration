@@ -289,4 +289,8 @@ public class RegistrationStatusDao {
 	{
 		return registrationStatusRepositary.getByIdAndProcessAndIteration(id, process, iteration);
 	}
+
+	public List<String> getProcessForRegIds(List<String> matchedRegIds) {
+		return registrationStatusRepositary.getProcessForRegIds(matchedRegIds);
+	}
 }
