@@ -115,6 +115,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 
 	private static final Set<String> LOST_LANG_FIELDS = Set.of(
 			MappingJsonConstants.SERVICE_TYPE,
+			MappingJsonConstants.ENROLMENT_STATUS,
 			MappingJsonConstants.ENROLMENT_COUNTRY,
 			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_DISTRICT,
 			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_COUNTY,

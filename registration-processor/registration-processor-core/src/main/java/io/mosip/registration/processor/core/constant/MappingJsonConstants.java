@@ -21,6 +21,7 @@ public class MappingJsonConstants {
 	public static final String CONSENT="consent";
 	public static final String DISTRICT="applicantPlaceOfResidenceDistrict";
 	public static final String SERVICE_TYPE="userServiceType";
+	public static final String ENROLMENT_STATUS = "enrolmentStatus";
 	public static final String ENROLMENT_COUNTRY = "enrolmentCountry";
 	public static final String APPLICANT_PLACE_OF_ENROLMENT_DISTRICT = "applicantPlaceOfEnrolmentDistrict";
 	public static final String APPLICANT_PLACE_OF_ENROLMENT_COUNTY = "applicantPlaceOfEnrolmentCounty";
