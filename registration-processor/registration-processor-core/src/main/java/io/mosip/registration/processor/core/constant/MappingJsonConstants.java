@@ -21,6 +21,12 @@ public class MappingJsonConstants {
 	public static final String CONSENT="consent";
 	public static final String DISTRICT="applicantPlaceOfResidenceDistrict";
 	public static final String SERVICE_TYPE="userServiceType";
+	public static final String ENROLMENT_COUNTRY = "enrolmentCountry";
+	public static final String APPLICANT_PLACE_OF_ENROLMENT_DISTRICT = "applicantPlaceOfEnrolmentDistrict";
+	public static final String APPLICANT_PLACE_OF_ENROLMENT_COUNTY = "applicantPlaceOfEnrolmentCounty";
+	public static final String APPLICANT_PLACE_OF_ENROLMENT_SUB_COUNTY = "applicantPlaceOfEnrolmentSubCounty";
+	public static final String APPLICANT_PLACE_OF_ENROLMENT_PARISH = "applicantPlaceOfEnrolmentParish";
+	public static final String APPLICANT_PLACE_OF_ENROLMENT_VILLAGE = "applicantPlaceOfEnrolmentVillage";
 
 	public static final String INTRODUCER_BIO = "introducerBiometrics";
 	/** The Constant OFFICERBIOMETRICFILENAME. */
