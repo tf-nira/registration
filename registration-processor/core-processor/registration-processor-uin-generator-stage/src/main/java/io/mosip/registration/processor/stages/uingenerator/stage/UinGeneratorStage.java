@@ -1,12 +1,7 @@
 package io.mosip.registration.processor.stages.uingenerator.stage;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -117,6 +112,17 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.uin.generator.";
 	private static final String UIN = "UIN";
 	private static final String IDREPO_STATUS = "DRAFTED";
+
+	private static final Set<String> LOST_LANG_FIELDS = Set.of(
+			MappingJsonConstants.SERVICE_TYPE,
+			MappingJsonConstants.ENROLMENT_STATUS,
+			MappingJsonConstants.ENROLMENT_COUNTRY,
+			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_DISTRICT,
+			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_COUNTY,
+			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_SUB_COUNTY,
+			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_PARISH,
+			MappingJsonConstants.APPLICANT_PLACE_OF_ENROLMENT_VILLAGE
+	);
 
 	@Autowired
 	private Environment env;
@@ -1168,7 +1174,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 					String fldValue = packetManagerService.getField(lostPacketRegId, infoField, process,
 							ProviderStageName.UIN_GENERATOR);
 					if (fldValue != null) {
-						if (MappingJsonConstants.SERVICE_TYPE.equalsIgnoreCase(infoField)) {
+						if (LOST_LANG_FIELDS.stream().anyMatch(field -> field.equalsIgnoreCase(infoField))) {
 								List<Map<String, Object>> listValue = mapper.readValue(
 										fldValue, new TypeReference<List<Map<String, Object>>>() {});
 								identityObject.put(infoField, listValue);
