@@ -773,7 +773,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 					r.setReferenceId(e.getId().getMatchedRefId());
 					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
 					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
-						regProcLogger.error(
+						regProcLogger.info(
 								"Reference URL is null/empty. regId={}, matchedRefId={}",
 								e.getRegId(),
 								e.getId().getMatchedRefId()
@@ -796,7 +796,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 					r.setReferenceId(e.getId().getMatchedRefId());
 					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
 					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
-						regProcLogger.error(
+						regProcLogger.info(
 								"Reference URL is null/empty. regId={}, matchedRefId={}",
 								e.getRegId(),
 								e.getId().getMatchedRefId()
