@@ -772,6 +772,13 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
 					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
+						regProcLogger.error(
+								"Reference URL is null/empty. regId={}, matchedRefId={}",
+								e.getRegId(),
+								e.getId().getMatchedRefId()
+						);
+					}
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -788,6 +795,13 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 					req.setBioAuthFailed("true");
 					r.setReferenceId(e.getId().getMatchedRefId());
 					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
+					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
+						regProcLogger.error(
+								"Reference URL is null/empty. regId={}, matchedRefId={}",
+								e.getRegId(),
+								e.getId().getMatchedRefId()
+						);
+					}
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
