@@ -291,4 +291,17 @@ public class RegistrationStatusDao {
 	{
 		return registrationStatusRepositary.getByIdAndProcessAndIteration(id, process, iteration);
 	}
+
+	/**
+	 * Gets registration status entities whose regId starts with the given prefix (before "-"),
+	 * EXCLUDING the given status codes.
+	 *
+	 * @param ridPrefix   the prefix to match, WITHOUT the trailing %
+	 * @param statusCodes the status codes to exclude
+	 * @return list of matching entities (i.e. entities with some OTHER status)
+	 */
+	public List<RegistrationStatusEntity> getByRidPrefixExcludingStatusCodes(String ridPrefix, List<String> statusCodes) {
+		return registrationStatusRepositary.findByRidPrefixExcludingStatusCodes(ridPrefix + "%", statusCodes);
+	}
+
 }
