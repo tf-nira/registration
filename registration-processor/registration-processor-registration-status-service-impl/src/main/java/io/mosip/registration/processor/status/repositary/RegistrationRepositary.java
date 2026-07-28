@@ -89,6 +89,12 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 			+ "AND registration.regId != :excludeRegId AND registration.registrationType IN :registrationTypes "
 			+ "AND registration.latestTransactionTimes >= :latestTransactionTimes AND registration.isDeleted = false AND registration.isActive = true")
 	public List<Map<String, Object>> getRegIdAndStatusByReferenceId(@Param("hashedNationalRefId") String hashedNationalRefId, @Param("excludeRegId") String excludeRegId, @Param("registrationTypes") List<String> registrationTypes, @Param("latestTransactionTimes") LocalDateTime latestTransactionTimes);
+
+	@Query("SELECT registration FROM RegistrationStatusEntity registration "
+			+ "WHERE registration.regId LIKE :ridPrefix "
+			+ "AND registration.statusCode NOT IN :statusCodes "
+			+ "AND registration.isDeleted = false AND registration.isActive = true")
+	public List<RegistrationStatusEntity> findByRidPrefixExcludingStatusCodes(@Param("ridPrefix") String ridPrefix, @Param("statusCodes") List<String> statusCodes);
 }
 
 
