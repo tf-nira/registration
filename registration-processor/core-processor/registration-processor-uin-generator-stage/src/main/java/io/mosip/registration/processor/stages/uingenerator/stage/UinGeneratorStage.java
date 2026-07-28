@@ -1139,7 +1139,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	private IdResponseDTO lostAndUpdateUin(String lostPacketRegId, String lostPacketNin, String process, MessageDTO object,
 			LogDescription description) throws ApisResourceAccessException, IOException,
 			io.mosip.kernel.core.util.exception.JsonProcessingException, PacketManagerException, IdrepoDraftException,
-			IdrepoDraftReprocessableException {
+			IdrepoDraftReprocessableException,JSONException {
 
 		IdResponseDTO idResponse = null;
 		JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
@@ -1163,20 +1163,15 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			regProcLogger.info("Fields to be updated "+updateInfo);
 			if (null != updateInfo && !updateInfo.isEmpty()) {
 				String[] upd = updateInfo.split(",");
-				ObjectMapper mapper = new ObjectMapper();
+				Map<String, String> fieldMap = new HashMap<>();
 				for (String infoField : upd) {
 					String fldValue = packetManagerService.getField(lostPacketRegId, infoField, process,
 							ProviderStageName.UIN_GENERATOR);
 					if (fldValue != null) {
-						if (MappingJsonConstants.SERVICE_TYPE.equalsIgnoreCase(infoField)) {
-								List<Map<String, Object>> listValue = mapper.readValue(
-										fldValue, new TypeReference<List<Map<String, Object>>>() {});
-								identityObject.put(infoField, listValue);
-						} else {
-							identityObject.put(infoField, fldValue);
-						}
+						fieldMap.put(infoField, fldValue);
 					}
 				}
+				loadDemographicIdentity(fieldMap, identityObject);
 			}
 			identityObject.put("isCardRequired", "Yes");
 			requestDto.setRegistrationId(lostPacketRegId);
