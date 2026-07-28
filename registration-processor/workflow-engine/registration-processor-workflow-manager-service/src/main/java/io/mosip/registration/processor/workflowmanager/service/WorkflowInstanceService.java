@@ -249,7 +249,6 @@ public class WorkflowInstanceService {
         excludeStatusCodes.add(RegistrationStatusCode.FAILED.toString());
         excludeStatusCodes.add(RegistrationStatusCode.REJECTED.toString());
         excludeStatusCodes.add(RegistrationStatusCode.REPROCESS_FAILED.toString());
-        excludeStatusCodes.add(RegistrationStatusCode.DUPLICATE.toString());
         List<RegistrationStatusEntity> matched = registrationStatusDao.getByRidPrefixExcludingStatusCodes(ridPrefix, excludeStatusCodes);
 
         return matched.isEmpty();
