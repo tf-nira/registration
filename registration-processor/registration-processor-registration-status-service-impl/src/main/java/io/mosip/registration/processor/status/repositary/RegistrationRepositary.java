@@ -82,6 +82,12 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 
 	@Query("SELECT registration FROM RegistrationStatusEntity registration WHERE registration.regId IN :regIds")
 	List<RegistrationStatusEntity> getStatusAndProcessForRegIds(@Param("regIds") List<String> regIds);
+
+	@Query("SELECT registration FROM RegistrationStatusEntity registration "
+			+ "WHERE registration.regId LIKE :ridPrefix "
+			+ "AND registration.statusCode NOT IN :statusCodes "
+			+ "AND registration.isDeleted = false AND registration.isActive = true")
+	public List<RegistrationStatusEntity> findByRidPrefixExcludingStatusCodes(@Param("ridPrefix") String ridPrefix, @Param("statusCodes") List<String> statusCodes);
 }
 
 

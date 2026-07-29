@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -112,6 +113,11 @@ public class WorkflowInstanceService {
             SyncRegistrationEntity syncRegistrationEntity = createSyncRegistrationEntity(regRequest, workflowInstanceId, rid, user);
             syncRegistrationDao.save(syncRegistrationEntity);
             dto = getInternalRegistrationStatusDto(regRequest, user, workflowInstanceId, iteration);
+            if (!isRidPrefixNotPresentForCrvs(rid)) {
+                dto.setStatusCode(RegistrationStatusCode.DUPLICATE.toString());
+                dto.setLatestTransactionStatusCode(RegistrationStatusCode.DUPLICATE.toString());
+                dto.setStatusComment(PlatformSuccessMessages.RSW_DUP_TRCK.getMessage());
+            }
             registrationStatusService.addRegistrationStatus(dto, MODULE_ID, MODULE_NAME);
             description
                     .setMessage(PlatformSuccessMessages.RPR_WORKFLOW_INSTANCE_SERVICE_SUCCESS.getMessage());
@@ -231,6 +237,21 @@ public class WorkflowInstanceService {
            throw new WorkflowInstanceException(PlatformErrorMessages.RPR_WIS_ALREADY_PRESENT_EXCEPTION.getCode(), PlatformErrorMessages.RPR_WIS_ALREADY_PRESENT_EXCEPTION.getMessage());
        }
         regProcLogger.debug("validateWorkflowInstanceAlreadyAvailable :: exit {}", regId);
+    }
+
+    public boolean isRidPrefixNotPresentForCrvs(String rid) {
+        if (rid == null || !rid.contains("-")) {
+            return true;
+        }
+
+        String ridPrefix = rid.substring(0, rid.indexOf("-"));
+        List<String> excludeStatusCodes = new ArrayList<>();
+        excludeStatusCodes.add(RegistrationStatusCode.FAILED.toString());
+        excludeStatusCodes.add(RegistrationStatusCode.REJECTED.toString());
+        excludeStatusCodes.add(RegistrationStatusCode.REPROCESS_FAILED.toString());
+        List<RegistrationStatusEntity> matched = registrationStatusDao.getByRidPrefixExcludingStatusCodes(ridPrefix, excludeStatusCodes);
+
+        return matched.isEmpty();
     }
 
 }

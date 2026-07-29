@@ -202,7 +202,10 @@ public enum PlatformSuccessMessages {
 			"OnDemand Packet created"),
 
 	RPR_LEGACY_DATA(PlatformConstants.RPR_LEGACY_DATA_MODULE + "000",
-			"Legacy Data Validation Success");
+			"Legacy Data Validation Success"),
+
+	RSW_DUP_TRCK(PlatformConstants.RPR_WORKFLOW_INSTANCE_SERVICE + "000",
+			"Duplicate Tracking Id");
 
 	/** The success message. */
 	private final String successMessage;
