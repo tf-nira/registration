@@ -276,6 +276,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 								object.setIsValid(Boolean.TRUE);
 								regProcLogger.info(
 										"In Registration Processor - Payment Validator - PRN consumption success. Send to next stage.");
+								isTransactionSuccessful = true;
 							}
 							else {
 								Map<String, String> notificationAttributes = new HashMap<>();
