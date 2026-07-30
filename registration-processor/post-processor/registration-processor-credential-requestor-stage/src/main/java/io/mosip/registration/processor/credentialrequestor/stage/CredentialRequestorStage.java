@@ -318,6 +318,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 				if (!isAdult && !isAlien) {
 					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
+					filteredPartners.removeIf(p -> "digitalcardPartner".equals(p.getId()));
 				}
 				
 				for (CredentialPartner key : filteredPartners) {
