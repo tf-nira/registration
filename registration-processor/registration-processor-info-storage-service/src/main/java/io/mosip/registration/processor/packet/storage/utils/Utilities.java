@@ -259,6 +259,7 @@ public class Utilities {
 			throws IOException, ApisResourceAccessException, JsonProcessingException, PacketManagerException {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
 				"Utilities::getApplicantAge()::entry");
+
 		String applicantDob = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.DOB, process, stageName);
 		String applicantAge = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.AGE, process,stageName);
 
@@ -285,7 +286,7 @@ public class Utilities {
 						"Utilities::getApplicantAge()::exit when ID REPO applicantDob is not null");
 				return calculateAge(idRepoApplicantDob, packetCreationDate);
 			}
-			String  idRepoApplicantAge = JsonUtil.getJSONValue(identityJSONOject, ageKey);
+			String idRepoApplicantAge = JsonUtil.getJSONValue(identityJSONOject, ageKey);
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), id,
 					"Utilities::getApplicantAge()::exit when ID REPO applicantAge is not null");
 			return idRepoApplicantAge != null ? Double.valueOf(idRepoApplicantAge) : -1;
@@ -645,7 +646,6 @@ public class Utilities {
 
 			IdResponseDTO1 idResponseDto;
 
-
 			String typeIdParam = "idType";
 			String typeIdParamValue = "handle";
 
@@ -997,7 +997,6 @@ public class Utilities {
 			if (isBioNeeded) {
 				queryParams.add(typeParam);
 			}
-
 			queryParams.add(typeIdParam);
 			
 			List<Object> queryParamValues = new ArrayList<Object>();

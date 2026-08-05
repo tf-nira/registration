@@ -35,4 +35,7 @@ public class VerificationConstants {
 	public static final String POLICY_ID = "policyId";
 	public static final String POLICIES = "policies";
 	public static final String SHAREABLE_ATTRIBUTES = "shareableAttributes";
+	public static final String DEMODEDUPE_STAGE = "DemoDedupeStage";
+	public static final String AGE_GROUP_CHILD = "CHILD";
+	public static final String TAG_VALUE_ROUTE_TO_CVS_AFTER_MVS_TRUE = "true";
 }

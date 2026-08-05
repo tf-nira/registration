@@ -52,11 +52,10 @@ public class RegistrationStatusDaoTest {
 		Mockito.when(registrationStatusRepositary.findByWorkflowInstanceId(Matchers.any())).thenReturn(list);
 		Mockito.when(registrationStatusRepositary.getActionablePausedPackets(Matchers.any(),Matchers.any())).thenReturn(list);
 		Mockito.when(
-				registrationStatusRepositary.getResumablePackets(Matchers.any(), Matchers.any(), Matchers.any(),
-						Matchers.anyList(), Matchers.anyList()))
+						registrationStatusRepositary.getResumablePackets(Matchers.any(), Matchers.any(), Matchers.anyList()))
 				.thenReturn(list);
 		Mockito.when(registrationStatusRepositary.getUnProcessedPacketsCount(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(1);
-		Mockito.when(registrationStatusRepositary.getUnProcessedPackets(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(list);
+		Mockito.when(registrationStatusRepositary.getUnProcessedPackets(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(list);
 	}
 
 	@Test
@@ -116,7 +115,7 @@ public class RegistrationStatusDaoTest {
 		List<String> excludeStageNames = new ArrayList<>();
 		excludeStageNames.add("PacketReceiverStage");
 		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getUnProcessedPackets(2, 60000, 4,
-				statusList, excludeStageNames, new ArrayList<>());
+				statusList, excludeStageNames);
 		assertEquals(list, rEntityList);
 	}
 
@@ -156,8 +155,7 @@ public class RegistrationStatusDaoTest {
 		stageList.add("stage");
 		List<String> processList = new ArrayList<>();
 		stageList.add("MIGRATOR");
-		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getResumablePackets(2, 2, stageList,
-				processList);
+		List<RegistrationStatusEntity> rEntityList = registrationStatusDao.getResumablePackets(2, stageList);
 		assertEquals(list, rEntityList);
 	}
 
