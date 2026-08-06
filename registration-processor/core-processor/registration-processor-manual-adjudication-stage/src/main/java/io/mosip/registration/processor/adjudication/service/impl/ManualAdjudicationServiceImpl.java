@@ -1118,6 +1118,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			description.setCode(PlatformSuccessMessages.RPR_MANUAL_VERIFICATION_APPROVED.getCode());
 
 			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
+				registrationStatusDto.setStatusComment(StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
 				if (Objects.equals(messageDTO.getReg_type(), "LOST")) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.BIO_DEDUPE_BUS_IN);
 				} else if (Objects.equals(messageDTO.getReg_type(), "UPDATE")) {
@@ -1159,6 +1160,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			Map<String, String> notificationAttributes = new HashMap<>();
 
 			if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.BIO_AUTH_FAILURE.toString())) {
+				registrationStatusDto.setStatusComment(StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage());
 				notificationAttributes.put("FAILURE_REASON", "Biometric authentication failed");
 			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
 				notificationAttributes.put("FAILURE_REASON", "Introducer biometric authentication failed");
