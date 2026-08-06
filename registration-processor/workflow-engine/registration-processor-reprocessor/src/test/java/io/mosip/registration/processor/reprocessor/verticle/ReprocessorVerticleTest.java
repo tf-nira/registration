@@ -171,7 +171,7 @@ public class ReprocessorVerticleTest {
 		registrationStatusDto1.setRegistrationType("NEW");
 		registrationStatusDto1.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 		dtolist.add(registrationStatusDto1);
-		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
+		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenReturn(dtolist);
 		reprocessorVerticle.process(dto);
 
@@ -200,7 +200,7 @@ public class ReprocessorVerticleTest {
 		registrationStatusDto1.setRegistrationType("NEW");
 		registrationStatusDto1.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
 		dtolist.add(registrationStatusDto1);
-		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
+		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenReturn(dtolist);
 		reprocessorVerticle.process(dto);
 
@@ -214,7 +214,7 @@ public class ReprocessorVerticleTest {
 	 */
 	@Test
 	public void exceptionTest() throws Exception {
-		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(),anyLong(), anyInt(), anyList(), anyList(), anyList()))
+		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenReturn(null);
 		dto = reprocessorVerticle.process(dto);
 		assertEquals(null, dto.getIsValid());
@@ -223,7 +223,7 @@ public class ReprocessorVerticleTest {
 	
 	@Test
 	public void nullPointerExceptionTest() throws Exception {
-		Mockito.when(registrationStatusService.getResumablePackets(anyLong(), anyInt(), anyList(), anyList()))
+		Mockito.when(registrationStatusService.getResumablePackets(anyInt(), anyList()))
 				.thenThrow(NullPointerException.class);
 		dto = reprocessorVerticle.process(dto);
 		assertEquals(null, dto.getIsValid());
@@ -231,7 +231,7 @@ public class ReprocessorVerticleTest {
 
 	@Test
 	public void TablenotAccessibleExceptionTest() throws Exception {
-		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
+		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenThrow(new TablenotAccessibleException("") {
 				});
 
@@ -266,8 +266,8 @@ public class ReprocessorVerticleTest {
 		reprocessorDtoList.add(registrationStatusDto1);
 //		Mockito.when(registrationStatusService.getResumablePackets(anyLong(), anyInt(), anyList()))
 //				.thenReturn(dtolist);
-		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
-				.thenReturn(reprocessorDtoList);
+		Mockito.when(registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
+				.thenReturn(dtolist);
 		reprocessorVerticle.process(dto);
 
 	}
@@ -288,7 +288,7 @@ public class ReprocessorVerticleTest {
 		registrationStatusDto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.REPROCESS.toString());
 		dtolist.add(registrationStatusDto);
 		Mockito.when(
-				registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
+						registrationStatusService.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenReturn(dtolist);
 		reprocessorVerticle.process(dto);
 

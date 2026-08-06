@@ -113,15 +113,13 @@ public class RegistrationStatusDao {
 	 * @return the registration status entity
 	 */
 	public RegistrationStatusEntity find(String rid, String process, Integer iteration, String workflowInstanceId) {
-		List<RegistrationStatusEntity> registrationStatusEntityList = null;
-
-	    if (workflowInstanceId != null) {
-	        registrationStatusEntityList = registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
-	    } else {
-	       registrationStatusEntityList = registrationStatusRepositary.findByRegId(rid);
-	    }
-
-	    return registrationStatusEntityList.isEmpty() ? null : registrationStatusEntityList.get(0);
+		List<RegistrationStatusEntity> registrationStatusEntityList =null;
+		if (workflowInstanceId != null) {
+			registrationStatusEntityList=registrationStatusRepositary.findByWorkflowInstanceId(workflowInstanceId);
+		} else {
+			registrationStatusEntityList=registrationStatusRepositary.findByRegId(rid);
+		}
+		return !registrationStatusEntityList.isEmpty() ? registrationStatusEntityList.get(0) : null;
 	}
 
 	/**
@@ -221,8 +219,7 @@ public class RegistrationStatusDao {
 	 * @return the un processed packets
 	 */
 	public List<RegistrationStatusEntity> getUnProcessedPackets(Integer fetchSize, long elapseTime,
-			Integer reprocessCount, List<String> status, List<String> excludeStageNames,
-			List<String> includeProcesses) {
+			Integer reprocessCount, List<String> status, List<String> excludeStageNames) {
 
 		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
 		List<String> statusCodes=new ArrayList<>();
@@ -234,7 +231,7 @@ public class RegistrationStatusDao {
 		statusCodes.add(RegistrationStatusCode.PROCESSED.toString());
 
 		return registrationStatusRepositary.getUnProcessedPackets(status, reprocessCount, timeDifference, 
-				statusCodes, fetchSize, excludeStageNames, includeProcesses);
+			statusCodes, fetchSize, excludeStageNames);
 	}
 
 	public Integer getUnProcessedPacketsCount(long elapseTime, Integer reprocessCount, List<String> status, 
@@ -272,11 +269,10 @@ public class RegistrationStatusDao {
 		return registrationStatusRepositary.getActionablePausedPackets(statusCodes, fetchSize);
 	}
 
-	public List<RegistrationStatusEntity> getResumablePackets(long elapseTime, Integer fetchSize,
-			List<String> excludeStageNames, List<String> includeProcesses) {
-		LocalDateTime timeDifference = LocalDateTime.now().minusSeconds(elapseTime);
-		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), timeDifference, fetchSize,
-				excludeStageNames, includeProcesses);
+	public List<RegistrationStatusEntity> getResumablePackets(Integer fetchSize, List<String> excludeStageNames) {
+
+		return registrationStatusRepositary.getResumablePackets(RegistrationStatusCode.RESUMABLE.toString(), fetchSize,
+				excludeStageNames);
 	}
 	
 	public List<RegistrationStatusEntity> getUnNotifiedPackets(Integer fetchSize, List<String> statusCodes) {
@@ -296,7 +292,6 @@ public class RegistrationStatusDao {
 		return registrationStatusRepositary.getByIdAndProcessAndIteration(id, process, iteration);
 	}
 
-
 	/**
 	 * Gets registration status entities whose regId starts with the given prefix (before "-"),
 	 * EXCLUDING the given status codes.
@@ -308,4 +303,5 @@ public class RegistrationStatusDao {
 	public List<RegistrationStatusEntity> getByRidPrefixExcludingStatusCodes(String ridPrefix, List<String> statusCodes) {
 		return registrationStatusRepositary.findByRidPrefixExcludingStatusCodes(ridPrefix + "%", statusCodes);
 	}
+
 }

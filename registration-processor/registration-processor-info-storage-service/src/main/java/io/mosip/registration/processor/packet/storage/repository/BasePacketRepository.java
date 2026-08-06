@@ -43,7 +43,6 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	@Query("SELECT demo FROM IndividualDemographicDedupeEntity demo WHERE demo.regId=:regId")
 	public List<E> findDemoById(@Param("regId") String regId);
 
-
 	/**
 	 * Find demo by id.
 	 *
@@ -53,7 +52,6 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 	 */
 	@Query("SELECT r.id.matchedRegId FROM RegDemoDedupeListEntity r WHERE r.regId = :regId")
 	List<String> findMatchedRegIdsByRegId(@Param("regId") String regId);
-
 
 	/**
 	 * This method gets the first created registration record
@@ -489,13 +487,14 @@ public interface BasePacketRepository<E extends BasePacketEntity<?>, T> extends 
 
 	@Query(value = "SELECT t FROM TransactionTypeEntity t WHERE t.id.code =:code")
 	public List<TransactionTypeEntity> getTransactionTypeByCode(@Param("code") String code);
-	
+
 	@Query(value = "SELECT * FROM regprc.ma_matched_rids WHERE matched_count = 1 AND is_issued = false ORDER BY cr_dtimes LIMIT :fetchSize", nativeQuery = true)
 	public List<MAMatchedRidsEntity> findPendingForIssue(@Param("fetchSize") int fetchSize);
-	
+
 	@Query(value ="SELECT m FROM MAMatchedRidsEntity m WHERE m.id.regId =:regId")
 	public List<MAMatchedRidsEntity> getMatchedRecordByRegId(@Param("regId") String regId);
 
 	@Query(value = "SELECT e FROM EnrollmentDataEntity e WHERE e.id.regId =:regId")
 	public List<EnrollmentDataEntity> getEnrollmentData(@Param("regId") String regId);
+
 }

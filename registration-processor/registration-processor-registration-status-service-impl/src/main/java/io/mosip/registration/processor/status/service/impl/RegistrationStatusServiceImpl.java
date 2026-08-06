@@ -677,6 +677,7 @@ public class RegistrationStatusServiceImpl
 		registrationStatusDto.setNotificationSent(entity.getNotificationSent());
 		registrationStatusDto.setIsAnonymousProfileAdded(entity.getIsAnonymousProfileAdded());
 		registrationStatusDto.setLatestTransactionTimes(entity.getLatestTransactionTimes());
+		registrationStatusDto.setReferenceId(entity.getReferenceId());
 		return registrationStatusDto;
 	}
 
@@ -740,6 +741,9 @@ public class RegistrationStatusServiceImpl
 			registrationStatusEntity.setLastSuccessStageName(existingLastSuccessStageName);
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
+		if(dto.getReferenceId() != null && !dto.getReferenceId().isEmpty()) {
+			registrationStatusEntity.setReferenceId(dto.getReferenceId());
+		}
 		return registrationStatusEntity;
 	}
 
@@ -779,14 +783,13 @@ public class RegistrationStatusServiceImpl
 	 * @return the un processed packets
 	 */
 	public List<InternalRegistrationStatusDto> getUnProcessedPackets(Integer fetchSize, long elapseTime,
-			Integer reprocessCount, List<String> status, List<String> excludeStageNames,
-			List<String> includeProcesses) {
+			Integer reprocessCount, List<String> status, List<String> excludeStageNames) {
 
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationStatusServiceImpl::getReprocessPacket()::entry");
 		try {
 			List<RegistrationStatusEntity> entityList = registrationStatusDao.getUnProcessedPackets(fetchSize,
-					elapseTime, reprocessCount, status, excludeStageNames, includeProcesses);
+					elapseTime, reprocessCount, status, excludeStageNames);
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"RegistrationStatusServiceImpl::getReprocessPacket()::exit");
@@ -895,13 +898,12 @@ public class RegistrationStatusServiceImpl
 	}
 
 	@Override
-	public List<InternalRegistrationStatusDto> getResumablePackets(long elapseTime, Integer fetchSize,
-			List<String> excludeStageNames, List<String> includeProcesses) {
+	public List<InternalRegistrationStatusDto> getResumablePackets(Integer fetchSize, List<String> excludeStageNames) {
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 				"RegistrationStatusServiceImpl::getResumablePackets()::entry");
 		try {
-			List<RegistrationStatusEntity> entityList = registrationStatusDao.getResumablePackets(elapseTime, fetchSize,
-					excludeStageNames, includeProcesses);
+			List<RegistrationStatusEntity> entityList = registrationStatusDao.getResumablePackets(fetchSize,
+					excludeStageNames);
 
 			regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 					"RegistrationStatusServiceImpl::getResumablePackets()::exit");

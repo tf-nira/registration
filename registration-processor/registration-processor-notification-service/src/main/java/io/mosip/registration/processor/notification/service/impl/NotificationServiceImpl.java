@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import io.mosip.registration.processor.core.constant.MappingJsonConstants;
+import io.mosip.registration.processor.core.util.JsonUtil;
+import io.mosip.registration.processor.packet.storage.utils.Utilities;
+import org.json.simple.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.simple.parser.ParseException;
@@ -102,6 +105,7 @@ public class NotificationServiceImpl implements NotificationService {
 	private static final String SUPERVISOR_REJECTED = NOTIFICATION_TEMPLATE_CODE + "supervisor.rejected.";
 	private static final String MA_PACKET_REJECTED = NOTIFICATION_TEMPLATE_CODE + "ma.packet.rejected.";
 
+
 	/** The core audit request builder. */
 	@Autowired
 	private AuditLogRequestBuilder auditLogRequestBuilder;
@@ -118,6 +122,9 @@ public class NotificationServiceImpl implements NotificationService {
 
 	@Value("${mosip.registration.processor.notification.types}")
 	private String notificationTypes;
+
+	@Autowired
+	private Utilities utilities;
 	
 	@Value("${websub.hub.url}")
 	private String hubURL;
@@ -355,8 +362,8 @@ public class NotificationServiceImpl implements NotificationService {
 	 * @throws Exception the exception
 	 */
 	private boolean sendNotification(String id, String process, Map<String, Object> attributes, String[] ccEMailList,
-									 String[] allNotificationTypes, String regType, MessageSenderDto messageSenderDto,
-									 LogDescription description) throws Exception {
+			String[] allNotificationTypes, String regType, MessageSenderDto messageSenderDto,
+			LogDescription description) throws Exception {
 		boolean isNotificationSuccess = false;
 		boolean isSMSSuccess = false, isEmailSuccess = false;
 		// if notification is set as none then dont send notification
@@ -371,23 +378,43 @@ public class NotificationServiceImpl implements NotificationService {
 		}
 		if (allNotificationTypes != null) {
 			for (String notificationType : allNotificationTypes) {
+				regProcLogger.info("Setting the value for service for notification templates, process: {}",process);
+				
 				String displayService = env.getProperty(process);
-
+				regProcLogger.info("Fetched service from environment for the process: {} , is: {}", process, displayService);
+				
 				if(displayService == null || displayService.trim().isEmpty()) {
 					displayService = process;
+					regProcLogger.info("Fetched servce from properties is null thus adding process: {} in template", process);
 				}
 				attributes.put("service", displayService);
-
+				regProcLogger.info("The attributes added for the notification template for id: {}, are: {}",
+						id, attributes);
+				
 				if (notificationType.equalsIgnoreCase(NotificationTypeEnum.SMS.name())
 						&& isTemplateAvailable(messageSenderDto)) {
 					String countryCodeVal = packetManagerService.getField(id, "CountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
 
 					String countryCode = null;
-					if (countryCodeVal != null) {
+					if (countryCodeVal != null && !process.equals("DEACTIVATED")) {
 						JSONArray countryCodeArray = new JSONArray(countryCodeVal);
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
+					} else {
+						JSONObject jsonObject = utilities.idrepoRetrieveIdentityByRid(id);
+						if (jsonObject != null && jsonObject.containsKey(MappingJsonConstants.COUNTRY_CODE)) {
+							org.json.simple.JSONArray simpleArray =
+									(org.json.simple.JSONArray) jsonObject.get(MappingJsonConstants.COUNTRY_CODE);
+							org.json.JSONArray countryArray = new org.json.JSONArray(simpleArray);
+							if (countryArray != null && countryArray.length() > 0) {
+								org.json.JSONObject countryObj = (org.json.JSONObject) countryArray.get(0);
+								countryCode = countryObj.getString(MappingJsonConstants.VALUE);
+								regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+										LoggerFileConstant.REGISTRATIONID.toString(), countryCode,
+										"SMS notification allowed for this country code.");
+							}
+						}
 					}
-
+					
 					if (countryCode != null && "Uganda (256)".equals(countryCode)) {
 						isSMSSuccess = sendSms(id, process, attributes, regType, messageSenderDto, description);
 					} else {
@@ -399,13 +426,13 @@ public class NotificationServiceImpl implements NotificationService {
 				} else if (notificationType.equalsIgnoreCase(NotificationTypeEnum.EMAIL.name())
 						&& isTemplateAvailable(messageSenderDto)) {
 					String residenceStatusPacketVal = packetManagerService.getField(id, "residenceStatus", process, ProviderStageName.NOTIFICATION_SENDER);
-
+					
 					String residenceStatus = null;
 					if (residenceStatusPacketVal != null) {
 						JSONArray residenceStatusArray = new JSONArray(residenceStatusPacketVal);
 						residenceStatus = residenceStatusArray.getJSONObject(0).getString("value");
 					}
-
+					
 					if (process.equals("UPDATE") || (residenceStatus != null && residenceStatus.equals("Outside Uganda"))
 							|| enableEmailForOtherProcess) {
 						regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
