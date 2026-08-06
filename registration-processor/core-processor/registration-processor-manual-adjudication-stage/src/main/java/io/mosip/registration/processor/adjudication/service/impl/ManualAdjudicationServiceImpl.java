@@ -1140,6 +1140,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 					messageDTO.setMessageBusAddress(MessageBusAddress.DEMO_DEDUPE_BUS_IN);
 				}
 			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				registrationStatusDto.setStatusComment(StatusUtil.MANUAL_VERIFIER_REJECTED_PACKET.getMessage());
 				if (Objects.equals(messageDTO.getReg_type(), "NEW")) {
 					messageDTO.setMessageBusAddress(MessageBusAddress.QUALITY_CLASSIFIER_BUS_IN);
 				} else {
@@ -1163,6 +1164,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				registrationStatusDto.setStatusComment(StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage());
 				notificationAttributes.put("FAILURE_REASON", "Biometric authentication failed");
 			} else if (Objects.equals(entity.getTrnTypCode(), DedupeSourceName.INTRODUCER_VALIDATION_FAILURE.toString())) {
+				registrationStatusDto.setStatusComment(StatusUtil.MANUAL_VERIFIER_APPROVED_PACKET.getMessage());
 				notificationAttributes.put("FAILURE_REASON", "Introducer biometric authentication failed");
 			} else {
 				notificationAttributes.put("FAILURE_REASON", "Similar biometrics exists in the system");
