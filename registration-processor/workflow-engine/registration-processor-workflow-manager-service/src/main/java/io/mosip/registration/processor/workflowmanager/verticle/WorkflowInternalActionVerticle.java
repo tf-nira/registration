@@ -280,8 +280,21 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				workflowInternalActionDTO.getWorkflowInstanceId());
 		JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
 		String idSchemaVersionValue = JsonUtil.getJSONValue(JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.IDSCHEMA_VERSION), MappingJsonConstants.VALUE);
+		regProcLogger.info(
+				"Anonymous Profile PacketManager request - registrationId: [{}], " +
+						"idSchemaVersionValue: [{}], registrationType: [{}], providerStage: [{}]",
+				registrationId,
+				idSchemaVersionValue,
+				registrationType,
+				ProviderStageName.WORKFLOW_MANAGER
+		);
 		String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId,
 				idSchemaVersionValue, registrationType, ProviderStageName.WORKFLOW_MANAGER);
+		regProcLogger.info(
+				"Anonymous Profile PacketManager response - registrationId: [{}], schemaVersion: [{}]",
+				registrationId,
+				schemaVersion
+		);
 		Map<String,String> fieldTypeMap = idSchemaUtil.getIdSchemaFieldTypes(
 				Double.parseDouble(schemaVersion));
 		Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
@@ -307,7 +320,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		);
 
 		regProcLogger.info(
-				"Registration status updated successfully. RID: {}, isAnonymousProfileAdded: {}",
+				". RID: {}, isAnonymousProfileAdded: {}",
 				registrationStatusDto.getRegistrationId(),
 				registrationStatusDto.getIsAnonymousProfileAdded()
 		);
