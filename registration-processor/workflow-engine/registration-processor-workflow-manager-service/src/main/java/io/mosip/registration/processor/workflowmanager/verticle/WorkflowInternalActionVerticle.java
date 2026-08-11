@@ -307,8 +307,16 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
 				metaInfoMap, registrationStatusDto.getStatusCode(), registrationStatusDto.getRegistrationStageName());
 		anonymousProfileService.saveAnonymousProfile(registrationId, registrationStatusDto.getRegistrationStageName(), json);
+
 		registrationStatusDto.setIsAnonymousProfileAdded(true);
-		registrationStatusDto.setIsAnonymousProfileAdded(true);
+
+		registrationStatusDto.setLatestTransactionTypeCode(
+				RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString()
+		);
+
+		registrationStatusDto.setSubStatusCode(
+				StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode()
+		);
 
 		regProcLogger.info(
 				"RegistrationStatusDto before updating anonymous profile flag: {}",
@@ -320,7 +328,12 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		);
 
 		regProcLogger.info(
-				". RID: {}, isAnonymousProfileAdded: {}",
+				"RegistrationStatusDto after updating anonymous profile flag: {}",
+				registrationStatusDto
+		);
+
+		regProcLogger.info(
+				"RID: {}, isAnonymousProfileAdded: {}",
 				registrationStatusDto.getRegistrationId(),
 				registrationStatusDto.getIsAnonymousProfileAdded()
 		);
