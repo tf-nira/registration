@@ -278,6 +278,10 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		InternalRegistrationStatusDto registrationStatusDto = registrationStatusService.getRegistrationStatus(
 				registrationId, registrationType, workflowInternalActionDTO.getIteration(),
 				workflowInternalActionDTO.getWorkflowInstanceId());
+		regProcLogger.info(
+				"RegistrationStatusDto in start updating anonymous profile flag: {}",
+				registrationStatusDto
+		);
 		JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
 		String idSchemaVersionValue = JsonUtil.getJSONValue(JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.IDSCHEMA_VERSION), MappingJsonConstants.VALUE);
 		regProcLogger.info(
