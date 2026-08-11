@@ -27,6 +27,7 @@ on:
       - tf_nira_dev_SR
       - MAmatch
       - tf_nira_dev_temp
+      - tf_nira_dev_Satyam01
 
 jobs:
   build-maven-registration:
