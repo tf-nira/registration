@@ -193,7 +193,11 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		regProcLogger.debug("WorkflowInternalActionVerticle called for registration id {}", registrationId);
 		WorkflowInternalActionCode workflowInternalActionCode = null;
 		try {
+			regProcLogger.info("Workflow internal action code received: {}",
+					workflowInternalActionDTO.getActionCode());
 			workflowInternalActionCode = WorkflowInternalActionCode.valueOf(workflowInternalActionDTO.getActionCode());
+			regProcLogger.info("WorkflowInternalActionCode resolved to: {}",
+					workflowInternalActionCode);
 			switch (workflowInternalActionCode) {
 			case MARK_AS_PAUSED:
 				processPacketForPaused(workflowInternalActionDTO);
@@ -291,6 +295,7 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				metaInfoMap, registrationStatusDto.getStatusCode(), registrationStatusDto.getRegistrationStageName());
 		anonymousProfileService.saveAnonymousProfile(registrationId, registrationStatusDto.getRegistrationStageName(), json);
 		registrationStatusDto.setIsAnonymousProfileAdded(true);
+		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
 		this.send(this.mosipEventBus, new MessageBusAddress(anonymousProfileBusAddress), workflowInternalActionDTO);
 
 		regProcLogger.info("processAnonymousProfile ended for registration id {}", registrationId);
