@@ -295,7 +295,22 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 				metaInfoMap, registrationStatusDto.getStatusCode(), registrationStatusDto.getRegistrationStageName());
 		anonymousProfileService.saveAnonymousProfile(registrationId, registrationStatusDto.getRegistrationStageName(), json);
 		registrationStatusDto.setIsAnonymousProfileAdded(true);
-		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
+		registrationStatusDto.setIsAnonymousProfileAdded(true);
+
+		regProcLogger.info(
+				"RegistrationStatusDto before updating anonymous profile flag: {}",
+				registrationStatusDto
+		);
+
+		registrationStatusService.updateRegistrationStatusForWorkflowEngine(
+				registrationStatusDto, MODULE_ID, MODULE_NAME
+		);
+
+		regProcLogger.info(
+				"Registration status updated successfully. RID: {}, isAnonymousProfileAdded: {}",
+				registrationStatusDto.getRegistrationId(),
+				registrationStatusDto.getIsAnonymousProfileAdded()
+		);
 		this.send(this.mosipEventBus, new MessageBusAddress(anonymousProfileBusAddress), workflowInternalActionDTO);
 
 		regProcLogger.info("processAnonymousProfile ended for registration id {}", registrationId);
