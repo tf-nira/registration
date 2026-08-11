@@ -310,13 +310,6 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 
 		registrationStatusDto.setIsAnonymousProfileAdded(true);
 
-		registrationStatusDto.setLatestTransactionTypeCode(
-				RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString()
-		);
-
-		registrationStatusDto.setSubStatusCode(
-				StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode()
-		);
 
 		regProcLogger.info(
 				"RegistrationStatusDto before updating anonymous profile flag: {}",
