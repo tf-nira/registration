@@ -690,7 +690,7 @@ public class InternalRegistrationStatusDto implements Serializable {
 				+ latestTransactionStatusCode + ", latestTransactionTimes=" + latestTransactionTimes
 				+ ", registrationStageName=" + registrationStageName + ", reProcessRetryCount=" + reProcessRetryCount
 				+ ", subStatusCode=" + subStatusCode + ", resumeTimeStamp=" + resumeTimeStamp + ", defaultResumeAction="
-				+ defaultResumeAction + ", pauseRuleIds=" + pauseRuleIds + ", refId=" + refId + "]";
+				+ defaultResumeAction + ", pauseRuleIds=" + pauseRuleIds + ", refId=" + refId + ", isAnonymousProfileAdded=" + isAnonymousProfileAdded + "]";
 	}
 
 	public String getReferenceId() {
