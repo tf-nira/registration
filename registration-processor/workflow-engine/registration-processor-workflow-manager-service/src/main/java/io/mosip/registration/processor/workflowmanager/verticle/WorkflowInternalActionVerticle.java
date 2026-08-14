@@ -292,7 +292,9 @@ public class WorkflowInternalActionVerticle extends MosipVerticleAPIManager {
 		anonymousProfileService.saveAnonymousProfile(registrationId, registrationStatusDto.getRegistrationStageName(), json);
 		registrationStatusDto.setIsAnonymousProfileAdded(true);
 		registrationStatusDto.setStatusComment(workflowInternalActionDTO.getActionMessage());
-		registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
+		if (RegistrationStatusCode.PROCESSING.toString().equalsIgnoreCase(registrationStatusDto.getStatusCode())) {
+			registrationStatusDto.setStatusCode(RegistrationStatusCode.PROCESSED.toString());
+		}
 		registrationStatusDto.setSubStatusCode(StatusUtil.WORKFLOW_INTERNAL_ACTION_SUCCESS.getCode());
 		registrationStatusDto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.INTERNAL_WORKFLOW_ACTION.toString());
 		registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, MODULE_ID, MODULE_NAME);
