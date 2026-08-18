@@ -292,7 +292,7 @@ public class RegistrationStatusServiceImpl
 	@Override
 	public void updateRegistrationStatus(InternalRegistrationStatusDto registrationStatusDto, String moduleId,
 			String moduleName) {
-		//updateRegistrationStatus(registrationStatusDto, moduleId, moduleName, false);
+		updateRegistrationStatus(registrationStatusDto, moduleId, moduleName, false);
 	}
 
 	@Override
