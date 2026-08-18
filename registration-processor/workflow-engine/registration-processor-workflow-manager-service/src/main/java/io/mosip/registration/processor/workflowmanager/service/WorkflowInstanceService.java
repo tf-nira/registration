@@ -112,7 +112,7 @@ public class WorkflowInstanceService {
             SyncRegistrationEntity syncRegistrationEntity = createSyncRegistrationEntity(regRequest, workflowInstanceId, rid, user);
             syncRegistrationDao.save(syncRegistrationEntity);
             dto = getInternalRegistrationStatusDto(regRequest, user, workflowInstanceId, iteration);
-			registrationStatusService.addRegistrationStatus(dto, MODULE_ID, MODULE_NAME);
+			//registrationStatusService.addRegistrationStatus(dto, MODULE_ID, MODULE_NAME);
             description
                     .setMessage(PlatformSuccessMessages.RPR_WORKFLOW_INSTANCE_SERVICE_SUCCESS.getMessage());
             isTransactionSuccessful = true;
