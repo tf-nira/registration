@@ -296,6 +296,7 @@ public class PacketReceiverServiceImpl implements PacketReceiverService<File, Me
 		dto.setIsActive(true);
 		dto.setCreatedBy(USER);
 		dto.setIsDeleted(false);
+		dto.setIsAnonymousProfileAdded(true);
 		dto.setSource(regEntity.getSource());
         dto.setIteration(iteration);
         dto.setWorkflowInstanceId(regEntity.getWorkflowInstanceId());
