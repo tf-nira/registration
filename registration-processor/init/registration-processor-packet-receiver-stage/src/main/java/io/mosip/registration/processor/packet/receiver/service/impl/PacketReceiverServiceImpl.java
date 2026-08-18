@@ -536,6 +536,7 @@ public class PacketReceiverServiceImpl implements PacketReceiverService<File, Me
 				dto.setStatusComment(StatusUtil.PACKET_UPLOADED_TO_LANDING_ZONE.getMessage());
 				dto.setSubStatusCode(StatusUtil.PACKET_UPLOADED_TO_LANDING_ZONE.getCode());
 				dto.setLatestTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+				dto.setIsAnonymousProfileAdded(Boolean.TRUE);
 				messageDTO.setIsValid(Boolean.TRUE);
 				isTransactionSuccessful = true;
 				dto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PACKET_RECEIVER.toString());
