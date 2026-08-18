@@ -341,9 +341,9 @@ public class RegistrationStatusServiceImpl
 			        entity.setReferenceId(dto.getReferenceId());
 			    }
 				if (registrationStatusDto.getIsAnonymousProfileAdded() != null) {
-					entity.setIsAnonymousProfileAdded(registrationStatusDto.getIsAnonymousProfileAdded());
+					entity.setIsAnonymousProfileAdded(true);
 				} else if (entity.getIsAnonymousProfileAdded() == null) {
-					entity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
+					entity.setIsAnonymousProfileAdded(true);
 				}
 				regProcLogger.info("Entity before update: isAnonymousProfileAdded={}", entity.getIsAnonymousProfileAdded());
 				registrationStatusDao.save(entity);
@@ -685,7 +685,7 @@ public class RegistrationStatusServiceImpl
 		registrationStatusDto.setPacketCreateDateTime(entity.getPacketCreatedDateTime());
 		registrationStatusDto.setNeedsNotification(entity.getNeedsNotification());
 		registrationStatusDto.setNotificationSent(entity.getNotificationSent());
-		registrationStatusDto.setIsAnonymousProfileAdded(entity.getIsAnonymousProfileAdded());
+		registrationStatusDto.setIsAnonymousProfileAdded(true);
 		registrationStatusDto.setReferenceId(entity.getReferenceId());
 		regProcLogger.info("registrationStatusDTO : {}", registrationStatusDto.toString());
 
@@ -754,7 +754,7 @@ public class RegistrationStatusServiceImpl
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
 		registrationStatusEntity.setNotificationSent(dto.getNotificationSent());
-		registrationStatusEntity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
+		registrationStatusEntity.setIsAnonymousProfileAdded(true);
 		if(dto.getReferenceId() != null && !dto.getReferenceId().isEmpty()) {
 			registrationStatusEntity.setReferenceId(dto.getReferenceId());
 		}
