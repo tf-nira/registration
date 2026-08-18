@@ -243,7 +243,7 @@ public class RegistrationStatusServiceImpl
 			RegistrationStatusEntity entity = convertDtoToEntity(registrationStatusDto, null, false);
 			entity.setStatusCode(RegistrationTransactionStatusCode.PROCESSING.toString());
 			regProcLogger.info("Entity before save: {}", entity.getIsAnonymousProfileAdded());
-			registrationStatusDao.update(entity);
+			registrationStatusDao.save(entity);
 			regProcLogger.info("After save: {}", entity.getIsAnonymousProfileAdded());
 
 			isTransactionSuccessful = true;
@@ -346,7 +346,7 @@ public class RegistrationStatusServiceImpl
 					entity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
 				}
 				regProcLogger.info("Entity before update: isAnonymousProfileAdded={}", entity.getIsAnonymousProfileAdded());
-				registrationStatusDao.update(entity);
+				registrationStatusDao.save(entity);
 				regProcLogger.info("Entity after update: isAnonymousProfileAdded={}", entity.getIsAnonymousProfileAdded());
 				isTransactionSuccessful = true;
 				description.setMessage("Updated registration status successfully");
