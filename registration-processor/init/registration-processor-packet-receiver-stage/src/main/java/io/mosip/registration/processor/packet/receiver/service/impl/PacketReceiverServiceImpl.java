@@ -304,6 +304,7 @@ public class PacketReceiverServiceImpl implements PacketReceiverService<File, Me
 		/** Module-Id can be Both Success/Error code */
 		String moduleId = PlatformSuccessMessages.PACKET_RECEIVER_VALIDATION_SUCCESS.getCode();
 		String moduleName = ModuleName.PACKET_RECEIVER.toString();
+		regProcLogger.info("DTO : {}", dto.toString());
 		registrationStatusService.addRegistrationStatus(dto, moduleId, moduleName);
 		storageFlag = true;
 		description
@@ -542,6 +543,7 @@ public class PacketReceiverServiceImpl implements PacketReceiverService<File, Me
 				dto.setLatestTransactionTypeCode(RegistrationTransactionTypeCode.PACKET_RECEIVER.toString());
 				description.setMessage(
 						PlatformSuccessMessages.RPR_PKR_PACKET_RECEIVER.getMessage() + "-------" + registrationId);
+				regProcLogger.info("DTO : {}", dto.toString());
 				regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
 						LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
 						"PacketReceiverServiceImpl::success");
@@ -593,6 +595,9 @@ public class PacketReceiverServiceImpl implements PacketReceiverService<File, Me
 			String moduleId = isTransactionSuccessful ? PlatformSuccessMessages.RPR_PKR_PACKET_RECEIVER.getCode()
 					: description.getCode();
 			String moduleName = ModuleName.PACKET_RECEIVER.toString();
+			dto.setIsAnonymousProfileAdded(Boolean.TRUE);
+			dto.setIsAnonymousProfileAdded(true);
+			regProcLogger.info("DTO : {}", dto.toString());
 			registrationStatusService.updateRegistrationStatus(dto, moduleId, moduleName);
 			String eventId = "";
 			String eventName = "";
