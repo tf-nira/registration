@@ -340,7 +340,9 @@ public class RegistrationStatusServiceImpl
 				if (entity.getReferenceId() == null) {
 			        entity.setReferenceId(dto.getReferenceId());
 			    }
-				if (entity.getIsAnonymousProfileAdded() == null) {
+				if (registrationStatusDto.getIsAnonymousProfileAdded() != null) {
+					entity.setIsAnonymousProfileAdded(registrationStatusDto.getIsAnonymousProfileAdded());
+				} else if (entity.getIsAnonymousProfileAdded() == null) {
 					entity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
 				}
 				registrationStatusDao.save(entity);
@@ -749,6 +751,7 @@ public class RegistrationStatusServiceImpl
 			registrationStatusEntity.setLastSuccessStageName(existingLastSuccessStageName);
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
+		registrationStatusEntity.setNotificationSent(dto.getNotificationSent());
 		registrationStatusEntity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
 		if(dto.getReferenceId() != null && !dto.getReferenceId().isEmpty()) {
 			registrationStatusEntity.setReferenceId(dto.getReferenceId());

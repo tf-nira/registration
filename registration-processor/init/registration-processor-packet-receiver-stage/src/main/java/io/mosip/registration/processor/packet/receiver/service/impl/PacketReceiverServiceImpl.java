@@ -596,7 +596,6 @@ public class PacketReceiverServiceImpl implements PacketReceiverService<File, Me
 					: description.getCode();
 			String moduleName = ModuleName.PACKET_RECEIVER.toString();
 			dto.setIsAnonymousProfileAdded(Boolean.TRUE);
-			dto.setIsAnonymousProfileAdded(true);
 			regProcLogger.info("DTO : {}", dto.toString());
 			registrationStatusService.updateRegistrationStatus(dto, moduleId, moduleName);
 			String eventId = "";

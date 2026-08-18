@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import javax.persistence.Access;
+import javax.persistence.AccessType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -146,6 +148,7 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 	@Column(name = "notification_sent")
 	private Boolean notificationSent;
 	
+	@Access(AccessType.FIELD)
 	@Column(name = "is_anonymous_profile_added")
 	private Boolean isAnonymousProfileAdded;
 	
@@ -651,6 +654,10 @@ public class RegistrationStatusEntity extends BaseRegistrationEntity<BaseRegistr
 		this.notificationSent = notificationSent;
 	}
 	
+	public Boolean isAnonymousProfileAdded() {
+		return isAnonymousProfileAdded;
+	}
+
 	public Boolean getIsAnonymousProfileAdded() {
 		return isAnonymousProfileAdded;
 	}
