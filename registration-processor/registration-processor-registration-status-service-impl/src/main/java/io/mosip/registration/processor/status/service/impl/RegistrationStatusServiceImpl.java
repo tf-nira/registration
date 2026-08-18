@@ -242,6 +242,10 @@ public class RegistrationStatusServiceImpl
 			registrationStatusDto.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 			RegistrationStatusEntity entity = convertDtoToEntity(registrationStatusDto, null, false);
 			entity.setStatusCode(RegistrationTransactionStatusCode.PROCESSING.toString());
+			regProcLogger.info(
+					"Entity before save: {}",
+					entity.getIsAnonymousProfileAdded());
+			regProcLogger.info("ENTITY245 : {}", entity);
 			registrationStatusDao.save(entity);
 			isTransactionSuccessful = true;
 			description.setMessage("Registration status added successfully");
@@ -336,6 +340,9 @@ public class RegistrationStatusServiceImpl
 				if (entity.getReferenceId() == null) {
 			        entity.setReferenceId(dto.getReferenceId());
 			    }
+				if (entity.getIsAnonymousProfileAdded() == null) {
+					entity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
+				}
 				registrationStatusDao.save(entity);
 				isTransactionSuccessful = true;
 				description.setMessage("Updated registration status successfully");
@@ -674,8 +681,11 @@ public class RegistrationStatusServiceImpl
 		registrationStatusDto.setPacketCreateDateTime(entity.getPacketCreatedDateTime());
 		registrationStatusDto.setNeedsNotification(entity.getNeedsNotification());
 		registrationStatusDto.setNotificationSent(entity.getNotificationSent());
+		registrationStatusDto.setIsAnonymousProfileAdded(entity.getIsAnonymousProfileAdded());
 		registrationStatusDto.setReferenceId(entity.getReferenceId());
 		regProcLogger.info("registrationStatusDTO : {}", registrationStatusDto.toString());
+
+		regProcLogger.info("DTO isAnonymousProfileAdded={}", registrationStatusDto.getIsAnonymousProfileAdded());
 		return registrationStatusDto;
 	}
 
@@ -739,10 +749,29 @@ public class RegistrationStatusServiceImpl
 			registrationStatusEntity.setLastSuccessStageName(existingLastSuccessStageName);
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
+		registrationStatusEntity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
 		if(dto.getReferenceId() != null && !dto.getReferenceId().isEmpty()) {
 			registrationStatusEntity.setReferenceId(dto.getReferenceId());
 		}
-		regProcLogger.info("registrationStatusENTITY : {}", registrationStatusEntity.toString());
+		regProcLogger.info(
+				"RegistrationStatusEntity -> registrationType={}, statusCode={}, "
+						+ "latestTransactionTypeCode={}, latestTransactionStatusCode={}, "
+						+ "registrationStageName={}, "
+						+ "isAnonymousProfileAdded={}, createdBy={}, createDateTime={}, "
+						+ "updatedBy={}, updateDateTime={}",
+				registrationStatusEntity.getRegistrationType(),
+				registrationStatusEntity.getStatusCode(),
+				registrationStatusEntity.getLatestTransactionTypeCode(),
+				registrationStatusEntity.getLatestTransactionStatusCode(),
+				registrationStatusEntity.getRegistrationStageName(),
+				registrationStatusEntity.getIsAnonymousProfileAdded(),
+				registrationStatusEntity.getCreatedBy(),
+				registrationStatusEntity.getCreateDateTime(),
+				registrationStatusEntity.getUpdatedBy(),
+				registrationStatusEntity.getUpdateDateTime());
+
+
+		regProcLogger.info("Entity isAnonymousProfileAdded={}", registrationStatusEntity.getIsAnonymousProfileAdded());
 		return registrationStatusEntity;
 	}
 
