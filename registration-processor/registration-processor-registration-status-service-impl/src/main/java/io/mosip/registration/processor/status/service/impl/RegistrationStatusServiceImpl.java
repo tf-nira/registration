@@ -242,11 +242,8 @@ public class RegistrationStatusServiceImpl
 			registrationStatusDto.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 			RegistrationStatusEntity entity = convertDtoToEntity(registrationStatusDto, null, false);
 			entity.setStatusCode(RegistrationTransactionStatusCode.PROCESSING.toString());
-
-			regProcLogger.info("Before save: {}", entity.getIsAnonymousProfileAdded());
-
-			entity = registrationStatusDao.save(entity);
-
+			regProcLogger.info("Entity before save: {}", entity.getIsAnonymousProfileAdded());
+			registrationStatusDao.update(entity);
 			regProcLogger.info("After save: {}", entity.getIsAnonymousProfileAdded());
 
 			isTransactionSuccessful = true;
@@ -334,6 +331,7 @@ public class RegistrationStatusServiceImpl
 			regProcLogger.info("DTO : {}", dto.toString());
 			if (dto != null) {
 				dto.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
+				regProcLogger.info("Before update: isAnonymousProfileAdded={}", registrationStatusDto.getIsAnonymousProfileAdded());
 				RegistrationStatusEntity entity = convertDtoToEntity(registrationStatusDto,
 						dto.getLastSuccessStageName(), updateStatusCode);
 				if (entity.getStatusCode() == null) {
@@ -347,7 +345,9 @@ public class RegistrationStatusServiceImpl
 				} else if (entity.getIsAnonymousProfileAdded() == null) {
 					entity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
 				}
-				registrationStatusDao.save(entity);
+				regProcLogger.info("Entity before update: isAnonymousProfileAdded={}", entity.getIsAnonymousProfileAdded());
+				registrationStatusDao.update(entity);
+				regProcLogger.info("Entity after update: isAnonymousProfileAdded={}", entity.getIsAnonymousProfileAdded());
 				isTransactionSuccessful = true;
 				description.setMessage("Updated registration status successfully");
 			}
