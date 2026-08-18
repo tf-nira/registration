@@ -242,11 +242,13 @@ public class RegistrationStatusServiceImpl
 			registrationStatusDto.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 			RegistrationStatusEntity entity = convertDtoToEntity(registrationStatusDto, null, false);
 			entity.setStatusCode(RegistrationTransactionStatusCode.PROCESSING.toString());
-			regProcLogger.info(
-					"Entity before save: {}",
-					entity.getIsAnonymousProfileAdded());
-			regProcLogger.info("ENTITY245 : {}", entity);
-			registrationStatusDao.save(entity);
+
+			regProcLogger.info("Before save: {}", entity.getIsAnonymousProfileAdded());
+
+			entity = registrationStatusDao.save(entity);
+
+			regProcLogger.info("After save: {}", entity.getIsAnonymousProfileAdded());
+
 			isTransactionSuccessful = true;
 			description.setMessage("Registration status added successfully");
 			TransactionDto transactionDto = new TransactionDto(transactionId, registrationStatusDto.getRegistrationId(),
