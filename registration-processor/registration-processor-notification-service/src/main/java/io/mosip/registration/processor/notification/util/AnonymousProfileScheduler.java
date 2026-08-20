@@ -132,7 +132,7 @@ public class AnonymousProfileScheduler {
 		toBeUpdatedRegStatusRecords.clear();
 		toBeUpdatedAnonymousProfiles.clear();
 
-		List<RegistrationStatusEntity> packets = getAnonymousNotAddedPackets();
+		List<InternalRegistrationStatusDto> packets = getAnonymousNotAddedPackets();
 		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
 
 		List<CompletableFuture<Void>> allBatches = packets.stream().map(packet -> CompletableFuture
@@ -157,9 +157,9 @@ public class AnonymousProfileScheduler {
 		}
 		regProcLogger.info("Batch job for anonymous profile completed. Processed: {} records", packets.size());
 	}
-	
+
 	@Transactional(readOnly = true)
-	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(){
+	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(){
 		return registrationStatusService.getAnonymousNotAddedPackets(fetchSize);
 	}
 	
@@ -185,10 +185,10 @@ public class AnonymousProfileScheduler {
 		anonymousProfileEntity.setIsDeleted(false);
 		toBeUpdatedAnonymousProfiles.add(anonymousProfileEntity);
 	}
-	private void insertAnonymousProfile(RegistrationStatusEntity packet) {
+	private void insertAnonymousProfile(InternalRegistrationStatusDto packet) {
 		try {
 			String json = null;
-			String registrationId = packet.getRegId();
+			String registrationId = packet.getRegistrationId();
 			String registrationType = packet.getRegistrationType();
 
 			regProcLogger.info("Adding anonymous profile for registration id {}", registrationId);
@@ -222,10 +222,7 @@ public class AnonymousProfileScheduler {
 			json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
 					metaInfoMap, packet.getStatusCode(), packet.getRegistrationStageName());
 			addToBeUpdatedAnonymousProfileList(registrationId, packet.getRegistrationStageName(), json);
-
-			packet.setIsAnonymousProfileAdded(true);
-			toBeUpdatedRegStatusRecords.add(packet);
-//			convertAndAddToBeUpdatedRegStatusRecords(packet);
+			convertAndAddToBeUpdatedRegStatusRecords(packet);
 		} catch (Exception e) {
 			regProcLogger.error("Failed to add anonymous profile for registration: " + e.getMessage(), e);
 		}
