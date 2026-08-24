@@ -1,0 +1,113 @@
+================================================================================
+SQL QUERY LOCATION ANALYSIS - EXECUTIVE SUMMARY
+================================================================================
+
+QUESTION
+--------
+Find where this SQL query fires in the tf-nira/registration repository:
+
+    SELECT * FROM regprc.registration 
+    WHERE workflow_instance_id = $1 
+      AND is_deleted = false 
+      AND is_active = true
+
+ANSWER
+------
+The query originates from a JPQL query in RegistrationRepositary.java
+
+PRIMARY LOCATION:
+    File: RegistrationRepositary.java
+    Path: registration-processor/.../status/repositary/
+    Line: 56-57
+    Method: findByWorkflowInstanceId(String workflowInstanceId)
+
+ALTERNATIVE LOCATION:
+    File: SyncRegistrationRepository.java  
+    Path: registration-processor/.../status/repositary/
+    Line: 43-44
+    Method: findByworkflowInstanceId(String workflowInstanceId)
+    Note: lowercase 'w' is actual method name in codebase
+
+EXECUTION POINTS (7 Stages):
+-----------------------------
+1. PacketValidateProcessor.java (line 491)
+   Purpose: Validates incoming registration packets
+   Stage: Pre-processing
+
+2. BiometricAuthenticationStage.java (line 172)
+   Purpose: Authenticates biometric information
+   Stage: Core processing
+
+3. MessageSenderStage.java (line 217)
+   Purpose: Sends notification messages
+   Stage: Post-processing
+
+4. MVSServiceImpl.java (line 237)
+   Purpose: Manual verification adjudication
+   Stage: Core processing
+
+5. SupervisorApprovalStatusTagGenerator.java (line 49)
+   Purpose: Generates supervisor approval tags
+   Stage: Pre-processing
+
+6. SecurezoneNotificationStage.java (line 325)
+   Purpose: Sends secure zone notifications
+   Stage: Pre-processing
+
+7. PacketUploaderServiceImpl.java (line 202)
+   Purpose: Uploads registration packets
+   Stage: Pre-processing
+
+CALL HIERARCHY:
+--------------
+[Stage Class]
+    ↓
+SyncRegistrationService.findByWorkflowInstanceId()
+    ↓
+SyncRegistrationDao.findByWorkflowInstanceId()
+    ↓
+SyncRegistrationRepository.findByworkflowInstanceId()
+    ↓
+[JPQL Query Execution]
+    ↓
+[Hibernate ORM Translation]
+    ↓
+[Native SQL Execution]
+    ↓
+[PostgreSQL Database]
+
+DOCUMENTATION FILES:
+-------------------
+1. ANSWER.md - Quick, direct answer
+2. QUERY_DOCUMENTATION_README.md - Documentation index
+3. QUERY_LOCATION_ANALYSIS.md - Complete technical analysis (252 lines)
+4. QUERY_CALL_FLOW.md - Visual call flow diagrams (179 lines)
+5. QUERY_QUICK_REFERENCE.md - Developer quick reference (74 lines)
+6. SUMMARY.txt - This executive summary
+
+QUICK COMMANDS:
+--------------
+# Find all usages
+grep -rn "findByWorkflowInstanceId" registration-processor/
+
+# View the repository method
+cat registration-processor/registration-processor-registration-status-service-impl/src/main/java/io/mosip/registration/processor/status/repositary/RegistrationRepositary.java
+
+KEY FACTS:
+----------
+- Query Type: JPQL (translated to SQL by Hibernate)
+- Database: PostgreSQL
+- Schema: regprc
+- Table: registration
+- Primary Filter: workflow_instance_id (PK component)
+- Technology: Spring Data JPA + Hibernate ORM
+
+NAMING INCONSISTENCIES IN CODEBASE:
+-----------------------------------
+1. "repositary" instead of "repository" in directory/class names
+2. "findByworkflowInstanceId" (lowercase w) in repository layer
+3. "findByWorkflowInstanceId" (uppercase W) in service/DAO layers
+
+================================================================================
+For complete details, start with QUERY_DOCUMENTATION_README.md
+================================================================================
