@@ -480,6 +480,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		Map<String, String> policyMap = getPolicyMap(policy);
 		Map<String, String> demographicMap  = getDemographicMap(policyMap);
 
+		regProcLogger.info("Demographic Map for " + id + " idType " + idType + " is: " + JsonUtils.javaObjectToJsonString(demographicMap));
+
 		ResponseDTO responseDTO;
 		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 		else {
@@ -489,9 +491,14 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin, true);
 		}
 
+		regProcLogger.info("IDREPO ResponseDTO for " + id + " is: " + JsonUtils.javaObjectToJsonString(responseDTO));
+
 		requestDto.setStatus(responseDTO.getStatus());
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+
+		regProcLogger.info("IDREPO identityResponse for " + id + " is: " + identityResponse);
+
 		Map<String,String> identity=new HashMap<>();
 
 		for(Entry<String,String> entry:demographicMap.entrySet()) {
