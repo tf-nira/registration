@@ -5,9 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -119,10 +117,11 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	private String port;
 
 	/** Cache size for reprocessor packets (default 5000) */
-	private static final int CACHE_SIZE = 15000;
+	// private static final int CACHE_SIZE = 15000;
 
 	/** Thread-safe cache for reprocessor packets */
-	private Queue<InternalRegistrationStatusDto> reprocessorPacketCache = new ConcurrentLinkedQueue<>();
+	// private Queue<InternalRegistrationStatusDto> reprocessorPacketCache = new
+	// ConcurrentLinkedQueue<>();
 
 	/**
 	 * Deploy verticle.
@@ -230,12 +229,21 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		LogDescription description = new LogDescription();
 		regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 				"ReprocessorVerticle::process()::entry");
+		int totalNumberOfReprocessRecords = 0;
 		try {
 			// Read data from database
-			List<InternalRegistrationStatusDto> reprocessorDtoList = readData();
+			List<String> statusList = new ArrayList<>();
+			statusList.add(RegistrationTransactionStatusCode.SUCCESS.toString());
+			statusList.add(RegistrationTransactionStatusCode.REPROCESS.toString());
+			statusList.add(RegistrationTransactionStatusCode.IN_PROGRESS.toString());
 
+			List<InternalRegistrationStatusDto> resumablePackets = registrationStatusService
+					.getResumablePackets(elapseTime, fetchSize, reprocessExcludeStageNames);
+			totalNumberOfReprocessRecords = (!CollectionUtils.isEmpty(resumablePackets) ? resumablePackets.size()
+					: 0);
+			regProcLogger.info("Total number of packets re-processor picked up :: " + totalNumberOfReprocessRecords);
 			// Process the fetched data
-			processData(reprocessorDtoList, description, object);
+			processData(resumablePackets, description, object);
 			
 		} catch (TablenotAccessibleException e) {
 			isTransactionSuccessful = false;
@@ -288,7 +296,7 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 	 * 
 	 * @return List of InternalRegistrationStatusDto containing packets to reprocess
 	 */
-	private List<InternalRegistrationStatusDto> readData() {
+	/*private List<InternalRegistrationStatusDto> readData() {
 		List<InternalRegistrationStatusDto> reprocessorDtoList = new ArrayList<>();
 		
 		regProcLogger.info("ReprocessorVerticle::readData()::fetching packets from cache or database");
@@ -311,8 +319,8 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			regProcLogger.info("Fetched " + reprocessorDtoList.size() + " records from cache. Cache size: " + reprocessorPacketCache.size());
 		}
 
-		/*// Step 3: If cache is empty after reading, reload from database
-		if (reprocessorPacketCache.isEmpty() && reprocessorDtoList.size() < fetchSize) {
+		/*/// Step 3: If cache is empty after reading, reload from database
+		/*if (reprocessorPacketCache.isEmpty() && reprocessorDtoList.size() < fetchSize) {
 			regProcLogger.info("Cache is empty after reading. Reloading from database");
 			loadCacheFromDatabase();
 			
@@ -330,18 +338,18 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			}
 		}*/
 
-		int totalFetchedRecords = reprocessorDtoList.size();
+	/*	int totalFetchedRecords = reprocessorDtoList.size();
 		regProcLogger.info("Total number of packets re-processor picked up :: " + totalFetchedRecords);
 		regProcLogger.info("Cache size after read operation :: " + reprocessorPacketCache.size());
 
 		return reprocessorDtoList;
-	}
+	}*/
 
 	/**
 	 * Loads CACHE_SIZE (5000) records from database into the cache
 	 * Fetches resumable packets first, then unprocessed packets if needed
 	 */
-	private void loadCacheFromDatabase() {
+/*	private void loadCacheFromDatabase() {
 		List<InternalRegistrationStatusDto> databaseRecords = new ArrayList<>();
 		List<String> statusList = new ArrayList<>();
 		statusList.add(RegistrationTransactionStatusCode.SUCCESS.toString());
@@ -369,14 +377,15 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 			 */
 
 			// Add all fetched records to cache
-			reprocessorPacketCache.addAll(databaseRecords);
-			regProcLogger.info("Cache populated with " + databaseRecords.size() + " records. Total cache size: " + reprocessorPacketCache.size());
-
-		} catch (Exception e) {
-			regProcLogger.error("Error loading cache from database: " + e.getMessage(), e);
-			throw new RuntimeException("Failed to load cache from database", e);
-		}
-	}
+			/*
+			 * reprocessorPacketCache.addAll(databaseRecords);
+			 * regProcLogger.info("Cache populated with " + databaseRecords.size() +
+			 * " records. Total cache size: " + reprocessorPacketCache.size());
+			 * 
+			 * } catch (Exception e) {
+			 * regProcLogger.error("Error loading cache from database: " + e.getMessage(),
+			 * e); throw new RuntimeException("Failed to load cache from database", e); } }
+			 */
 
 	/**
 	 * Processes the fetched reprocessor packets
