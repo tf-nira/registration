@@ -489,6 +489,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin, true);
 		}
 
+		requestDto.setStatus(responseDTO.getStatus());
+
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
 		Map<String,String> identity=new HashMap<>();
 

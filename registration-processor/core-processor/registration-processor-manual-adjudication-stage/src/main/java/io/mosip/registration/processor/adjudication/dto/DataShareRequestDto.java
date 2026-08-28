@@ -16,4 +16,8 @@ public class DataShareRequestDto {
     private String metaInfo;
 
     private String audits;
+
+    private String status;
+
+    private String remark;
 }
