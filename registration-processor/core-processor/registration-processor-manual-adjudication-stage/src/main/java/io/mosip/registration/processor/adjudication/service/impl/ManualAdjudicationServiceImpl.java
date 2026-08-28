@@ -508,6 +508,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		requestDto.setIdentity(identity);
 		regProcLogger.info("IDREPO response for " + id + " is: "
 				+ JsonUtils.javaObjectToJsonString(requestDto.getIdentity()));
+		regProcLogger.info("IDREPO status for " + id + " is: "
+				+ responseDTO.getStatus());
 		List<Documents> documents=responseDTO.getDocuments();
 		requestDto=setDocuments(policyMap, requestDto, null, null, documents);
 
