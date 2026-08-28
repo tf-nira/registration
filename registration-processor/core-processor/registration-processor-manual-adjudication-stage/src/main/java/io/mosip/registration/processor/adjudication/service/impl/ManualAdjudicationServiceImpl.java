@@ -793,7 +793,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(JsonUtil.objectMapperObjectToJson(addReferenceURLs(e.getId().getMatchedRefId(),registrationStatusDto1)));
+					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "RID"));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -888,6 +888,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return req;
 	}
 
+	//Don't use this method for constructing reference url as it is not taking the latest request format.
 	private List<ReferenceURL> addReferenceURLs(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		List<ReferenceURL> referenceURLs=new ArrayList<>();
 		if( registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.PROCESSED.name())) {
