@@ -171,7 +171,7 @@ public class MosipBridgeFactory extends MosipVerticleAPIManager {
 			kafkaComponent.setConfiguration(kafkaConfiguration);
 			camelContext.addComponent("eventbus", kafkaComponent);
 			camelContext.addComponent("workflow-cmd", kafkaComponent);
-			camelContext.setUseMDCLogging(true);
+			camelContext.setUseMDCLogging(false);
 			camelContext.setUnitOfWorkFactory(CustomMDCUnitOfWork::new);
 		} else
 			throw new UnsupportedEventBusTypeException(
