@@ -548,22 +548,26 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
 		regProcLogger.info("Demographic Map for " + id + " process " + process + " is: " + JsonUtils.javaObjectToJsonString(demographicMap));
 
-		requestDto.setIdentity(packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
+		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
 
 		regProcLogger.info("Packet Manager response for " + id + " is: "
-				+ JsonUtils.javaObjectToJsonString(requestDto.getIdentity()));
+				+ JsonUtils.javaObjectToJsonString(identity));
 
-		// set status and remark from IdRepo
+        // set status and remark from IdRepo, merged directly into the identity map
 		ResponseDTO responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 
 		regProcLogger.info("IDREPO ResponseDTO for " + id + " is: " + JsonUtils.javaObjectToJsonString(responseDTO));
 
-		requestDto.setStatus(responseDTO.getStatus());
+		if (responseDTO != null) {
+			identity.put("status", responseDTO.getStatus());
 
-		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
-		JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
-		Object remarkValue = JsonUtil.getJSONValue(identityJsonForRemark, "remark");
-		requestDto.setRemark(remarkValue != null ? remarkValue.toString() : null);
+	    	String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+	    	JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+	    	Object remarkValue = JsonUtil.getJSONValue(identityJsonForRemark, "remark");
+	    	identity.put("remark", remarkValue != null ? mapper.writeValueAsString(remarkValue) : null);
+		}
+
+		requestDto.setIdentity(identity);
 
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
