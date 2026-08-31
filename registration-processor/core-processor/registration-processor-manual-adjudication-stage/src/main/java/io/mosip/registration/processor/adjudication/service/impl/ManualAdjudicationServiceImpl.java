@@ -568,6 +568,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}
 
 		requestDto.setIdentity(identity);
+		regProcLogger.info("Identity final response for " + id + " is: "
+				+ JsonUtils.javaObjectToJsonString(identity));
 
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
