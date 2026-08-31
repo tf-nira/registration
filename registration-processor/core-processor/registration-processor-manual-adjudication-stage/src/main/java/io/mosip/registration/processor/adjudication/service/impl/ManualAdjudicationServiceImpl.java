@@ -464,7 +464,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				regProcLogger.info("Modalities for " + id + " are: " + JsonUtils.javaObjectToJsonString(modalities));
 				BiometricRecord biometricRecord = packetManagerService.getBiometrics(
 						id, individualBiometricsLabel, modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
-				regProcLogger.info("Biometric Record for " + id + " is: " + JsonUtils.javaObjectToJsonString(biometricRecord));
 				byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
 				requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
 			}
@@ -536,6 +535,66 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		return CreateDataShareUrl(requestDto, policy);
 
+	}
+
+	private String getDataShareUrlIdrepo(String id, String process) throws Exception {
+		DataShareRequestDto requestDto = new DataShareRequestDto();
+
+		LinkedHashMap<String, Object> policy = getPolicy();
+
+		Map<String, String> policyMap = getPolicyMap(policy);
+
+		// set demographic
+		Map<String, String> demographicMap = getDemographicMap(policyMap);
+		regProcLogger.info("Demographic Map for " + id + " process " + process + " is: " + JsonUtils.javaObjectToJsonString(demographicMap));
+
+		requestDto.setIdentity(packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
+
+		regProcLogger.info("Packet Manager response for " + id + " is: "
+				+ JsonUtils.javaObjectToJsonString(requestDto.getIdentity()));
+
+		// set status and remark from IdRepo
+		ResponseDTO responseDTO = idRepoService.getIdResponseFromIDRepo(id);
+
+		regProcLogger.info("IDREPO ResponseDTO for " + id + " is: " + JsonUtils.javaObjectToJsonString(responseDTO));
+
+		requestDto.setStatus(responseDTO.getStatus());
+
+		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+		JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+		Object remarkValue = JsonUtil.getJSONValue(identityJsonForRemark, "remark");
+		requestDto.setRemark(remarkValue != null ? remarkValue.toString() : null);
+
+		// set documents
+		requestDto=setDocuments(policyMap, requestDto, id, process, null);
+
+		// set audits
+		for(Entry<String,String> entry: policyMap.entrySet()) {
+			if (entry.getValue().contains(AUDITS))
+				requestDto.setAudits(JsonUtils.javaObjectToJsonString(packetManagerService.getAudits(id, process, ProviderStageName.MANUAL_ADJUDICATION)));
+
+			// set metainfo
+			if (entry.getValue().contains(META_INFO))
+				requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION)));
+
+
+			// set biometrics
+			JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
+			String individualBiometricsLabel = JsonUtil.getJSONValue(
+					JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.INDIVIDUAL_BIOMETRICS),
+					MappingJsonConstants.VALUE);
+
+			if (entry.getValue().contains(individualBiometricsLabel)) {
+				List<String> modalities = getModalities(policy);
+				regProcLogger.info("Modalities for " + id + " are: " + JsonUtils.javaObjectToJsonString(modalities));
+				BiometricRecord biometricRecord = packetManagerService.getBiometrics(
+						id, individualBiometricsLabel, modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
+				byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
+				requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
+			}
+		}
+
+		return CreateDataShareUrl(requestDto, policy);
 	}
 
 	private String getDataShareUrlForIntroducer(String rid, String introducerNinBytes, String process) throws Exception {
@@ -795,7 +854,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "RID"));
+					r.setReferenceURL(getDataShareUrlIdrepo(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
