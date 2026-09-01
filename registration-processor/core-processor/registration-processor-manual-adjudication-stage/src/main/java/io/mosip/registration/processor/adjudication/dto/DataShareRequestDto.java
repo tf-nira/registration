@@ -17,7 +17,4 @@ public class DataShareRequestDto {
 
     private String audits;
 
-    private String status;
-
-    private String remark;
 }

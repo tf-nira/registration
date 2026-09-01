@@ -479,8 +479,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		Map<String, String> policyMap = getPolicyMap(policy);
 		Map<String, String> demographicMap  = getDemographicMap(policyMap);
 
-		regProcLogger.info("Demographic Map for " + id + " idType " + idType + " is: " + JsonUtils.javaObjectToJsonString(demographicMap));
-
 		ResponseDTO responseDTO;
 		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 		else {
@@ -490,13 +488,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			responseDTO = utility.retrieveIdrepoResponseObjWithNIN(nin, true);
 		}
 
-		regProcLogger.info("IDREPO ResponseDTO for " + id + " is: " + JsonUtils.javaObjectToJsonString(responseDTO));
-
-		requestDto.setStatus(responseDTO.getStatus());
-
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
-
-		regProcLogger.info("IDREPO identityResponse for " + id + " is: " + identityResponse);
 
 		Map<String,String> identity=new HashMap<>();
 
@@ -513,11 +505,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
         if (remarkValue != null) {
             identity.put("remark", mapper.writeValueAsString(remarkValue));
         }
+
         requestDto.setIdentity(identity);
-		regProcLogger.info("IDREPO response for " + id + " is: "
-				+ JsonUtils.javaObjectToJsonString(requestDto.getIdentity()));
-		regProcLogger.info("IDREPO status for " + id + " is: "
-				+ responseDTO.getStatus());
 		List<Documents> documents=responseDTO.getDocuments();
 		requestDto=setDocuments(policyMap, requestDto, null, null, documents);
 
@@ -803,7 +792,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(addReferenceURL(e.getId().getMatchedRefId(),registrationStatusDto1));
+					r.setReferenceURL(setReferenceURL(e.getId().getMatchedRefId(),registrationStatusDto1));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -898,18 +887,15 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return req;
 	}
 
-	private String addReferenceURL(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
+	private String setReferenceURL(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 
 		if( registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.PROCESSED.name())) {
 			return getDataShareUrlfromIdRepo(id, "RID");
 		}
 		else{
-
 			return getDataShareUrl(id,registrationStatusDto.getRegistrationType());
-
 		}
 	}
-
 
 	//Don't use this method for constructing reference url as it is not taking the latest request format.
 	private List<ReferenceURL> addReferenceURLs(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
