@@ -553,18 +553,22 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		regProcLogger.info("Packet Manager response for " + id + " is: "
 				+ JsonUtils.javaObjectToJsonString(identity));
 
-        // set status and remark from IdRepo, merged directly into the identity map
+		// set status and remark from IdRepo, merged directly into the identity map
 		ResponseDTO responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 
 		regProcLogger.info("IDREPO ResponseDTO for " + id + " is: " + JsonUtils.javaObjectToJsonString(responseDTO));
 
 		if (responseDTO != null) {
-			identity.put("status", responseDTO.getStatus());
+			if (responseDTO.getStatus() != null) {
+				identity.put("status", responseDTO.getStatus());
+			}
 
-	    	String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
-	    	JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
-	    	Object remarkValue = JsonUtil.getJSONValue(identityJsonForRemark, "remark");
-	    	identity.put("remark", remarkValue != null ? mapper.writeValueAsString(remarkValue) : null);
+			String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+			JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+			Object remarkValue = JsonUtil.getJSONValue(identityJsonForRemark, "remark");
+			if (remarkValue != null) {
+				identity.put("remark", mapper.writeValueAsString(remarkValue));
+			}
 		}
 
 		requestDto.setIdentity(identity);
@@ -572,17 +576,16 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				+ JsonUtils.javaObjectToJsonString(identity));
 
 		// set documents
-		requestDto=setDocuments(policyMap, requestDto, id, process, null);
+		requestDto = setDocuments(policyMap, requestDto, id, process, null);
 
 		// set audits
-		for(Entry<String,String> entry: policyMap.entrySet()) {
+		for (Entry<String, String> entry : policyMap.entrySet()) {
 			if (entry.getValue().contains(AUDITS))
 				requestDto.setAudits(JsonUtils.javaObjectToJsonString(packetManagerService.getAudits(id, process, ProviderStageName.MANUAL_ADJUDICATION)));
 
 			// set metainfo
 			if (entry.getValue().contains(META_INFO))
 				requestDto.setMetaInfo(JsonUtils.javaObjectToJsonString(packetManagerService.getMetaInfo(id, process, ProviderStageName.MANUAL_ADJUDICATION)));
-
 
 			// set biometrics
 			JSONObject regProcessorIdentityJson = utility.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
@@ -600,7 +603,11 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 		}
 
-		return CreateDataShareUrl(requestDto, policy);
+		if (requestDto.getIdentity() != null && requestDto.getIdentity().get("status") != null) {
+			return CreateDataShareUrl(requestDto, policy);
+		}
+
+		return null;
 	}
 
 	private String getDataShareUrlForIntroducer(String rid, String introducerNinBytes, String process) throws Exception {
