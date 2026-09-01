@@ -497,7 +497,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
 		}
         if (responseDTO.getStatus() != null) {
-            identity.put("status", responseDTO.getStatus());
+            identity.put("status", mapper.writeValueAsString(responseDTO.getStatus()));
         }
 
         JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
