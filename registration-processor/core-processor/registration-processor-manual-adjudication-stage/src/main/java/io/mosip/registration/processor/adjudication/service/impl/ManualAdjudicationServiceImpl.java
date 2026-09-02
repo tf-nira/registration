@@ -464,7 +464,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				regProcLogger.info("Modalities for " + id + " are: " + JsonUtils.javaObjectToJsonString(modalities));
 				BiometricRecord biometricRecord = packetManagerService.getBiometrics(
 						id, individualBiometricsLabel, modalities, process, ProviderStageName.MANUAL_ADJUDICATION);
-				regProcLogger.info("Biometric Record for " + id + " is: " + JsonUtils.javaObjectToJsonString(biometricRecord));
 				byte[] content = cbeffutil.createXML(biometricRecord.getSegments());
 				requestDto.setBiometrics(content != null ? CryptoUtil.encodeToURLSafeBase64(content) : null);
 			}
@@ -490,13 +489,24 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		}
 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
+
 		Map<String,String> identity=new HashMap<>();
 
 		for(Entry<String,String> entry:demographicMap.entrySet()) {
 			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
 			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
 		}
-		requestDto.setIdentity(identity);
+        if (responseDTO.getStatus() != null) {
+            identity.put("status", mapper.writeValueAsString(responseDTO.getStatus()));
+        }
+
+        JSONObject identityJsonForRemark = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+        Object remarkValue = JsonUtil.getJSONValue(identityJsonForRemark, "remark");
+        if (remarkValue != null) {
+            identity.put("remark", mapper.writeValueAsString(remarkValue));
+        }
+
+        requestDto.setIdentity(identity);
 		List<Documents> documents=responseDTO.getDocuments();
 		requestDto=setDocuments(policyMap, requestDto, null, null, documents);
 
@@ -782,7 +792,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					r.setReferenceURL(setReferenceURL(e.getId().getMatchedRefId(),registrationStatusDto1));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -877,6 +887,17 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		return req;
 	}
 
+	private String setReferenceURL(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
+
+		if( registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.PROCESSED.name())) {
+			return getDataShareUrlfromIdRepo(id, "RID");
+		}
+		else{
+			return getDataShareUrl(id,registrationStatusDto.getRegistrationType());
+		}
+	}
+
+	//Don't use this method for constructing reference url as it is not taking the latest request format.
 	private List<ReferenceURL> addReferenceURLs(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		List<ReferenceURL> referenceURLs=new ArrayList<>();
 		if( registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.PROCESSED.name())) {
