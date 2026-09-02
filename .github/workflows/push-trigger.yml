@@ -24,7 +24,6 @@ on:
       - tf_nira_prod
       - tf_nira_prod_tmp
       - tf_nira_preprod
-      - tf_nira_preprod_SR
 
 jobs:
   build-maven-registration:
