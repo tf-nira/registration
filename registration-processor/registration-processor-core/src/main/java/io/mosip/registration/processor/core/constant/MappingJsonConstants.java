@@ -32,6 +32,7 @@ public class MappingJsonConstants {
 	public static final String SUPERVISOROTPAUTHENTICATION = "supervisorOTPAuthentication";
 	public static final String EMAIL = "email";
 	public static final String PHONE = "phone";
+	public static final String COUNTRY_CODE = "CountryCode";
 	public static final String ADDRESS = "address";
 	public static final String NAME = "name";
 	public static final String DOB = "dob";
@@ -69,4 +70,16 @@ public static final String DATE_FORMAT = "yyyy/MM/dd";
 public static final String NIN_STATUS = "status";
 public static final String DISABILITY = "disabilities";
 public static final String NUMBEROFOTHERSPOUSES = "numberOfOtherSpouses";
+
+	/* Transaction Service */
+	public static final String INQUEUE = "INQUEUE";
+	public static final String RID = "rid";
+	public static final String INTRODUCER_VALIDATION_FAILURE = "INTRODUCER_VALIDATION_FAILURE";
+	public static final String BIO_AUTH_FAILURE = "BIO_AUTH_FAILURE";
+	public static final String ANALYTICS = "analytics";
+	public static final String PRIMARY_OPERATOR_COMMENTS = "primaryOperatorComments";
+	public static final String MATCHED = "MATCHED";
+	public static final String REF_ID = "referenceId";
+	public static final String CANDIDATE_LIST = "candidateList";
+	public static final String CANDIDATES = "candidates";
 }

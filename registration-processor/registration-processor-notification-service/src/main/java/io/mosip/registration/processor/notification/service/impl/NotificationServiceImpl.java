@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import io.mosip.registration.processor.core.constant.MappingJsonConstants;
+import io.mosip.registration.processor.core.util.JsonUtil;
+import io.mosip.registration.processor.packet.storage.utils.Utilities;
+import org.json.simple.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.simple.parser.ParseException;
@@ -119,6 +122,9 @@ public class NotificationServiceImpl implements NotificationService {
 
 	@Value("${mosip.registration.processor.notification.types}")
 	private String notificationTypes;
+
+	@Autowired
+	private Utilities utilities;
 	
 	@Value("${websub.hub.url}")
 	private String hubURL;
@@ -388,15 +394,25 @@ public class NotificationServiceImpl implements NotificationService {
 				if (notificationType.equalsIgnoreCase(NotificationTypeEnum.SMS.name())
 						&& isTemplateAvailable(messageSenderDto)) {
 					String countryCodeVal = packetManagerService.getField(id, "CountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
-					String dcicCountryCodeVal = packetManagerService.getField(id, "DCICCountryCode", process, ProviderStageName.NOTIFICATION_SENDER);
 
 					String countryCode = null;
 					if (countryCodeVal != null && !process.equals("DEACTIVATED")) {
 						JSONArray countryCodeArray = new JSONArray(countryCodeVal);
 						countryCode = countryCodeArray.getJSONObject(0).getString("value");
-					} else if (dcicCountryCodeVal != null) {
-						JSONArray countryCodeArray = new JSONArray(dcicCountryCodeVal);
-						countryCode = countryCodeArray.getJSONObject(0).getString("value");
+					} else {
+						JSONObject jsonObject = utilities.idrepoRetrieveIdentityByRid(id);
+						if (jsonObject != null && jsonObject.containsKey(MappingJsonConstants.COUNTRY_CODE)) {
+							org.json.simple.JSONArray simpleArray =
+									(org.json.simple.JSONArray) jsonObject.get(MappingJsonConstants.COUNTRY_CODE);
+							org.json.JSONArray countryArray = new org.json.JSONArray(simpleArray);
+							if (countryArray != null && countryArray.length() > 0) {
+								org.json.JSONObject countryObj = (org.json.JSONObject) countryArray.get(0);
+								countryCode = countryObj.getString(MappingJsonConstants.VALUE);
+								regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+										LoggerFileConstant.REGISTRATIONID.toString(), countryCode,
+										"SMS notification allowed for this country code.");
+							}
+						}
 					}
 					
 					if (countryCode != null && "Uganda (256)".equals(countryCode)) {

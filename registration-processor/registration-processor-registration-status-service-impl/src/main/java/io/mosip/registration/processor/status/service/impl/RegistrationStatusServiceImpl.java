@@ -241,7 +241,12 @@ public class RegistrationStatusServiceImpl
 			registrationStatusDto.setLatestRegistrationTransactionId(transactionId);
 			registrationStatusDto.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 			RegistrationStatusEntity entity = convertDtoToEntity(registrationStatusDto, null, false);
-			entity.setStatusCode(RegistrationTransactionStatusCode.PROCESSING.toString());
+			if(registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.DUPLICATE.toString()) && registrationStatusDto.getRegistrationId().contains("-")){
+				entity.setStatusCode(RegistrationStatusCode.DUPLICATE.toString());
+			}
+			else{
+				entity.setStatusCode(RegistrationTransactionStatusCode.PROCESSING.toString());
+			}
 			registrationStatusDao.save(entity);
 			isTransactionSuccessful = true;
 			description.setMessage("Registration status added successfully");

@@ -72,7 +72,7 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	@Query(value ="SELECT * FROM registration r WHERE r.status_code IN :statusCodes and r.needs_notification=true and r.notification_sent IS NOT TRUE order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getUnNotifiedPackets(@Param("statusCodes") List<String> statusCodes,@Param("fetchSize") Integer fetchSize);
 	
-	@Query(value ="SELECT * FROM registration r WHERE r.upd_dtimes < CURRENT_DATE and r.is_anonymous_profile_added IS NOT TRUE order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
+	@Query(value ="SELECT * FROM registration r WHERE r.upd_dtimes < CURRENT_DATE and r.is_anonymous_profile_added IS FALSE order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(@Param("fetchSize") Integer fetchSize);
 	
 	@Query("SELECT registration.registrationType FROM RegistrationStatusEntity registration WHERE registration.regId in :regIds")
@@ -89,6 +89,12 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 			+ "AND registration.regId != :excludeRegId AND registration.registrationType IN :registrationTypes "
 			+ "AND registration.latestTransactionTimes >= :latestTransactionTimes AND registration.isDeleted = false AND registration.isActive = true")
 	public List<Map<String, Object>> getRegIdAndStatusByReferenceId(@Param("hashedNationalRefId") String hashedNationalRefId, @Param("excludeRegId") String excludeRegId, @Param("registrationTypes") List<String> registrationTypes, @Param("latestTransactionTimes") LocalDateTime latestTransactionTimes);
+
+	@Query("SELECT registration FROM RegistrationStatusEntity registration "
+			+ "WHERE registration.regId LIKE :ridPrefix "
+			+ "AND registration.statusCode NOT IN :statusCodes "
+			+ "AND registration.isDeleted = false AND registration.isActive = true")
+	public List<RegistrationStatusEntity> findByRidPrefixExcludingStatusCodes(@Param("ridPrefix") String ridPrefix, @Param("statusCodes") List<String> statusCodes);
 }
 
 

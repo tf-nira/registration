@@ -771,7 +771,22 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
+					if (r.getReferenceId() == null || r.getReferenceId().isBlank()) {
+						regProcLogger.info(
+								"Reference ID is null/empty. regId={}, matchedRefId={}",
+								e.getRegId(),
+								e.getId().getMatchedRefId()
+						);
+					}
 					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
+						regProcLogger.info(
+								"Reference URL is null/empty. regId={}, matchedRefId={}, ReferenceId={}",
+								e.getRegId(),
+								e.getId().getMatchedRefId(),
+								r.getReferenceId()
+						);
+					}
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -787,7 +802,22 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				try {
 					req.setBioAuthFailed("true");
 					r.setReferenceId(e.getId().getMatchedRefId());
+					if (r.getReferenceId() == null || r.getReferenceId().isBlank()) {
+						regProcLogger.info(
+								"Reference ID is null/empty. regId={}, matchedRefId={}",
+								e.getRegId(),
+								e.getId().getMatchedRefId()
+						);
+					}
 					r.setReferenceURL(getDataShareUrlfromIdRepo(e.getId().getMatchedRefId(), "NIN"));
+					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
+						regProcLogger.info(
+								"Reference URL is null/empty. regId={}, matchedRefId={}, ReferenceId={}",
+								e.getRegId(),
+								e.getId().getMatchedRefId(),
+								r.getReferenceId()
+						);
+					}
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),

@@ -1,6 +1,7 @@
 package io.mosip.registration.processor.packet.storage.service.impl;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -12,6 +13,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import java.util.Collections;
+import java.util.stream.Stream;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -1068,34 +1073,65 @@ public class PacketInfoManagerImpl implements PacketInfoManager<Identity, Applic
 	@Override
 	public List<String> getManualVerificationDetails(String regId) {
 		List<ManualVerificationEntity> list = packetInfoDao.getManualVerificationByRegId(regId);
-		List<String> result = new ArrayList<>();
-		if (list != null && !list.isEmpty()) {
-			result = list.stream()
-					.filter(e -> e.getId() != null
-							&& e.getId().getMatchedRefType() != null)
-					.map(e -> {
-						String type = e.getId().getMatchedRefType();
-						if ("rid".equalsIgnoreCase(type)) {
-							return e.getId().getMatchedRefId();
-						} else if ("NIN".equalsIgnoreCase(type)) {
-							String trnType = e.getTrnTypCode();
-							switch (trnType.toUpperCase()) {
-								case "INTRODUCER_VALIDATION_FAILURE":
-									return "Biometric Authentication failed for Introducer";
-								case "BIO_AUTH_FAILURE":
-									return "Biometric Authentication failed for applicant";
-								default:
-									return "Manual verification failed due to " + trnType;
-							}
-						}
-						return null;
-					})
-					.filter(Objects::nonNull)
-					.collect(Collectors.toList());
-		} else {
-			result.add("No records found for the given Application ID.");
+		if (list == null || list.isEmpty()) {
+			return Collections.singletonList("No records found for the given Application ID.");
+		}
+		List<ManualVerificationEntity> validList = list.stream()
+				.filter(e -> e.getId() != null && e.getId().getMatchedRefType() != null)
+				.collect(Collectors.toList());
+		boolean allNin = validList.stream()
+				.allMatch(e -> MappingJsonConstants.NIN.equalsIgnoreCase(e.getId().getMatchedRefType()));
+		if (allNin) {
+			return Collections.singletonList("No Active MA Matches.");
+		}
+		List<String> result = validList.stream()
+				.filter(e -> MappingJsonConstants.RID.equalsIgnoreCase(e.getId().getMatchedRefType()))
+				.flatMap(e -> {
+					String statusCode = e.getStatusCode();
+					if (MappingJsonConstants.INQUEUE.equalsIgnoreCase(statusCode)) {
+						return Stream.of("Application is In Queue.");
+					}
+					List<String> rids = getMatchedRidFromResponse(e);
+					if (rids != null && !rids.isEmpty()) {
+						return rids.stream();
+					} else {
+						return Stream.empty();
+					}
+				})
+				.filter(Objects::nonNull)
+				.distinct()
+				.collect(Collectors.toList());
+		if (result.isEmpty()) {
+			return Collections.singletonList("No Active MA Matches.");
 		}
 		return result;
+	}
+
+	private List<String> getMatchedRidFromResponse(ManualVerificationEntity e) {
+		List<String> matchedRefs = new ArrayList<>();
+		if (e.getReponseText() == null) {
+			return matchedRefs;
+		}
+		try {
+			String responseStr = new String(e.getReponseText(), StandardCharsets.UTF_8);
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(responseStr);
+			JsonNode candidates = root.path(MappingJsonConstants.CANDIDATE_LIST).path(MappingJsonConstants.CANDIDATES);
+			if (candidates.isArray()) {
+				for (JsonNode candidate : candidates) {
+					String comment = candidate
+							.path(MappingJsonConstants.ANALYTICS)
+							.path(MappingJsonConstants.PRIMARY_OPERATOR_COMMENTS)
+							.asText();
+					if (MappingJsonConstants.MATCHED.equalsIgnoreCase(comment)) {
+						matchedRefs.add(candidate.path(MappingJsonConstants.REF_ID).asText());
+					}
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return matchedRefs;
 	}
 
 }

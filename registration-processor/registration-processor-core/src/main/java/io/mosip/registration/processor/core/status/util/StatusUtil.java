@@ -86,6 +86,8 @@ public enum StatusUtil {
 			"Applicant is not eligible to Renewal service"),
 	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
 			"Renewal is not allowed as the application was processed within the last 10 years"),
+	PACKET_STATUS_VALIDATION(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "026", "NIN validation failed as the status is deactivated"),
+	
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
@@ -378,6 +380,12 @@ public enum StatusUtil {
 	VID_CREATION_FAILED(StatusConstants.UIN_GENERATOR_MODULE_FAILED + "009", "VID creation failed -"),
 
 	WORKFLOW_INTERNAL_ACTION_SUCCESS(StatusConstants.WORKFLOW_INTERNAL_ACTION + "001",
+			"Packet workflow internal action completed successfully"),
+
+	WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO(StatusConstants.WORKFLOW_INTERNAL_ACTION + "003",
+			"Packet workflow internal action completed successfully"),
+
+	WORKFLOW_INTERNAL_ACTION_SUCCESS_FOR_ADDITIONAL_INFO_PARENT_RESTART(StatusConstants.WORKFLOW_INTERNAL_ACTION + "004",
 			"Packet workflow internal action completed successfully"),
 
 	WORKFLOW_INTERNAL_ACTION_REJECTED_ITERATIONS_EXCEEDED_LIMIT(StatusConstants.WORKFLOW_INTERNAL_ACTION + "002",

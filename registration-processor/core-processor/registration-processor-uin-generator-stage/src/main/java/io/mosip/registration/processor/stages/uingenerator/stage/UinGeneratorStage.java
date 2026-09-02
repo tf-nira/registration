@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -1138,7 +1139,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	private IdResponseDTO lostAndUpdateUin(String lostPacketRegId, String lostPacketNin, String process, MessageDTO object,
 			LogDescription description) throws ApisResourceAccessException, IOException,
 			io.mosip.kernel.core.util.exception.JsonProcessingException, PacketManagerException, IdrepoDraftException,
-			IdrepoDraftReprocessableException {
+			IdrepoDraftReprocessableException,JSONException {
 
 		IdResponseDTO idResponse = null;
 		JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
@@ -1162,12 +1163,15 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			regProcLogger.info("Fields to be updated "+updateInfo);
 			if (null != updateInfo && !updateInfo.isEmpty()) {
 				String[] upd = updateInfo.split(",");
+				Map<String, String> fieldMap = new HashMap<>();
 				for (String infoField : upd) {
 					String fldValue = packetManagerService.getField(lostPacketRegId, infoField, process,
 							ProviderStageName.UIN_GENERATOR);
-					if (null != fldValue)
-						identityObject.put(infoField, fldValue);
+					if (fldValue != null) {
+						fieldMap.put(infoField, fldValue);
+					}
 				}
+				loadDemographicIdentity(fieldMap, identityObject);
 			}
 			identityObject.put("isCardRequired", "Yes");
 			requestDto.setRegistrationId(lostPacketRegId);
