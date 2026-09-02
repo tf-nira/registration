@@ -289,7 +289,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 								   "Renewal of Alien".equals(userServiceType)||
 									"Alien Replacement".equals(userServiceType);
 
-				if (!isAdult && !isAlien) {
+				if ((!isAdult && !isAlien) || "DEACTIVATED".equals(object.getReg_type())) {
 					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
 				}
 

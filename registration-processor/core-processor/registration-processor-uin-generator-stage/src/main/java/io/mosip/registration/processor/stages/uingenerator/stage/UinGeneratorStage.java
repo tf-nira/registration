@@ -1,15 +1,11 @@
 package io.mosip.registration.processor.stages.uingenerator.stage;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -116,6 +112,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	private static final String STAGE_PROPERTY_PREFIX = "mosip.regproc.uin.generator.";
 	private static final String UIN = "UIN";
 	private static final String IDREPO_STATUS = "DRAFTED";
+
 
 	@Autowired
 	private Environment env;
@@ -890,24 +887,10 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	@SuppressWarnings("unchecked")
 	private boolean isAlienDeactivated(JSONObject demographicIdentity) {
 		try {
-			Object serviceTypeObj = demographicIdentity.get(MappingJsonConstants.SERVICE_TYPE);
-			if (serviceTypeObj == null) {
-				return false;
-			}
-			List<Map<String, String>> serviceTypeList = null;
-			if (serviceTypeObj instanceof List) {
-				serviceTypeList = (List<Map<String, String>>) serviceTypeObj;
-			} else if (serviceTypeObj instanceof String) {
-				// Field may have been stored as a JSON string; parse it
-				org.json.simple.parser.JSONParser parser = new org.json.simple.parser.JSONParser();
-				Object parsed = parser.parse((String) serviceTypeObj);
-				if (parsed instanceof List) {
-					serviceTypeList = (List<Map<String, String>>) parsed;
-				}
-			}
+			List<Map<String, String>> serviceTypeList =
+					(List<Map<String, String>>) demographicIdentity.get(MappingJsonConstants.SERVICE_TYPE);
 			if (serviceTypeList != null && !serviceTypeList.isEmpty()) {
-				Map<String, String> firstEntry = serviceTypeList.get(0);
-				String value = firstEntry.get(MappingJsonConstants.VALUE);
+				String value = serviceTypeList.get(0).get(MappingJsonConstants.VALUE);
 				return "Alien Deactivated".equalsIgnoreCase(value);
 			}
 		} catch (Exception e) {
@@ -996,7 +979,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 						description.setStatusComment(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage());
 						description.setSubStatusCode(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getCode());
 						description.setMessage(StatusUtil.UIN_DATA_UPDATION_SUCCESS.getMessage() + " for registration Id: " + id);
-						description.setTransactionStatusCode(RegistrationTransactionStatusCode.SUCCESS.toString());
+						description.setTransactionStatusCode(RegistrationTransactionStatusCode.PROCESSED.toString());
 						object.setIsValid(Boolean.TRUE);
 						statusComment = idResponseDto.getResponse().getStatus();
 					} else {
@@ -1151,7 +1134,7 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 	private IdResponseDTO lostAndUpdateUin(String lostPacketRegId, String lostPacketNin, String process, MessageDTO object,
 			LogDescription description) throws ApisResourceAccessException, IOException,
 			io.mosip.kernel.core.util.exception.JsonProcessingException, PacketManagerException, IdrepoDraftException,
-			IdrepoDraftReprocessableException {
+			IdrepoDraftReprocessableException,JSONException {
 
 		IdResponseDTO idResponse = null;
 		JSONObject jsonObject = utility.getIdentityJSONObjectByHandle(lostPacketNin);
@@ -1175,12 +1158,19 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 			regProcLogger.info("Fields to be updated "+updateInfo);
 			if (null != updateInfo && !updateInfo.isEmpty()) {
 				String[] upd = updateInfo.split(",");
+				Map<String, String> fieldMap = new HashMap<>();
 				for (String infoField : upd) {
-					String fldValue = packetManagerService.getField(lostPacketRegId, infoField, process,
+					String fldValue = packetManagerService.getField(
+							lostPacketRegId,
+							infoField,
+							process,
 							ProviderStageName.UIN_GENERATOR);
-					if (null != fldValue)
-						identityObject.put(infoField, fldValue);
+
+					if (fldValue != null) {
+						fieldMap.put(infoField, fldValue);
+					}
 				}
+				loadDemographicIdentity(fieldMap, identityObject);
 			}
 			identityObject.put("isCardRequired", "Yes");
 			requestDto.setRegistrationId(lostPacketRegId);

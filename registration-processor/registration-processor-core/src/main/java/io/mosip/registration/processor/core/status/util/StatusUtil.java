@@ -87,6 +87,7 @@ public enum StatusUtil {
 	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
 			"Renewal is not allowed as the application was processed within the last 10 years"),
 	DECLARED_AS_DECEASED(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "025", "The individual associated with NIN is deceased."),
+	PACKET_STATUS_VALIDATION(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "026", "NIN validation failed as the status is deactivated"),
 
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
@@ -217,8 +218,8 @@ public enum StatusUtil {
 	BIO_DEDUPE_POTENTIAL_MATCH(StatusConstants.BIO_DEDUPE_MODULE_FAILED + "001",
 			"Potential Biometric Match Found while Processing Packet"),
 	LOST_PACKET_BIOMETRICS_NOT_FOUND(StatusConstants.BIO_DEDUPE_MODULE_FAILED + "002",
-			"No Match was Found for the Biometrics Received"),
-	LOST_PACKET_UNIQUE_MATCH_FOUND(StatusConstants.BIO_DEDUPE_MODULE_SUCCESS + "003",
+			"No renewal or update was Found for the Biometrics Received"),
+	LOST_PACKET_MATCH_FOUND(StatusConstants.BIO_DEDUPE_MODULE_SUCCESS + "003",
 			"Unique Match was Found for the Biometrics Received"),
 	LOST_PACKET_MULTIPLE_MATCH_FOUND(StatusConstants.BIO_DEDUPE_MODULE_FAILED + "003",
 			"Multiple Match was Found for the Biometrics Received"),

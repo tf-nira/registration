@@ -335,6 +335,9 @@ public class RegistrationStatusServiceImpl
 				if (entity.getReferenceId() == null) {
 			        entity.setReferenceId(dto.getReferenceId());
 			    }
+				if (entity.getIsAnonymousProfileAdded() == null) {
+					entity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
+				}
 				registrationStatusDao.save(entity);
 				isTransactionSuccessful = true;
 				description.setMessage("Updated registration status successfully");
@@ -738,6 +741,7 @@ public class RegistrationStatusServiceImpl
 			registrationStatusEntity.setLastSuccessStageName(existingLastSuccessStageName);
 		registrationStatusEntity.setPacketCreatedDateTime(dto.getPacketCreateDateTime());
 		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
+		registrationStatusEntity.setIsAnonymousProfileAdded(dto.getIsAnonymousProfileAdded());
 		if(dto.getReferenceId() != null && !dto.getReferenceId().isEmpty()) {
 			registrationStatusEntity.setReferenceId(dto.getReferenceId());
 		}
@@ -1043,6 +1047,11 @@ public class RegistrationStatusServiceImpl
 				registrationStatusDto.getRegistrationId(),
 				"RegistrationStatusServiceImpl::updateRegistrationStatusForWorkFlow()::exit");
 
+	}
+	
+	@Override
+	public List<String> getProcessForRegIds(List<String> matchedRegIds) {
+		return registrationStatusDao.getProcessForRegIds(matchedRegIds);
 	}
 	
 }

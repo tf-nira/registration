@@ -143,11 +143,13 @@ public class PacketValidatorImpl implements PacketValidator {
 
 
 
+			String userServiceType = null;
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RES_UPDATE.toString())
 					|| process.equalsIgnoreCase(RegistrationType.RENEWAL.toString())
 					|| process.equalsIgnoreCase(RegistrationType.FIRSTID.toString())
-					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+					|| process.equalsIgnoreCase(RegistrationType.LOST.toString())
+					|| process.equalsIgnoreCase(RegistrationType.DEACTIVATED.toString())) {
 				uin = utility.getUINByHandle(id, process, ProviderStageName.PACKET_VALIDATOR);
 				// In production we need to enable isEnabled property so added or condition
 				if (uin != null || isEnabled) {
@@ -165,16 +167,9 @@ public class PacketValidatorImpl implements PacketValidator {
 					throw new IdRepoAppException(PlatformErrorMessages.RPR_PIS_IDENTITY_NOT_FOUND.getMessage());
 				}
 
-				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
-				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
-					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage());
-					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
-					return false;
-				}
-
 				Object jsonServiceTypeObj =  packetManagerService.getField(id,MappingJsonConstants.SERVICE_TYPE, process, ProviderStageName.PACKET_VALIDATOR);
 
-				String userServiceType= null;
+				userServiceType = null;
 				try {
 				    if (jsonServiceTypeObj != null) {
 				        if (jsonServiceTypeObj instanceof String) {
@@ -258,6 +253,22 @@ public class PacketValidatorImpl implements PacketValidator {
 							PlatformErrorMessages.RPR_PVM_UPDATE_DEACTIVATED.getCode(), "UIN is Deactivated");
 				}
 
+				if (status != null && status.equalsIgnoreCase("DEACTIVATED")) {
+					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+							LoggerFileConstant.REGISTRATIONID.toString(), id,
+							"ERROR =======>" + StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.PACKET_STATUS_VALIDATION.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.PACKET_STATUS_VALIDATION.getCode());
+					return false;
+				}
+
+				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
+				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
+					return false;
+				}
+
 			// check if uin is in idrepisitory
 			if (RegistrationType.UPDATE.name().equalsIgnoreCase(process)
 					|| RegistrationType.RES_UPDATE.name().equalsIgnoreCase(process)
@@ -310,7 +321,7 @@ public class PacketValidatorImpl implements PacketValidator {
 			}
 
 		}
-		if (process.equalsIgnoreCase(RegistrationType.LOST.toString())) {
+		if (process.equalsIgnoreCase(RegistrationType.LOST.toString()) && !"Alien Replacement".equalsIgnoreCase(userServiceType)) {
 			String handle = packetManagerService.getFieldByMappingJsonKey(id, MappingJsonConstants.NIN, process,
 					ProviderStageName.PACKET_VALIDATOR);
 			if (StringUtils.isNotEmpty(handle)) {
