@@ -244,7 +244,7 @@ public class WorkflowInstanceService {
             return true;
         }
 
-        String ridPrefix = rid.substring(0, rid.indexOf("-"));
+        String ridPrefix = rid.substring(0, rid.indexOf("-") + 1);
         List<String> excludeStatusCodes = new ArrayList<>();
         excludeStatusCodes.add(RegistrationStatusCode.FAILED.toString());
         excludeStatusCodes.add(RegistrationStatusCode.REJECTED.toString());
