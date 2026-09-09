@@ -279,8 +279,15 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 				}
 				
 				if(RegistrationType.DEACTIVATED.toString().equalsIgnoreCase(object.getReg_type())) {
-					demographicIdentity.put("declaredAsDeceased", "Y");
-					regProcLogger.info("Flag declaredAsDeceased added for the deactivation request reg_id: {}", registrationId);
+					if(isAlienDeactivated(demographicIdentity)) {
+						if(isDeathRegistration(demographicIdentity)) {
+							demographicIdentity.put("declaredAsDeceased", "Y");
+							regProcLogger.info("Flag declaredAsDeceased added for the death registration alien deactivation request reg_id: {}", registrationId);
+						}
+					} else {
+						demographicIdentity.put("declaredAsDeceased", "Y");
+						regProcLogger.info("Flag declaredAsDeceased added for the Non-alien deactivation request reg_id: {}", registrationId);
+					}
 				}
 
 
@@ -898,6 +905,21 @@ public class UinGeneratorStage extends MosipVerticleAPIManager {
 		}
 		return false;
 	}
+
+	private boolean isDeathRegistration(JSONObject demographicIdentity) {
+		try {
+			List<Map<String, String>> remarkList =
+					(List<Map<String, String>>) demographicIdentity.get(MappingJsonConstants.REMARK);
+			if (remarkList != null && !remarkList.isEmpty()) {
+				String value = remarkList.get(0).get(MappingJsonConstants.VALUE);
+				return MappingJsonConstants.DEATH.equalsIgnoreCase(value);
+			}
+		} catch (Exception e) {
+			regProcLogger.error("Error while reading remark from demographicIdentity", e);
+		}
+		return false;
+	}
+
 
 	private boolean isIdResponseNotNull(IdResponseDTO result) {
 		return result != null && result.getResponse() != null;
