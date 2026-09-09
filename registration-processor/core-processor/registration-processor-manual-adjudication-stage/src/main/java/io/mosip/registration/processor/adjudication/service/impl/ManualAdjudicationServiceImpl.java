@@ -487,12 +487,15 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		String identityResponse = mapper.writeValueAsString(responseDTO.getIdentity());
 		Map<String,String> identity=new HashMap<>();
 
-		for(Entry<String,String> entry:demographicMap.entrySet()) {
-			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
-			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
+		JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
+		for (Entry<String, String> entry : demographicMap.entrySet()) {
+			Object value = JsonUtil.getJSONValue(identityJson, entry.getValue());
+			if (value == null) {
+				continue;
+			}
+			identity.put(entry.getValue(), value instanceof String ? (String) value : mapper.writeValueAsString(value));
 		}
-
-		identity.put("status", mapper.writeValueAsString(responseDTO.getStatus()));
+		identity.put("status", responseDTO.getStatus());
 
 		requestDto.setIdentity(identity);
 		List<Documents> documents=responseDTO.getDocuments();
