@@ -479,8 +479,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		LinkedHashMap<String, Object> policy = getPolicy();
 		Map<String, String> policyMap = getPolicyMap(policy);
 		Map<String, String> demographicMap  = getDemographicMap(policyMap);
-		demographicMap.put("remark", "remark");
-		demographicMap.put("status", "status");
 
 		ResponseDTO responseDTO;
 		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
@@ -498,8 +496,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			JSONObject identityJson = JsonUtil.objectMapperReadValue(identityResponse, JSONObject.class);
 			identity.put(entry.getValue(),mapper.writeValueAsString(JsonUtil.getJSONValue(identityJson, entry.getValue())));
 		}
-
-		identity.put("status", mapper.writeValueAsString(responseDTO.getStatus()));
 
 		requestDto.setIdentity(identity);
 		List<Documents> documents=responseDTO.getDocuments();
@@ -787,7 +783,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(setReferenceURL(e.getId().getMatchedRefId(), registrationStatusDto1));
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -880,15 +876,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
 		return req;
-	}
-
-	private String setReferenceURL(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
-		if( registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.PROCESSED.name())) {
-			return getDataShareUrlfromIdRepo(id, "RID");
-		}
-		else{
-			return getDataShareUrl(id,registrationStatusDto.getRegistrationType());
-		}
 	}
 
 	private List<ReferenceURL> addReferenceURLs(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
