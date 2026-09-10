@@ -472,8 +472,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		LinkedHashMap<String, Object> policy = getPolicy();
 		Map<String, String> policyMap = getPolicyMap(policy);
 		Map<String, String> demographicMap  = getDemographicMap(policyMap);
-		demographicMap.put("remark", "remark");
-		demographicMap.put("status", "status");
 
 		ResponseDTO responseDTO;
 		if (idType.equalsIgnoreCase("RID")) responseDTO = idRepoService.getIdResponseFromIDRepo(id);
@@ -495,7 +493,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 			identity.put(entry.getValue(), value instanceof String ? (String) value : mapper.writeValueAsString(value));
 		}
-		identity.put("status", responseDTO.getStatus());
 
 		requestDto.setIdentity(identity);
 		List<Documents> documents=responseDTO.getDocuments();
@@ -786,7 +783,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 								e.getId().getMatchedRefId()
 						);
 					}
-					r.setReferenceURL(setReferenceURL(e.getId().getMatchedRefId(), registrationStatusDto1));
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
 					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
 						regProcLogger.info(
 								"Reference URL is null/empty. regId={}, matchedRefId={}, ReferenceId={}",
@@ -902,15 +899,6 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				"ManualVerificationServiceImpl::formAdjudicationRequest()::entry");
 
 		return req;
-	}
-
-	private String setReferenceURL(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
-		if( registrationStatusDto.getStatusCode().equalsIgnoreCase(RegistrationStatusCode.PROCESSED.name())) {
-			return getDataShareUrlfromIdRepo(id, "RID");
-		}
-		else{
-			return getDataShareUrl(id,registrationStatusDto.getRegistrationType());
-		}
 	}
 
 	private List<ReferenceURL> addReferenceURLs(String id,InternalRegistrationStatusDto registrationStatusDto) throws Exception {
