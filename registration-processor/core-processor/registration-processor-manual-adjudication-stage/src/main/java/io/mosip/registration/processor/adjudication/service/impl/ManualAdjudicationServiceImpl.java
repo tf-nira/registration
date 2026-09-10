@@ -424,7 +424,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	}
 
-	private String getDataShareUrl(String id, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
+	private String getDataShareUrl(String id, InternalRegistrationStatusDto registrationStatusDto, Boolean isGallery) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -448,7 +448,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			}
 			identity.put("status", responseDTO.getStatus());
 
-		} else {
+		} else if (isGallery) {
 			identity.put("status", "IN_PROGRESS");
 		}
 
@@ -779,7 +779,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				req.setReferenceURL(getDataShareUrlForIntroducer(messageDTO.getRid(), mve.get(0).getId().getMatchedRefId(), messageDTO.getReg_type()));
 			} else {
 				req.setReferenceURL(
-						getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto));
+						getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto, false));
 			}
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
@@ -800,7 +800,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 				try {
 					r.setReferenceId(e.getId().getMatchedRefId());
-					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1));
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1, true));
 					referenceIds.add(r);
 				} catch (PacketManagerException | ApisResourceAccessException ex) {
 					regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
@@ -909,7 +909,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			referenceURL.setSource(PACKET);
 			referenceURL.setStatus(registrationStatusDto.getStatusCode());
 			referenceURL.setURL(
-					getDataShareUrl(id,registrationStatusDto));
+					getDataShareUrl(id,registrationStatusDto, false));
 			referenceURLs.add(referenceURL);
 			if(registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.UPDATE.name())
 					|| registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.RES_UPDATE.name())
