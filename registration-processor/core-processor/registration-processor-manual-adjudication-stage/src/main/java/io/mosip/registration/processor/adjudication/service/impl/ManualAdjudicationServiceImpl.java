@@ -424,7 +424,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 	}
 
-	private String getDataShareUrl(String id, String process) throws Exception {
+	private String getDataShareUrl(String id, InternalRegistrationStatusDto registrationStatusDto) throws Exception {
 		DataShareRequestDto requestDto = new DataShareRequestDto();
 
 		LinkedHashMap<String, Object> policy = getPolicy();
@@ -433,7 +433,25 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		// set demographic
 		Map<String, String> demographicMap = getDemographicMap(policyMap);
-		requestDto.setIdentity(packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION));
+		String process = registrationStatusDto.getRegistrationType();
+
+		Map<String, String> identity = packetManagerService.getFields(id, demographicMap.values().stream().collect(Collectors.toList()), process, ProviderStageName.MANUAL_ADJUDICATION);
+
+		if (Objects.equals(registrationStatusDto.getStatusCode(), "PROCESSED")) {
+			ResponseDTO responseDTO = idRepoService.getIdResponseFromIDRepo(id);
+			JSONObject identityJson = mapper.convertValue(responseDTO.getIdentity(), JSONObject.class);
+			Object remark = JsonUtil.getJSONValue(identityJson, "remark");
+
+			if (remark != null) {
+				identity.put("remark", mapper.writeValueAsString(remark));
+			}
+			identity.put("status", responseDTO.getStatus());
+
+		} else {
+			identity.put("status", "IN_PROGRESS");
+		}
+
+		requestDto.setIdentity(identity);
 
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
@@ -755,7 +773,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 				req.setReferenceURL(getDataShareUrlForIntroducer(messageDTO.getRid(), mve.get(0).getId().getMatchedRefId(), messageDTO.getReg_type()));
 			} else {
 				req.setReferenceURL(
-						getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto.getRegistrationType()));
+						getDataShareUrl(mve.get(0).getRegId(), registrationStatusDto));
 			}
 
 		} catch (PacketManagerException | ApisResourceAccessException ex) {
@@ -783,7 +801,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 								e.getId().getMatchedRefId()
 						);
 					}
-					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1.getRegistrationType()));
+					r.setReferenceURL(getDataShareUrl(e.getId().getMatchedRefId(),registrationStatusDto1));
 					if (r.getReferenceURL() == null || r.getReferenceURL().isBlank()) {
 						regProcLogger.info(
 								"Reference URL is null/empty. regId={}, matchedRefId={}, ReferenceId={}",
@@ -915,7 +933,7 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			referenceURL.setSource(PACKET);
 			referenceURL.setStatus(registrationStatusDto.getStatusCode());
 			referenceURL.setURL(
-					getDataShareUrl(id,registrationStatusDto.getRegistrationType()));
+					getDataShareUrl(id,registrationStatusDto));
 			referenceURLs.add(referenceURL);
 			if(registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.UPDATE.name())
 					|| registrationStatusDto.getRegistrationType().equalsIgnoreCase(RegistrationType.RES_UPDATE.name())
