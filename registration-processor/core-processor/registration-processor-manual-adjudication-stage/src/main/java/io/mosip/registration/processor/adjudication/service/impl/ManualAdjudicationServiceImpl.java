@@ -441,9 +441,15 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 		if (Objects.equals(registrationStatusDto.getStatusCode(), "PROCESSED")) {
 			ResponseDTO responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 			JSONObject identityJson = mapper.convertValue(responseDTO.getIdentity(), JSONObject.class);
+			Object remark = JsonUtil.getJSONValue(identityJson, "remark");
 
+			if (remark != null) {
+				identity.put("remark", mapper.writeValueAsString(remark));
+			}
 			identity.put("status", responseDTO.getStatus());
-			identity.put("remark", JsonUtil.getJSONValue(identityJson, "remark"));
+
+		} else {
+			identity.put("status", "IN_PROGRESS");
 		}
 
 		requestDto.setIdentity(identity);
