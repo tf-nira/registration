@@ -442,11 +442,17 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 			ResponseDTO responseDTO = idRepoService.getIdResponseFromIDRepo(id);
 			JSONObject identityJson = mapper.convertValue(responseDTO.getIdentity(), JSONObject.class);
 			Object remark = JsonUtil.getJSONValue(identityJson, "remark");
+			Object deceased = JsonUtil.getJSONValue(identityJson, "declaredAsDeceased");
 
-			if (remark != null) {
-				identity.put("remark", mapper.writeValueAsString(remark));
+			if (Objects.equals(deceased, "Y")) {
+				identity.put("reasonForDeactivation", "Deceased");
+				identity.put("status", "DEACTIVATED");
+			} else {
+				if (remark != null) {
+					identity.put("reasonForDeactivation", mapper.writeValueAsString(remark));
+				}
+				identity.put("status", responseDTO.getStatus());
 			}
-			identity.put("status", responseDTO.getStatus());
 
 		} else if (isGallery) {
 			identity.put("status", "IN_PROGRESS");
