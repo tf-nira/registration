@@ -43,6 +43,8 @@ public class MappingJsonConstants {
 	public static final String AGE = "age";
 	public static final String IDSCHEMA_VERSION = "IDSchemaVersion";
 	public static final String UIN = "uin";
+	public static final String REMARK = "remark";
+	public static final String DEATH = "Death";
 	public static final String LOCATION_HIERARCHY_FOR_PROFILING = "locationHierarchyForProfiling";
 	
 	
