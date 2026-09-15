@@ -37,6 +37,7 @@ import io.mosip.registration.processor.core.code.RegistrationTransactionStatusCo
 import io.mosip.registration.processor.core.code.RegistrationTransactionTypeCode;
 import io.mosip.registration.processor.core.constant.LandingZoneTypeConstant;
 import io.mosip.registration.processor.core.constant.LoggerFileConstant;
+import io.mosip.registration.processor.core.constant.ProviderStageName;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.ObjectStoreNotAccessibleException;
 import io.mosip.registration.processor.core.exception.PacketDecryptionFailureException;
@@ -58,6 +59,7 @@ import io.mosip.registration.processor.packet.uploader.exception.PacketNotFoundE
 import io.mosip.registration.processor.packet.uploader.service.PacketUploaderService;
 import io.mosip.registration.processor.rest.client.audit.builder.AuditLogRequestBuilder;
 import io.mosip.registration.processor.status.code.RegistrationStatusCode;
+import io.mosip.registration.processor.status.code.RegistrationType;
 import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.SyncRegistrationDto;
@@ -226,12 +228,23 @@ public class PacketUploaderServiceImpl implements PacketUploaderService<MessageD
                             if (messageDTO.getIsValid()) {
                                 dto.setLatestTransactionStatusCode(
                                         RegistrationTransactionStatusCode.SUCCESS.toString());
-                                isTransactionSuccessful = true;
-                                description.setMessage(PlatformSuccessMessages.RPR_PUM_PACKET_UPLOADER.getMessage());
-                                regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
-                                        LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
-                                        description.getMessage());
+								isTransactionSuccessful = true;
+								description.setMessage(PlatformSuccessMessages.RPR_PUM_PACKET_UPLOADER.getMessage());
+								regProcLogger.info(LoggerFileConstant.SESSIONID.toString(),
+										LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+										description.getMessage());
 
+								regProcLogger.info("Extracting the NIN from packet manager and inserting in registration table for registration id : {}", registrationId);
+								String nin = utility.getNIN(registrationId, RegistrationType.RENEWAL.toString(), ProviderStageName.PACKET_UPLOADER);
+								regProcLogger.info("Extracted NIN for registration id: {} is: {}", registrationId, nin);
+								if(nin != null && !nin.isBlank()) {
+									String hashedNin = HMACUtils2.digestAsPlainText(nin.getBytes());
+									regProcLogger.info("Hashed value for the NIN for registration id: {} is: {}", registrationId, hashedNin);
+									dto.setReferenceId(hashedNin);
+								} else {
+									regProcLogger.warn("NIN is null or empty for registration id: {}", registrationId);	  
+								}
+                                
                             }
                         } else {
 

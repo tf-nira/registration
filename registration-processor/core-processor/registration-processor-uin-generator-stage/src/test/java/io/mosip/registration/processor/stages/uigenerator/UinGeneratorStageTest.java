@@ -9,8 +9,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import io.mosip.registration.processor.core.constant.ProviderStageName;
-import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,7 +47,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-
+import io.mosip.registration.processor.core.constant.ProviderStageName;
+import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -1702,6 +1702,7 @@ public class UinGeneratorStageTest {
 	    when(packetManagerService.getFields(
 	            anyString(), anyList(), anyString(), any(ProviderStageName.class)))
 	            .thenReturn(mockFields);
+	    
 		MessageDTO result = uinGeneratorStage.process(messageDTO);
 		assertFalse(result.getIsValid());
 		assertFalse(result.getInternalError());
@@ -1751,6 +1752,7 @@ public class UinGeneratorStageTest {
 	    when(packetManagerService.getFields(
 	            anyString(), anyList(), anyString(), any(ProviderStageName.class)))
 	            .thenReturn(mockFields);
+	    
 		MessageDTO result = uinGeneratorStage.process(messageDTO);
 		assertFalse(result.getIsValid());
 		assertFalse(result.getInternalError());

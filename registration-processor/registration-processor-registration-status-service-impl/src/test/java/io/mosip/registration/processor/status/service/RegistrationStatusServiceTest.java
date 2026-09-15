@@ -483,10 +483,10 @@ public class RegistrationStatusServiceTest {
 		statusList.add("REPROCESS");
 		List<String> excludeStageNames = new ArrayList<>();
 		excludeStageNames.add("PacketReceiverStage");
-		Mockito.when(registrationStatusDao.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
+		Mockito.when(registrationStatusDao.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenReturn(entities);
 		List<InternalRegistrationStatusDto> dtolist = registrationStatusService.getUnProcessedPackets(1, 21600, 3,
-				statusList, excludeStageNames, new ArrayList<>());
+				statusList, excludeStageNames);
 		assertEquals("REPROCESS", dtolist.get(0).getLatestTransactionStatusCode());
 	}
 	
@@ -530,10 +530,10 @@ public class RegistrationStatusServiceTest {
 		excludeStageNames.add("PacketReceiverStage");
 		DataAccessLayerException exp = new DataAccessLayerException(HibernateErrorCode.ERR_DATABASE.getErrorCode(),
 				"errorMessage", new Exception());
-		Mockito.when(registrationStatusDao.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList(), anyList()))
+		Mockito.when(registrationStatusDao.getUnProcessedPackets(anyInt(), anyLong(), anyInt(), anyList(), anyList()))
 				.thenThrow(exp);
 
-		registrationStatusService.getUnProcessedPackets(1, 21600, 3, statusList, excludeStageNames, new ArrayList<>());
+		registrationStatusService.getUnProcessedPackets(1, 21600, 3, statusList, excludeStageNames);
 	}
 
 	@Test
@@ -563,14 +563,12 @@ public class RegistrationStatusServiceTest {
 	public void testGetResumablePackets()
 	{
 		registrationStatusEntity.setStatusCode("PAUSED");
-		Mockito.when(registrationStatusDao.getResumablePackets(anyLong(), anyInt(), anyList(), anyList()))
+		Mockito.when(registrationStatusDao.getResumablePackets(anyInt(), anyList()))
 				.thenReturn(List.of(registrationStatusEntity));
 		List<String> excludeStageNames = new ArrayList<>();
 		excludeStageNames.add("PacketReceiverStage");
-		List<String> processList = new ArrayList<>();
-		processList.add("MIGRATOR");
-		List<InternalRegistrationStatusDto> dtolist = registrationStatusService.getResumablePackets(1, 1,
-				excludeStageNames, processList);
+		List<InternalRegistrationStatusDto> dtolist = registrationStatusService.getResumablePackets(1,
+				excludeStageNames);
 		assertEquals("PAUSED", dtolist.get(0).getStatusCode());
 	}
 
@@ -580,11 +578,8 @@ public class RegistrationStatusServiceTest {
 				"errorMessage", new Exception());
 		List<String> excludeStageNames = new ArrayList<>();
 		excludeStageNames.add("PacketReceiverStage");
-		List<String> processList = new ArrayList<>();
-		processList.add("MIGRATOR");
-		Mockito.when(registrationStatusDao.getResumablePackets(anyLong(), anyInt(), anyList(), anyList()))
-				.thenThrow(exp);
-		registrationStatusService.getResumablePackets(1, 1, excludeStageNames, processList);
+		Mockito.when(registrationStatusDao.getResumablePackets(anyInt(), anyList())).thenThrow(exp);
+		registrationStatusService.getResumablePackets(1, excludeStageNames);
 
 	}
 

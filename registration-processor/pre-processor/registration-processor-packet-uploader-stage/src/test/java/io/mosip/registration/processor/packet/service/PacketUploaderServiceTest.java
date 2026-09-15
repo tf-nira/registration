@@ -55,6 +55,7 @@ import io.mosip.registration.processor.core.code.EventType;
 import io.mosip.registration.processor.core.code.RegistrationExceptionTypeCode;
 import io.mosip.registration.processor.core.exception.ApisResourceAccessException;
 import io.mosip.registration.processor.core.exception.PacketDecryptionFailureException;
+import io.mosip.registration.processor.core.exception.PacketManagerException;
 import io.mosip.registration.processor.core.http.ResponseWrapper;
 import io.mosip.registration.processor.core.logger.LogDescription;
 import io.mosip.registration.processor.core.packet.dto.AdditionalInfoRequestDto;
@@ -140,7 +141,7 @@ public class PacketUploaderServiceTest {
 	private File file;
 
 	@Before
-	public void setUp() throws IOException, ApisResourceAccessException, JsonProcessingException, NoSuchAlgorithmException {
+	public void setUp() throws IOException, ApisResourceAccessException, JsonProcessingException, NoSuchAlgorithmException, PacketManagerException {
 		ReflectionTestUtils.setField(packetuploaderservice, "packetNames", "id,optional,evidence");
 		ReflectionTestUtils.setField(packetuploaderservice, "landingZoneType", "DMZServer");
 		ReflectionTestUtils.setField(packetuploaderservice, "landingZoneAccount", "LandingZoneAccount");
@@ -201,6 +202,9 @@ public class PacketUploaderServiceTest {
 		PowerMockito.when(ZipUtils.unzipAndGetFiles(any())).thenReturn(entryMap);
 		Mockito.when(objectStoreAdapter.exists(any(), any(), any(), any(), any())).thenReturn(false);
 		Mockito.when(utility.getDefaultSource(any(), any())).thenReturn("REGISTRATION_CLIENT");
+		
+		Mockito.when(utility.getNIN(anyString(), anyString(), any()))
+		.thenReturn("12345678901234");
 
 	}
 

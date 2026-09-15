@@ -235,19 +235,18 @@ public class ReprocessorVerticle extends MosipVerticleAPIManager {
 		int  totalNumberOfReprocessRecords = 0;
 		try {
 			Map<String, Set<String>> reprocessRestartTriggerMap = intializeReprocessRestartTriggerMapping();
-			reprocessorDtoList = registrationStatusService.getResumablePackets(elapseTime, fetchSize,
-					reprocessExcludeStageNames, includeProcesses);
+			reprocessorDtoList = registrationStatusService.getResumablePackets(fetchSize, reprocessExcludeStageNames);
 			if (!CollectionUtils.isEmpty(reprocessorDtoList)) {
 				if (reprocessorDtoList.size() < fetchSize) {
 					List<InternalRegistrationStatusDto>  reprocessorPacketList = registrationStatusService.getUnProcessedPackets(fetchSize - reprocessorDtoList.size(), elapseTime,
-							reprocessCount, statusList, reprocessExcludeStageNames, includeProcesses);
+							reprocessCount, statusList, reprocessExcludeStageNames);
 					if (!CollectionUtils.isEmpty(reprocessorPacketList)) {
 						reprocessorDtoList.addAll(reprocessorPacketList);
 					}
 				}
 			} else {
 				reprocessorDtoList = registrationStatusService.getUnProcessedPackets(fetchSize, elapseTime,
-						reprocessCount, statusList, reprocessExcludeStageNames, includeProcesses);
+						reprocessCount, statusList, reprocessExcludeStageNames);
 			}
 
 			

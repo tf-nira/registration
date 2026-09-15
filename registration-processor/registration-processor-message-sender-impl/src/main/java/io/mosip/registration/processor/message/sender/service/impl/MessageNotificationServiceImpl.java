@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Map.Entry;
+
 import org.json.simple.parser.JSONParser;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -211,7 +212,7 @@ public class MessageNotificationServiceImpl
 				} catch (Exception e) {
 				    regProcLogger.error("Error while extracting userServiceType", e);
 				}
-
+				
 				String userService = "";
 				if("Alien New Registration".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
@@ -221,6 +222,7 @@ public class MessageNotificationServiceImpl
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("NEW".equals(regType)) {
 					userService = "New Registration";
 				} else if ("LOST".equals(regType)) {
@@ -231,10 +233,13 @@ public class MessageNotificationServiceImpl
 					userService = "Renewal Of Card";
 				}else if ("FIRSTID".equals(regType)) {
 					userService = "Get First ID";
+				}else if ("Alien Deactivated".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				}
-
+				
 				attributes.put("service", userService);
-
+				
 				Map<String, Object> attributesLang=new HashMap<>(attributes);
 				setAttributes(id, process,lang, idType, attributesLang, regType, phoneNumber, emailId);
 				InputStream stream = templateGenerator.getTemplate(templateTypeCode, attributesLang, lang);
@@ -243,10 +248,13 @@ public class MessageNotificationServiceImpl
 				}else {
 				artifact = artifact + LINE_SEPARATOR + IOUtils.toString(stream, ENCODING);;
 				}
-				if (phoneNumber == null || phoneNumber.length() == 0) {
+
+				if (phoneNumber != null && phoneNumber.length() != 0) {
+					smsDto.setNumber(phoneNumber.toString());
+				} else {
 					throw new PhoneNumberNotFoundException(PlatformErrorMessages.RPR_SMS_PHONE_NUMBER_NOT_FOUND.getCode());
 				}
-				smsDto.setNumber(phoneNumber.toString());
+
 			}
 
 			smsDto.setMessage(artifact);
@@ -334,7 +342,7 @@ public class MessageNotificationServiceImpl
 				} catch (Exception e) {
 				    regProcLogger.error("Error while extracting userServiceType", e);
 				}
-
+				
 				String userService = "";
 				if("Alien New Registration".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
@@ -344,6 +352,7 @@ public class MessageNotificationServiceImpl
 					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
 					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				} else if ("NEW".equals(regType)) {
 					userService = "New Registration";
 				} else if ("LOST".equals(regType)) {
@@ -354,8 +363,11 @@ public class MessageNotificationServiceImpl
 					userService = "Renewal Of Card";
 				}else if ("FIRSTID".equals(regType)) {
 					userService = "Get First ID";
+				} else if ("Alien Deactivated".equalsIgnoreCase(userServiceType)) {
+					userService = userServiceType;
+					attributes.put("IDENTITY", "Alien Identification Number (AIN)");
 				}
-
+				
 				attributes.put("service", userService);
 				Map<String, Object> attributesLang=new HashMap<>(attributes);
 				setAttributes(id, process,lang, idType, attributesLang, regType, phoneNumber, emailId);
@@ -366,10 +378,15 @@ public class MessageNotificationServiceImpl
 				InputStream subStream = templateGenerator.getTemplate(subjectCode, attributesLang, lang);
 
 				subject=IOUtils.toString(subStream, ENCODING);
-				if (emailId == null || emailId.length() == 0) {
+
+				String[] mailTo = null;
+
+				if (emailId != null && emailId.length() != 0) {
+					mailTo = new String[]{ emailId.toString() };
+				} else {
 					throw new EmailIdNotFoundException(PlatformErrorMessages.RPR_EML_EMAILID_NOT_FOUND.getCode());
 				}
-				String[] mailTo = { emailId.toString() };
+				
 				if("Alien New Registration".equalsIgnoreCase(userServiceType) && subject.equalsIgnoreCase("NIN Generated")) {
 					subject = "AIN Generated";
 				} 
@@ -865,3 +882,4 @@ public class MessageNotificationServiceImpl
 		return vid;
 	}
 	}
+

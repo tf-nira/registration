@@ -533,7 +533,7 @@ public class BioDedupeProcessor {
 		String moduleName = ModuleName.BIO_DEDUPE.toString();
 		Set<String> matchedRegIds = abisHandlerUtil.getUniqueRegIds(registrationStatusDto.getRegistrationId(),
 				registrationType, registrationStatusDto.getIteration(), registrationStatusDto.getWorkflowInstanceId(), ProviderStageName.BIO_DEDUPE);
-		
+
 		if (matchedRegIds != null && !matchedRegIds.isEmpty()
 				&& matchedRegIds.contains(registrationStatusDto.getRegistrationId())) {
 			matchedRegIds.remove(registrationStatusDto.getRegistrationId());
@@ -580,7 +580,7 @@ public class BioDedupeProcessor {
 						StatusUtil.LOST_PACKET_BIOMETRICS_NOT_FOUND.getMessage() + registrationStatusDto.getRegistrationId());
 
 			}
-		
+
 		}
 	}
 
@@ -594,4 +594,3 @@ public class BioDedupeProcessor {
 		}
 	}
 }
-

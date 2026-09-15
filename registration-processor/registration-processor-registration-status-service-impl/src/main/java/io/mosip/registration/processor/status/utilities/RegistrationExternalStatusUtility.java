@@ -87,8 +87,7 @@ public class RegistrationExternalStatusUtility {
 	 */
 	private RegistrationExternalStatusCode checkStatusforPacketReceiver(RegistrationStatusEntity entity) {
 		long timeElapsedinPacketreceiver = checkElapsedTime(entity);
-		if ((entity.getLatestTransactionTypeCode()
-				.equalsIgnoreCase(RegistrationTransactionTypeCode.PACKET_RECEIVER.toString()))
+		if ((entity.getRegistrationStageName().equalsIgnoreCase("PacketReceiverStage"))
 				&& (timeElapsedinPacketreceiver > elapsedTime)) {
 			if ((entity.getRetryCount() < thresholdTime)) {
 				return RegistrationExternalStatusCode.RESEND;
@@ -109,10 +108,8 @@ public class RegistrationExternalStatusUtility {
 	 * @return the registration external status code
 	 */
 	private RegistrationExternalStatusCode checkStatusforPacketUploader(RegistrationStatusEntity entity) {
-		if ((entity.getLatestTransactionTypeCode()
-				.equalsIgnoreCase(RegistrationTransactionTypeCode.PACKET_RECEIVER.toString())
-				|| entity.getLatestTransactionTypeCode()
-						.equalsIgnoreCase(RegistrationTransactionTypeCode.UPLOAD_PACKET.toString()))
+		if ((entity.getRegistrationStageName().equalsIgnoreCase("PacketReceiverStage")
+				|| entity.getRegistrationStageName().equalsIgnoreCase("PacketUploaderStage"))
 				&& (entity.getRetryCount() < thresholdTime)) {
 			return RegistrationExternalStatusCode.RESEND;
 		} else
