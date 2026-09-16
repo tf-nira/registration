@@ -125,6 +125,15 @@ public class MVSServiceImpl implements MVSService {
 	private static final String META_INFO = "meta_info";
 	private static final String AUDITS = "audits";
 
+	/** RID for which the datashare request is dumped to the log. Set to "" to disable. */
+	private static final String DATASHARE_DEBUG_RID = "76016217910721";
+
+	/** Log prefix used for the datashare debug dump. */
+	private static final String DATASHARE_DEBUG_PREFIX = "DATASHARE-DEBUG :: rid : ";
+
+	/** Number of characters per logged body chunk. */
+	private static final int LOG_CHUNK_SIZE = 20000;
+
 	@Autowired
 	private Environment env;
 
@@ -665,6 +674,9 @@ public class MVSServiceImpl implements MVSService {
 		}
 		if (StringUtils.isEmpty(url))
 			url = protocol + internalDomainName + env.getProperty(ApiName.DATASHARECREATEURL.name());
+		if (DATASHARE_DEBUG_RID.equals(id)) {
+			logDataShareRequest(id, url, pathSegments, req);
+		}
 		url = url.replaceAll("[\\[\\]]", "");
 
 		LinkedHashMap response = (LinkedHashMap) registrationProcessorRestClientService.postApi(url,
@@ -881,6 +893,9 @@ public class MVSServiceImpl implements MVSService {
 		}
 		if (StringUtils.isEmpty(url))
 			url = protocol + internalDomainName + env.getProperty(ApiName.DATASHARECREATEURL.name());
+		if (DATASHARE_DEBUG_RID.equals(id)) {
+			logDataShareRequest(id, url, pathSegments, req);
+		}
 		url = url.replaceAll("[\\[\\]]", "");
 
 		LinkedHashMap response = (LinkedHashMap) registrationProcessorRestClientService.postApi(url,
@@ -891,6 +906,44 @@ public class MVSServiceImpl implements MVSService {
 
 		LinkedHashMap datashare = (LinkedHashMap) response.get(DATASHARE);
 		return datashare.get(URL) != null ? datashare.get(URL).toString() : null;
+	}
+
+	/**
+	 * Dumps the datashare request (url + multipart body) to the log so that it can
+	 * be replayed from Postman. Enabled only for {@link #DATASHARE_DEBUG_RID}.
+	 */
+	private void logDataShareRequest(String id, String baseUrl, List<String> pathSegments, String req) {
+		try {
+			StringBuilder fullUrl = new StringBuilder(baseUrl);
+			if (pathSegments != null) {
+				for (String segment : pathSegments) {
+					if (fullUrl.length() > 0 && fullUrl.charAt(fullUrl.length() - 1) != '/') {
+						fullUrl.append('/');
+					}
+					fullUrl.append(segment);
+				}
+			}
+			regProcLogger.info(DATASHARE_DEBUG_PREFIX + id + " :: POST " + fullUrl.toString());
+			regProcLogger.info(DATASHARE_DEBUG_PREFIX + id
+					+ " :: Content-Type : multipart/form-data :: form fields -> name=" + VERIFICATION
+					+ ", filename=" + VERIFICATION + ", file=<body logged below, upload it as a file named "
+					+ VERIFICATION + ">");
+			if (req == null) {
+				regProcLogger.info(DATASHARE_DEBUG_PREFIX + id + " :: body is null");
+				return;
+			}
+			regProcLogger.info(DATASHARE_DEBUG_PREFIX + id + " :: body length : " + req.length());
+			int totalChunks = (req.length() + LOG_CHUNK_SIZE - 1) / LOG_CHUNK_SIZE;
+			for (int i = 0; i < totalChunks; i++) {
+				int start = i * LOG_CHUNK_SIZE;
+				int end = Math.min(start + LOG_CHUNK_SIZE, req.length());
+				regProcLogger.info(DATASHARE_DEBUG_PREFIX + id + " :: body [" + (i + 1) + "/" + totalChunks + "] "
+						+ req.substring(start, end));
+			}
+		} catch (Exception e) {
+			regProcLogger.error(DATASHARE_DEBUG_PREFIX + id + " :: failed to log datashare request :: "
+					+ ExceptionUtils.getStackTrace(e));
+		}
 	}
 
 	private Map<String, String> getPolicyMap(LinkedHashMap<String, Object> policies) throws IOException {
