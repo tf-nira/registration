@@ -1,5 +1,6 @@
 package io.mosip.registration.processor.stages.validator;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -56,6 +57,7 @@ import io.mosip.registration.processor.core.packet.dto.applicantcategory.Applica
 import io.mosip.registration.processor.core.packet.dto.idjson.Document;
 import io.mosip.registration.processor.core.packet.dto.packetvalidator.PacketValidationDto;
 import io.mosip.registration.processor.core.spi.restclient.RegistrationProcessorRestClientService;
+import io.mosip.registration.processor.core.status.util.StatusUtil;
 import io.mosip.registration.processor.core.util.RegistrationExceptionMapperUtil;
 import io.mosip.registration.processor.packet.manager.idreposervice.IdRepoService;
 import io.mosip.registration.processor.packet.storage.dto.ValidatePacketResponse;
@@ -403,6 +405,82 @@ public class PacketValidatorImplTest {
 		jsonObject.put(MappingJsonConstants.OFFICERBIOMETRICFILENAME, "officerBiometricFilename");
 		metamap.put(JsonConstant.OPERATIONSDATA, jsonObject.toString());
 		Mockito.when(packetManagerService.getMetaInfo(anyString(), any(), any())).thenReturn(metamap);
+		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	private void setDeclarantConfig() {
+		ReflectionTestUtils.setField(PacketValidator, "declarantParentAgeRange", "10-120");
+		ReflectionTestUtils.setField(PacketValidator, "declarantOtherAgeRange", "18-200");
+	}
+
+	private void stubDeclarantFields(String relation, String age) throws Exception {
+		String declarantJson = relation == null ? null
+				: String.format("[{\"language\":\"eng\",\"value\":\"%s\"}]", relation);
+		Mockito.when(packetManagerService.getField(anyString(), Mockito.eq("declarant"), anyString(), any()))
+				.thenReturn(declarantJson);
+		Mockito.when(packetManagerService.getField(anyString(), Mockito.eq("declarantAge"), anyString(), any()))
+				.thenReturn(age);
+	}
+
+	@Test
+	public void testDeclarantFatherAgeValid() throws Exception {
+		Mockito.doNothing().when(biometricsSignatureValidator).validateSignature(anyString(), anyString(), any(), any());
+		setDeclarantConfig();
+		stubDeclarantFields("Father", "35");
+		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	@Test
+	public void testDeclarantMotherAgeBelowMinFails() throws Exception {
+		setDeclarantConfig();
+		stubDeclarantFields("Mother", "8");
+		assertFalse(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+		assertEquals(StatusUtil.PVM_DECLARANT_AGE_VALIDATION_FAILED.getCode(),
+				packetValidationDto.getPacketValidatonStatusCode());
+	}
+
+	@Test
+	public void testDeclarantFatherAgeAboveMaxFails() throws Exception {
+		setDeclarantConfig();
+		stubDeclarantFields("Father", "125");
+		assertFalse(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	@Test
+	public void testDeclarantOtherRelationAgeValid() throws Exception {
+		Mockito.doNothing().when(biometricsSignatureValidator).validateSignature(anyString(), anyString(), any(), any());
+		setDeclarantConfig();
+		stubDeclarantFields("Uncle", "25");
+		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	@Test
+	public void testDeclarantOtherRelationAgeBelowMinFails() throws Exception {
+		setDeclarantConfig();
+		stubDeclarantFields("Uncle", "15");
+		assertFalse(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	@Test
+	public void testDeclarantOtherRelationAgeAboveMaxFails() throws Exception {
+		setDeclarantConfig();
+		stubDeclarantFields("Uncle", "205");
+		assertFalse(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	@Test
+	public void testDeclarantNoAgeSkipsValidation() throws Exception {
+		Mockito.doNothing().when(biometricsSignatureValidator).validateSignature(anyString(), anyString(), any(), any());
+		setDeclarantConfig();
+		stubDeclarantFields("Father", null);
+		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
+	}
+
+	@Test
+	public void testDeclarantNonNumericAgeSkipsValidation() throws Exception {
+		Mockito.doNothing().when(biometricsSignatureValidator).validateSignature(anyString(), anyString(), any(), any());
+		setDeclarantConfig();
+		stubDeclarantFields("Father", "abc");
 		assertTrue(PacketValidator.validate("123456789", "NEW", packetValidationDto));
 	}
 
