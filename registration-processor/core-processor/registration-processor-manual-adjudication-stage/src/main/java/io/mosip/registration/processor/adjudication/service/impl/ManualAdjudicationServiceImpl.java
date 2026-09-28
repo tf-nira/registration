@@ -459,6 +459,8 @@ public class ManualAdjudicationServiceImpl implements ManualAdjudicationService 
 
 		requestDto.setIdentity(identity);
 
+		regProcLogger.info("DATASHARE REQUEST DTO: " + JsonUtils.javaObjectToJsonString(requestDto));
+
 		// set documents
 		requestDto=setDocuments(policyMap, requestDto, id, process, null);
 
