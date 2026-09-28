@@ -66,7 +66,10 @@ public class PacketValidatorImpl implements PacketValidator {
 	public static final String REJECTED = "REJECTED";
 	private static final String VALIDATEAPPLICANTDOCUMENT = "mosip.regproc.packet.validator.validate-applicant-document";
     private static final String VALIDATEAPPLICANTDOCUMENTPROCESS = "mosip.regproc.packet.validator.validate-applicant-document.processes";
-
+	private static final String DECLARANT_AGE_FIELD = "declarantAge";
+	private static final String DECLARANT_FIELD = "declarant";
+	private static final String FATHER = "Father";
+	private static final String MOTHER = "Mother";
 	@Autowired
 	private PriorityBasedPacketManagerService packetManagerService;
 
@@ -106,6 +109,12 @@ public class PacketValidatorImpl implements PacketValidator {
 	@Value("#{'${mosip.regproc.packet.validator.process:RENEWAL}'.split(',')}")
 	private List<String> allowedProcess;
 
+	@Value("${mosip.regproc.packet.validator.declarant.age.parent:10-120}")
+	private String declarantParentAgeRange;
+
+	@Value("${mosip.regproc.packet.validator.declarant.age.other:18-200}")
+	private String declarantOtherAgeRange;
+
 	@Autowired
 	RegistrationRepositary<RegistrationStatusEntity, String> registrationStatusRepositary;
 	
@@ -141,7 +150,10 @@ public class PacketValidatorImpl implements PacketValidator {
 						.setPacketValidaionFailureMessage(StatusUtil.PACKET_CONSENT_VALIDATION.getMessage());
 				return false;
 			}
-			
+
+			if (!validateDeclarantAge(id, process, packetValidationDto)) {
+				return false;
+			}
 
 			String userServiceType = null;
 			if (process.equalsIgnoreCase(RegistrationType.UPDATE.toString())
@@ -473,6 +485,61 @@ public class PacketValidatorImpl implements PacketValidator {
 		}
 		return true;
 
+	}
+
+	private boolean validateDeclarantAge(String id, String process, PacketValidationDto packetValidationDto)
+			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
+		String declarantAge = packetManagerService.getField(id, DECLARANT_AGE_FIELD, process,
+				ProviderStageName.PACKET_VALIDATOR);
+		if (declarantAge == null || declarantAge.trim().isEmpty()) {
+			return true;
+		}
+
+		int age;
+		try {
+			age = Integer.parseInt(declarantAge.trim());
+		} catch (NumberFormatException e) {
+			// invalid declarant age, nothing to validate
+			return true;
+		}
+
+		boolean isFatherOrMother = isDeclarantFatherOrMother(id, process);
+		int[] ageRange = declarantAgeRange(isFatherOrMother ? declarantParentAgeRange : declarantOtherAgeRange);
+		int minAge = ageRange[0];
+		int maxAge = ageRange[1];
+
+		if (age < minAge || age > maxAge) {
+			packetValidationDto
+					.setPacketValidaionFailureMessage(StatusUtil.PVM_DECLARANT_AGE_VALIDATION_FAILED.getMessage());
+			packetValidationDto
+					.setPacketValidatonStatusCode(StatusUtil.PVM_DECLARANT_AGE_VALIDATION_FAILED.getCode());
+			return false;
+		}
+		return true;
+	}
+
+
+	private int[] declarantAgeRange(String range) {
+		String[] parts = range.trim().split("[-,\\s]+");
+		return new int[] { Integer.parseInt(parts[0]), Integer.parseInt(parts[1]) };
+	}
+
+	private boolean isDeclarantFatherOrMother(String id, String process)
+			throws ApisResourceAccessException, JsonProcessingException, PacketManagerException, IOException {
+		Object declarantObj = packetManagerService.getField(id, DECLARANT_FIELD, process,
+				ProviderStageName.PACKET_VALIDATOR);
+		String relation = null;
+		if (declarantObj != null && declarantObj instanceof String) {
+			try {
+				List<?> list = (List<?>) new JSONParser().parse((String) declarantObj);
+				if (!list.isEmpty() && list.get(0) instanceof Map<?, ?>) {
+					relation = String.valueOf(((Map<?, ?>) list.get(0)).get(MappingJsonConstants.VALUE));
+				}
+			} catch (Exception e) {
+				// ignore, relation is treated as not father/mother
+			}
+		}
+		return FATHER.equalsIgnoreCase(relation) || MOTHER.equalsIgnoreCase(relation);
 	}
 
 	private boolean validateAgeToGetCard(String id, String process, PacketValidationDto packetValidationDto)

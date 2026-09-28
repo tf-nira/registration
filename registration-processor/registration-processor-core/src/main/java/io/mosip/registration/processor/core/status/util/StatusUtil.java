@@ -87,7 +87,9 @@ public enum StatusUtil {
 	PVM_RENEWAL_NOT_ALLOWED_WITHIN_10_YEARS(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "024",
 			"Renewal is not allowed as the application was processed within the last 10 years"),
 	PACKET_STATUS_VALIDATION(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "026", "NIN validation failed as the status is deactivated"),
-	
+	PVM_DECLARANT_AGE_VALIDATION_FAILED(StatusConstants.PACKET_VALIDATOR_MODULE_FAILED + "027",
+			"Declarant age is invalid for the given declarant relation"),
+
 	// packet classifier stage
 	PACKET_CLASSIFICATION_SUCCESS(StatusConstants.PACKET_CLASSIFIER_MODULE_SUCCESS + "001",
 			"Packet Classification is Successful"),
