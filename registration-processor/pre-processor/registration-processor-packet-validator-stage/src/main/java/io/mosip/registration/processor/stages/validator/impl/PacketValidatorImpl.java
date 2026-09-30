@@ -112,7 +112,7 @@ public class PacketValidatorImpl implements PacketValidator {
 	@Value("${mosip.regproc.packet.validator.declarant.age.parent:10-120}")
 	private String declarantParentAgeRange;
 
-	@Value("${mosip.regproc.packet.validator.declarant.age.other:18-200}")
+	@Value("${mosip.regproc.packet.validator.declarant.age.other:18-120}")
 	private String declarantOtherAgeRange;
 
 	@Autowired
