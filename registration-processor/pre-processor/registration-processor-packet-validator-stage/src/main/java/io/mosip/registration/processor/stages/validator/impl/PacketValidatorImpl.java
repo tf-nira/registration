@@ -274,6 +274,13 @@ public class PacketValidatorImpl implements PacketValidator {
 					return false;
 				}
 
+				String declaredAsDeceased  = JsonUtil.getJSONValue(jsonObject, "declaredAsDeceased");
+				if(declaredAsDeceased != null && declaredAsDeceased .equalsIgnoreCase("Y")) {
+					packetValidationDto.setPacketValidaionFailureMessage(StatusUtil.DECLARED_AS_DECEASED.getMessage());
+					packetValidationDto.setPacketValidatonStatusCode(StatusUtil.DECLARED_AS_DECEASED.getCode());
+					return false;
+				}
+
 			// check if uin is in idrepisitory
 			if (RegistrationType.UPDATE.name().equalsIgnoreCase(process)
 					|| RegistrationType.RES_UPDATE.name().equalsIgnoreCase(process)
