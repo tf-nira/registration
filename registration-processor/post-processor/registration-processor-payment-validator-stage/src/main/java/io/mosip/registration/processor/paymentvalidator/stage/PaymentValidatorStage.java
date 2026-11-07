@@ -561,8 +561,7 @@ public class PaymentValidatorStage extends MosipVerticleAPIManager {
 			paidFor = "NEWAID";
 		}
 		else if("Alien-COP".equalsIgnoreCase(citizenshipTypePacket)){
-			paidFor = "NEWAID";
-			response.setProcessFlow("UPDATE");
+			paidFor = "COIAID";
 		}
 		else if("Renewal of Alien".equalsIgnoreCase(citizenshipTypePacket)){
 			paidFor = "RENAID";
