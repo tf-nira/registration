@@ -1,6 +1,9 @@
 package io.mosip.registration.processor.status.service.impl;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -10,7 +13,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceException;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hibernate.Session;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -62,6 +70,29 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 
 	@Autowired
 	private RegistrationUtility registrationUtility;
+
+	@PersistenceContext
+	private EntityManager entityManager;
+
+	/**
+	 * Parsed identity section of the mapping json, kept together with the raw
+	 * string it was parsed from so it is only re-parsed if that string changes.
+	 */
+	private static final class ParsedIdentity {
+		private final String source;
+		private final org.json.simple.JSONObject identity;
+
+		private ParsedIdentity(String source, org.json.simple.JSONObject identity) {
+			this.source = source;
+			this.identity = identity;
+		}
+	}
+
+	private volatile ParsedIdentity parsedIdentity;
+
+	private static final String INSERT_ANONYMOUS_PROFILE_SQL = "INSERT INTO regprc.anonymous_profile "
+			+ "(id, process_stage, profile, cr_by, cr_dtimes, upd_by, upd_dtimes, is_deleted, del_dtimes) "
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	/**
 	 * The mandatory languages that should be used when dealing with field type that
@@ -120,7 +151,7 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 			Map<String, String> fieldTypeMap, Map<String, String> metaInfoMap, String statusCode, String processStage)
 			throws JSONException, IOException, BaseCheckedException {
 
-		regProcLogger.info("buildJsonStringFromPacketInfo method called");
+		regProcLogger.debug("buildJsonStringFromPacketInfo method called");
 
 		AnonymousProfileDTO anonymousProfileDTO = new AnonymousProfileDTO();
 		anonymousProfileDTO.setProcessName(
@@ -135,11 +166,7 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 
 		List<String> channels = new ArrayList<String>();
 
-		String mappingJsonString = registrationUtility.getMappingJson();
-		org.json.simple.JSONObject mappingJsonObject = mapper.readValue(mappingJsonString,
-				org.json.simple.JSONObject.class);
-		org.json.simple.JSONObject regProcessorIdentityJson = JsonUtil.getJSONObject(mappingJsonObject,
-				MappingJsonConstants.IDENTITY);
+		org.json.simple.JSONObject regProcessorIdentityJson = getRegProcessorIdentityJson();
 		// set birth year
 		String dobValue = JsonUtil.getJSONValue(
 				JsonUtil.getJSONObject(regProcessorIdentityJson, MappingJsonConstants.DOB),
@@ -250,8 +277,27 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 			getExceptionAndBiometricInfo(biometricRecord, anonymousProfileDTO);
 		}
 
-		regProcLogger.info("buildJsonStringFromPacketInfo method call ended");
+		regProcLogger.debug("buildJsonStringFromPacketInfo method call ended");
 		return JsonUtil.objectMapperObjectToJson(anonymousProfileDTO);
+	}
+
+	/**
+	 * Returns the identity section of the mapping json. The mapping json string is
+	 * cached by {@link RegistrationUtility}, but parsing it for every packet is
+	 * expensive at high volume, so the parsed form is cached as well.
+	 */
+	private org.json.simple.JSONObject getRegProcessorIdentityJson() throws IOException {
+		String mappingJsonString = registrationUtility.getMappingJson();
+		ParsedIdentity cached = parsedIdentity;
+		if (cached != null && (cached.source == mappingJsonString || cached.source.equals(mappingJsonString))) {
+			return cached.identity;
+		}
+		org.json.simple.JSONObject mappingJsonObject = mapper.readValue(mappingJsonString,
+				org.json.simple.JSONObject.class);
+		org.json.simple.JSONObject identity = JsonUtil.getJSONObject(mappingJsonObject,
+				MappingJsonConstants.IDENTITY);
+		parsedIdentity = new ParsedIdentity(mappingJsonString, identity);
+		return identity;
 	}
 
 	private String getLanguageBasedValueForSimpleType(String fieldValue, String language) throws JSONException {
@@ -398,5 +444,61 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 	@Transactional
 	public void saveAnonymousProfiles(List<AnonymousProfileEntity> anonymousProfiles) {
 		anonymousProfileRepository.saveAll(anonymousProfiles);	
+	}
+
+	@Override
+	@Transactional
+	public void saveAnonymousProfilesBatch(List<AnonymousProfileEntity> anonymousProfiles, int batchSize) {
+		if (anonymousProfiles == null || anonymousProfiles.isEmpty()) {
+			return;
+		}
+		int effectiveBatchSize = batchSize > 0 ? batchSize : anonymousProfiles.size();
+		try {
+			entityManager.unwrap(Session.class).doWork(connection -> {
+				try (PreparedStatement statement = connection.prepareStatement(INSERT_ANONYMOUS_PROFILE_SQL)) {
+					int pending = 0;
+					for (AnonymousProfileEntity profile : anonymousProfiles) {
+						statement.setString(1, profile.getId().getId());
+						statement.setString(2, profile.getProcessStage());
+						statement.setString(3, profile.getProfile());
+						statement.setString(4, profile.getCreatedBy());
+						setTimestamp(statement, 5, profile.getCreateDateTime());
+						if (profile.getUpdatedBy() == null) {
+							statement.setNull(6, Types.VARCHAR);
+						} else {
+							statement.setString(6, profile.getUpdatedBy());
+						}
+						setTimestamp(statement, 7, profile.getUpdateDateTime());
+						if (profile.getIsDeleted() == null) {
+							statement.setNull(8, Types.BOOLEAN);
+						} else {
+							statement.setBoolean(8, profile.getIsDeleted());
+						}
+						setTimestamp(statement, 9, profile.getDeletedDateTime());
+						statement.addBatch();
+						if (++pending % effectiveBatchSize == 0) {
+							statement.executeBatch();
+						}
+					}
+					if (pending % effectiveBatchSize != 0) {
+						statement.executeBatch();
+					}
+				}
+			});
+		} catch (PersistenceException e) {
+			regProcLogger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+					"", e.getMessage() + ExceptionUtils.getStackTrace(e));
+			throw new TablenotAccessibleException(
+					PlatformErrorMessages.RPR_RGS_ANONYMOUS_PROFILE_TABLE_NOT_ACCESSIBLE.getMessage(), e);
+		}
+	}
+
+	private static void setTimestamp(PreparedStatement statement, int index, LocalDateTime value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, Types.TIMESTAMP);
+		} else {
+			statement.setTimestamp(index, Timestamp.valueOf(value));
+		}
 	}
 }

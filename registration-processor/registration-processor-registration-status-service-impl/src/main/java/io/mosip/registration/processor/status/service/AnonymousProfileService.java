@@ -29,4 +29,15 @@ public interface AnonymousProfileService {
 			throws JSONException, ApisResourceAccessException, PacketManagerException, IOException, BaseCheckedException;
 	
 	public void saveAnonymousProfiles(List<AnonymousProfileEntity> anonymousProfiles);
+
+	/**
+	 * Inserts the profiles with plain JDBC batching inside the current
+	 * transaction. Unlike {@link #saveAnonymousProfiles(List)} it never issues a
+	 * per-row SELECT (the id is assigned by the application, so Spring Data would
+	 * otherwise treat the entity as existing and merge it).
+	 *
+	 * @param anonymousProfiles the profiles to insert
+	 * @param batchSize         rows sent to the database per JDBC batch
+	 */
+	public void saveAnonymousProfilesBatch(List<AnonymousProfileEntity> anonymousProfiles, int batchSize);
 }

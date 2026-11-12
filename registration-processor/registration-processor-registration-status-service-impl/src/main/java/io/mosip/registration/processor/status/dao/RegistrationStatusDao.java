@@ -283,6 +283,21 @@ public class RegistrationStatusDao {
 		return registrationStatusRepositary.getAnonymousNotAddedPackets(fetchSize);
 	}
 
+	/**
+	 * Locks and returns the next chunk of packets without an anonymous profile.
+	 * Call inside a read-write transaction. See
+	 * {@link RegistrationRepositary#getAnonymousNotAddedPacketsForUpdate}.
+	 */
+	public List<Object[]> getAnonymousNotAddedPacketsForUpdate(java.sql.Timestamp afterUpdDtimes,
+			String afterWorkflowInstanceId, Integer fetchSize) {
+		return registrationStatusRepositary.getAnonymousNotAddedPacketsForUpdate(afterUpdDtimes,
+				afterWorkflowInstanceId, fetchSize);
+	}
+
+	public int markAnonymousProfileAdded(List<String> workflowInstanceIds, String updatedBy) {
+		return registrationStatusRepositary.markAnonymousProfileAdded(workflowInstanceIds, updatedBy);
+	}
+
 	public List<String> getProcessForRegIds(List<String> matchedRegIds) {
 		return registrationStatusRepositary.getProcessForRegIds(matchedRegIds);
 	}

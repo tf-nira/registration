@@ -4,15 +4,26 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+import javax.persistence.EntityManager;
+
 import org.apache.commons.collections.map.HashedMap;
+import org.hibernate.Session;
+import org.hibernate.jdbc.Work;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.junit.Before;
@@ -42,6 +53,7 @@ import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.registration.processor.core.packet.dto.Document;
 import io.mosip.registration.processor.core.packet.dto.FieldValue;
 import io.mosip.registration.processor.status.entity.AnonymousProfileEntity;
+import io.mosip.registration.processor.status.entity.AnonymousProfilePKEntity;
 import io.mosip.registration.processor.status.exception.TablenotAccessibleException;
 import io.mosip.registration.processor.status.repositary.BaseRegProcRepository;
 import io.mosip.registration.processor.status.service.impl.AnonymousProfileServiceImpl;
@@ -65,6 +77,18 @@ public class AnonymousProfileServiceImplTest {
 
 	@Mock
 	private RegistrationUtility registrationUtility;
+
+	@Mock
+	private EntityManager entityManager;
+
+	@Mock
+	private Session session;
+
+	@Mock
+	private Connection connection;
+
+	@Mock
+	private PreparedStatement preparedStatement;
 
 	Map<String, String> fieldTypeMap = new HashedMap();
 	Map<String, String> fieldMap = new HashedMap();
@@ -306,6 +330,69 @@ public class AnonymousProfileServiceImplTest {
 				.thenReturn(new FieldValue("supervisorId", "110024"));
 		assertEquals(json, anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord1, fieldMap,
 				fieldTypeMap, metaInfoMap, "PROCESSED", "packetValidatorStage"));
+	}
+
+	private List<AnonymousProfileEntity> profiles(int count) {
+		List<AnonymousProfileEntity> profiles = new ArrayList<>();
+		for (int i = 0; i < count; i++) {
+			AnonymousProfilePKEntity pk = new AnonymousProfilePKEntity();
+			pk.setId("id-" + i);
+			AnonymousProfileEntity profile = new AnonymousProfileEntity();
+			profile.setId(pk);
+			profile.setProcessStage("packetValidatorStage");
+			profile.setProfile("{}");
+			profile.setCreatedBy("SYSTEM");
+			profile.setCreateDateTime(LocalDateTime.now());
+			profile.setUpdateDateTime(LocalDateTime.now());
+			profile.setIsDeleted(false);
+			profiles.add(profile);
+		}
+		return profiles;
+	}
+
+	private void runWorkAgainstMockConnection() throws Exception {
+		Mockito.when(entityManager.unwrap(Session.class)).thenReturn(session);
+		Mockito.when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+		Mockito.doAnswer(invocation -> {
+			((Work) invocation.getArgument(0)).execute(connection);
+			return null;
+		}).when(session).doWork(any(Work.class));
+	}
+
+	@Test
+	public void saveAnonymousProfilesBatchSendsRowsInBatches() throws Exception {
+		runWorkAgainstMockConnection();
+
+		anonymousProfileService.saveAnonymousProfilesBatch(profiles(5), 2);
+
+		verify(preparedStatement, times(5)).addBatch();
+		// after rows 2 and 4, and once more for the remaining row
+		verify(preparedStatement, times(3)).executeBatch();
+	}
+
+	@Test
+	public void saveAnonymousProfilesBatchDoesNotRepeatBatchWhenSizeIsExactMultiple() throws Exception {
+		runWorkAgainstMockConnection();
+
+		anonymousProfileService.saveAnonymousProfilesBatch(profiles(4), 2);
+
+		verify(preparedStatement, times(4)).addBatch();
+		verify(preparedStatement, times(2)).executeBatch();
+	}
+
+	@Test
+	public void saveAnonymousProfilesBatchDoesNothingForEmptyList() {
+		anonymousProfileService.saveAnonymousProfilesBatch(new ArrayList<>(), 500);
+
+		verify(entityManager, never()).unwrap(Session.class);
+	}
+
+	@Test(expected = TablenotAccessibleException.class)
+	public void saveAnonymousProfilesBatchWrapsPersistenceFailure() {
+		Mockito.when(entityManager.unwrap(Session.class))
+				.thenThrow(new javax.persistence.PersistenceException("db down"));
+
+		anonymousProfileService.saveAnonymousProfilesBatch(profiles(1), 500);
 	}
 
 }

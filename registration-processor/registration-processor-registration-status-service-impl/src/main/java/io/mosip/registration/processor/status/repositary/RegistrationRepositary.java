@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -74,6 +75,35 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	
 	@Query(value ="SELECT * FROM registration r WHERE r.upd_dtimes < CURRENT_DATE and r.is_anonymous_profile_added IS NOT TRUE order by r.upd_dtimes LIMIT :fetchSize ", nativeQuery = true)
 	public List<RegistrationStatusEntity> getAnonymousNotAddedPackets(@Param("fetchSize") Integer fetchSize);
+
+	/**
+	 * Claims the next chunk of packets that still need an anonymous profile.
+	 * <p>
+	 * Must be called inside a read-write transaction: the rows are locked with
+	 * {@code FOR UPDATE SKIP LOCKED} until that transaction ends, so several
+	 * scheduler instances can run side by side without picking the same packet.
+	 * Keyset paging on {@code (upd_dtimes, workflow_instance_id)} lets the caller
+	 * move past packets that fail permanently instead of re-reading them forever.
+	 * <p>
+	 * Each row is {@code [workflow_instance_id, reg_id, process, status_code,
+	 * reg_stage_name, upd_dtimes]}.
+	 */
+	@Query(value = "SELECT r.workflow_instance_id, r.reg_id, r.process, r.status_code, r.reg_stage_name, r.upd_dtimes "
+			+ "FROM registration r WHERE r.upd_dtimes < CURRENT_DATE AND r.is_anonymous_profile_added IS NOT TRUE "
+			+ "AND (r.upd_dtimes, r.workflow_instance_id) > (:afterUpdDtimes, :afterWorkflowInstanceId) "
+			+ "ORDER BY r.upd_dtimes, r.workflow_instance_id LIMIT :fetchSize FOR UPDATE SKIP LOCKED", nativeQuery = true)
+	public List<Object[]> getAnonymousNotAddedPacketsForUpdate(@Param("afterUpdDtimes") java.sql.Timestamp afterUpdDtimes,
+			@Param("afterWorkflowInstanceId") String afterWorkflowInstanceId, @Param("fetchSize") Integer fetchSize);
+
+	/**
+	 * Flags packets as having their anonymous profile added. Only the flag (and
+	 * updated-by) is written, so no other column of the row is touched.
+	 */
+	@Modifying
+	@Query(value = "UPDATE registration SET is_anonymous_profile_added = true, upd_by = :updatedBy "
+			+ "WHERE workflow_instance_id IN (:workflowInstanceIds)", nativeQuery = true)
+	public int markAnonymousProfileAdded(@Param("workflowInstanceIds") List<String> workflowInstanceIds,
+			@Param("updatedBy") String updatedBy);
 	
 	@Query("SELECT registration.registrationType FROM RegistrationStatusEntity registration WHERE registration.regId in :regIds")
 	public List<String> getProcessForRegIds(@Param("regIds") List<String> regIds);

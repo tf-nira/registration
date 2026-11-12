@@ -1,27 +1,30 @@
 package io.mosip.registration.processor.notification.util;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -33,55 +36,101 @@ import io.mosip.registration.processor.packet.storage.utils.IdSchemaUtil;
 import io.mosip.registration.processor.packet.storage.utils.PacketManagerService;
 import io.mosip.registration.processor.packet.storage.utils.Utilities;
 import io.mosip.registration.processor.status.dao.RegistrationStatusDao;
-import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
-import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.TransactionDto;
 import io.mosip.registration.processor.status.entity.AnonymousProfileEntity;
 import io.mosip.registration.processor.status.entity.AnonymousProfilePKEntity;
-import io.mosip.registration.processor.status.entity.BaseRegistrationPKEntity;
-import io.mosip.registration.processor.status.entity.RegistrationStatusEntity;
 import io.mosip.registration.processor.status.service.AnonymousProfileService;
-import io.mosip.registration.processor.status.service.RegistrationStatusService;
 import io.mosip.registration.processor.status.service.TransactionService;
 import io.mosip.registration.processor.status.utilities.RegistrationUtility;
 
+/**
+ * Builds anonymous profiles for processed packets and stores them in
+ * {@code regprc.anonymous_profile}.
+ * <p>
+ * Each run drains the backlog chunk by chunk (up to
+ * {@code mosip.anonymous.profile.scheduler.max.run.seconds}). One chunk is one
+ * database transaction:
+ * <ol>
+ * <li>lock the next {@code fetchsize} pending packets with
+ * {@code FOR UPDATE SKIP LOCKED}, so any number of pods can run the job
+ * concurrently without picking the same packet,</li>
+ * <li>build the profiles in parallel (packet reads happen here),</li>
+ * <li>batch insert the profiles and flag the packets in the same
+ * transaction, so a crash can neither lose nor duplicate a profile.</li>
+ * </ol>
+ * Packets whose profile could not be built stay unflagged and are retried by
+ * the next run. Within a run the job pages past them with a keyset cursor, so
+ * a packet that keeps failing cannot block the ones behind it.
+ */
 @Component
 public class AnonymousProfileScheduler {
-	
+
 	private static Logger regProcLogger = RegProcessorLogger.getLogger(AnonymousProfileScheduler.class);
 	private static final String USER = "MOSIP_SYSTEM";
-	
+	private static final String UPDATED_BY = "anonymous";
+
+	/** Upper bound of ids per UPDATE ... IN (...) statement. */
+	private static final int MAX_IDS_PER_UPDATE = 1000;
+
+	/** A chunk that fails this many times in a row stops the run. */
+	private static final int MAX_CONSECUTIVE_CHUNK_FAILURES = 3;
+
+	private static final Timestamp CURSOR_START = Timestamp.valueOf("1970-01-01 00:00:00");
+
+	/** Number of packets locked and processed per transaction. */
 	@Value("${mosip.anonymous.profile.scheduler.fetchsize:1000}")
 	private Integer fetchSize;
-	
+
 	@Value("${mosip.anonymous.profile.scheduler.threads.count:30}")
 	private Integer numberOfThreads;
-	
+
 	@Value("${mosip.anonymous.profile.bioInfo.required:true}")
-        private boolean anonymousProfileBioInfoRequired;
-	
-	@Autowired
-	RegistrationStatusService<String, InternalRegistrationStatusDto, RegistrationStatusDto> registrationStatusService;
-	
+	        private boolean anonymousProfileBioInfoRequired;
+
+	/**
+	 * A run stops starting new chunks after this many seconds. Keep it below the
+	 * cron interval so runs do not queue up behind each other.
+	 */
+	@Value("${mosip.anonymous.profile.scheduler.max.run.seconds:150}")
+	private Integer maxRunSeconds;
+
+	/** Rows per JDBC batch when inserting profiles. */
+	@Value("${mosip.anonymous.profile.scheduler.insert.batch.size:500}")
+	private Integer insertBatchSize;
+
 	@Autowired
 	TransactionService<TransactionDto> transactionService;
-	
+
 	@Autowired
 	private RegistrationStatusDao registrationStatusDao;
-	
+
 	@Autowired
 	private Utilities utility;
-	
+
 	@Autowired
 	private IdSchemaUtil idSchemaUtil;
 
 	@Autowired
 	private PacketManagerService packetManagerService;
-	
+
 	@Autowired
 	private AnonymousProfileService anonymousProfileService;
-	
+
+	@Autowired
+	private PlatformTransactionManager transactionManager;
+
+	/** Workers that read packets and build profiles. */
 	private ExecutorService executorService;
+
+	/**
+	 * Runs the job off the shared Spring scheduler thread, so a long run cannot
+	 * delay the other scheduled jobs of this service.
+	 */
+	private ExecutorService jobExecutor;
+
+	private TransactionTemplate transactionTemplate;
+
+	private final AtomicBoolean running = new AtomicBoolean(false);
 
 	private final Map<Double, Map<String, String>> schemaFieldTypesCache = new ConcurrentHashMap<>();
 	private final Map<Double, List<String>> defaultFieldsCache = new ConcurrentHashMap<>();
@@ -99,15 +148,48 @@ public class AnonymousProfileScheduler {
 	private final Map<Double, SchemaMetadata> schemaMetadataCache = new ConcurrentHashMap<>();
 
 	private final Map<Double, AtomicInteger> schemaUsageCounter = new ConcurrentHashMap<>();
-	
-   JSONObject regProcessorIdentityJson = null;	
+
+	/** A pending packet, as read from the registration table. */
+	private static class PacketRef {
+		final String workflowInstanceId;
+		final String registrationId;
+		final String registrationType;
+		final String statusCode;
+		final String registrationStageName;
+
+		PacketRef(Object[] row) {
+			this.workflowInstanceId = asString(row[0]);
+			this.registrationId = asString(row[1]);
+			this.registrationType = asString(row[2]);
+			this.statusCode = asString(row[3]);
+			this.registrationStageName = asString(row[4]);
+		}
+	}
+
+	/** Keyset position: the last packet claimed so far in the current run. */
+	private static class Cursor {
+		Timestamp updDtimes = CURSOR_START;
+		String workflowInstanceId = "";
+	}
+
+	private static class ChunkResult {
+		final int claimed;
+		final int added;
+
+		ChunkResult(int claimed, int added) {
+			this.claimed = claimed;
+			this.added = added;
+		}
+	}
+
+   JSONObject regProcessorIdentityJson = null;
    String idSchemaVersionValue = null;
-   List<RegistrationStatusEntity> toBeUpdatedRegStatusRecords = new ArrayList<>();
-   List<AnonymousProfileEntity> toBeUpdatedAnonymousProfiles = new ArrayList<>();
-   
+
 	@PostConstruct
     public void init() {
-        this.executorService = Executors.newFixedThreadPool(numberOfThreads);		
+        this.executorService = Executors.newFixedThreadPool(numberOfThreads, namedDaemonThreads("anonymous-profile-worker"));
+		this.jobExecutor = Executors.newSingleThreadExecutor(namedDaemonThreads("anonymous-profile-job"));
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		try {
 			regProcessorIdentityJson = utility
 					.getRegistrationProcessorMappingJson(MappingJsonConstants.IDENTITY);
@@ -119,53 +201,137 @@ public class AnonymousProfileScheduler {
 			regProcLogger.error("Failed to initialize AnonymousProfileScheduler: " + e.getMessage(), e);
 		}
     }
-	
+
+	@PreDestroy
+	public void shutdown() {
+		if (executorService != null) {
+			executorService.shutdownNow();
+		}
+		if (jobExecutor != null) {
+			jobExecutor.shutdownNow();
+		}
+	}
+
 	@Scheduled(cron = "${mosip.anonymous.profile.scheduler.cron.expression:0 0/3 * * * ?}")
 	public void addAnonymousprofile() {
+		if (!running.compareAndSet(false, true)) {
+			regProcLogger.info("Previous anonymous profile batch job is still running on this pod, skipping this trigger");
+			return;
+		}
+		try {
+			jobExecutor.execute(() -> {
+				try {
+					runJob();
+				} catch (Throwable t) {
+					regProcLogger.error("Batch job for anonymous profile failed: " + t.getMessage(), t);
+				} finally {
+					running.set(false);
+				}
+			});
+		} catch (RuntimeException e) {
+			running.set(false);
+			throw e;
+		}
+	}
+
+	void runJob() {
 		regProcLogger.info("Batch job for anonymous profile started");
-		toBeUpdatedRegStatusRecords.clear();
-		toBeUpdatedAnonymousProfiles.clear();
-		
-		List<InternalRegistrationStatusDto> packets = getAnonymousNotAddedPackets();
-		regProcLogger.info("Records picked for adding anonymous profile: " + packets.size());
-		List<CompletableFuture<Void>> allBatches = packets.stream().map(packet -> CompletableFuture
-				.runAsync(() -> insertAnonymousProfile(packet), executorService).exceptionally(ex -> {
-					regProcLogger.error("Error processing packet: " + ex.getMessage(), ex);
-					return null;
-				})).collect(Collectors.toList());
+		schemaUsageCounter.clear();
+		long startedAt = System.nanoTime();
+		long deadline = startedAt + TimeUnit.SECONDS.toNanos(maxRunSeconds);
+		Cursor cursor = new Cursor();
+		long claimed = 0;
+		long added = 0;
+		int consecutiveFailures = 0;
 
-		CompletableFuture<Void> allOfFuture = CompletableFuture.allOf(allBatches.toArray(new CompletableFuture[0]));
-		allOfFuture.join();
-
-		if (toBeUpdatedRegStatusRecords.size() > 0) {
-			updateRegistartionRecords(toBeUpdatedRegStatusRecords);
+		while (System.nanoTime() < deadline) {
+			long chunkStartedAt = System.nanoTime();
+			ChunkResult result;
+			try {
+				result = transactionTemplate.execute(status -> processChunk(cursor));
+			} catch (RuntimeException e) {
+				// the chunk was rolled back; the cursor has already moved past it, so the
+				// next chunk is not blocked by it. It is retried by the next run.
+				consecutiveFailures++;
+				regProcLogger.error("Anonymous profile chunk failed and was rolled back ("
+						+ consecutiveFailures + " in a row): " + e.getMessage(), e);
+				if (consecutiveFailures >= MAX_CONSECUTIVE_CHUNK_FAILURES) {
+					break;
+				}
+				continue;
+			}
+			consecutiveFailures = 0;
+			if (result == null || result.claimed == 0) {
+				break;
+			}
+			claimed += result.claimed;
+			added += result.added;
+			regProcLogger.info("Anonymous profile chunk done: claimed {}, added {}, took {} ms", result.claimed,
+					result.added, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - chunkStartedAt));
 		}
-		if(toBeUpdatedAnonymousProfiles.size() > 0) {
-			insertAnonymousProfiles(toBeUpdatedAnonymousProfiles);
-		}
 
-		// Optimization 4: Log schema usage statistics for monitoring
 		if (!schemaUsageCounter.isEmpty()) {
 			regProcLogger.info("Schema version usage in batch: {}", schemaUsageCounter);
 		}
-		regProcLogger.info("Batch job for anonymous profile completed. Processed: {} records", packets.size());
+		regProcLogger.info("Batch job for anonymous profile completed. Claimed: {}, added: {}, not added: {}, took {} ms",
+				claimed, added, claimed - added, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
 	}
-	
-	@Transactional(readOnly = true)
-	public List<InternalRegistrationStatusDto> getAnonymousNotAddedPackets(){
-		return registrationStatusService.getAnonymousNotAddedPackets(fetchSize);
+
+	/**
+	 * Processes one chunk. Must run inside the transaction opened by
+	 * {@link #runJob()}, which owns the row locks taken here.
+	 */
+	private ChunkResult processChunk(Cursor cursor) {
+		List<Object[]> rows = registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(cursor.updDtimes,
+				cursor.workflowInstanceId, fetchSize);
+		if (rows == null || rows.isEmpty()) {
+			return new ChunkResult(0, 0);
+		}
+
+		List<PacketRef> packets = new ArrayList<>(rows.size());
+		for (Object[] row : rows) {
+			packets.add(new PacketRef(row));
+		}
+		// move the cursor before doing any work, so a failing chunk is skipped by the run
+		Object[] lastRow = rows.get(rows.size() - 1);
+		cursor.updDtimes = toTimestamp(lastRow[5]);
+		cursor.workflowInstanceId = asString(lastRow[0]);
+
+		List<CompletableFuture<AnonymousProfileEntity>> futures = new ArrayList<>(packets.size());
+		for (PacketRef packet : packets) {
+			futures.add(CompletableFuture.supplyAsync(() -> buildProfile(packet), executorService));
+		}
+
+		List<AnonymousProfileEntity> profiles = new ArrayList<>(packets.size());
+		List<String> processedWorkflowInstanceIds = new ArrayList<>(packets.size());
+		for (int i = 0; i < packets.size(); i++) {
+			AnonymousProfileEntity profile = futures.get(i).join();
+			if (profile != null) {
+				profiles.add(profile);
+				processedWorkflowInstanceIds.add(packets.get(i).workflowInstanceId);
+			}
+		}
+
+		if (!profiles.isEmpty()) {
+			anonymousProfileService.saveAnonymousProfilesBatch(profiles, insertBatchSize);
+			markAsAdded(processedWorkflowInstanceIds);
+		}
+		return new ChunkResult(packets.size(), profiles.size());
 	}
-	
-	@Transactional
-	public void updateRegistartionRecords(List<RegistrationStatusEntity> toBeUpdatedList) {
-		registrationStatusDao.saveAll(toBeUpdatedList);
+
+	private void markAsAdded(List<String> workflowInstanceIds) {
+		for (int from = 0; from < workflowInstanceIds.size(); from += MAX_IDS_PER_UPDATE) {
+			List<String> part = workflowInstanceIds.subList(from,
+					Math.min(from + MAX_IDS_PER_UPDATE, workflowInstanceIds.size()));
+			int updated = registrationStatusDao.markAnonymousProfileAdded(part, UPDATED_BY);
+			if (updated != part.size()) {
+				regProcLogger.warn("Expected to flag {} packets as anonymous profile added but {} rows were updated",
+						part.size(), updated);
+			}
+		}
 	}
-	
-	public void insertAnonymousProfiles(List<AnonymousProfileEntity> toBeUpdatedAnonymousProfiles) {
-		anonymousProfileService.saveAnonymousProfiles(toBeUpdatedAnonymousProfiles);
-	}	
-	
-	private void addToBeUpdatedAnonymousProfileList(String regId, String processStage, String profileJson) {
+
+	private AnonymousProfileEntity newAnonymousProfileEntity(String processStage, String profileJson) {
 		AnonymousProfileEntity anonymousProfileEntity=new AnonymousProfileEntity();
 		AnonymousProfilePKEntity anonymousProfilePKEntity=new AnonymousProfilePKEntity();
 		anonymousProfilePKEntity.setId(RegistrationUtility.generateId());
@@ -176,16 +342,25 @@ public class AnonymousProfileScheduler {
 		anonymousProfileEntity.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 		anonymousProfileEntity.setUpdateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
 		anonymousProfileEntity.setIsDeleted(false);
-		toBeUpdatedAnonymousProfiles.add(anonymousProfileEntity);
+		return anonymousProfileEntity;
 	}
-	private void insertAnonymousProfile(InternalRegistrationStatusDto packet) {
-		try {
-			String json = null;
-			String registrationId = packet.getRegistrationId();
-			String registrationType = packet.getRegistrationType();
 
-			regProcLogger.info("Adding anonymous profile for registration id {}", registrationId);
-			
+	/**
+	 * Builds the profile of one packet. Returns null if it could not be built, in
+	 * which case the packet is left unflagged and retried by a later run.
+	 */
+	private AnonymousProfileEntity buildProfile(PacketRef packet) {
+		try {
+			String registrationId = packet.registrationId;
+			String registrationType = packet.registrationType;
+
+			regProcLogger.debug("Adding anonymous profile for registration id {}", registrationId);
+
+			if (packet.registrationStageName == null) {
+				// process_stage is NOT NULL; fail this packet instead of the whole chunk insert
+				throw new IllegalStateException("registration stage name is missing");
+			}
+
 			String schemaVersion = packetManagerService.getFieldByMappingJsonKey(registrationId, idSchemaVersionValue,
 					registrationType, ProviderStageName.WORKFLOW_MANAGER);
 			Double schemaVersionDouble = Double.parseDouble(schemaVersion);
@@ -208,14 +383,14 @@ public class AnonymousProfileScheduler {
 			BiometricRecord biometricRecord = null;
 			if(anonymousProfileBioInfoRequired) {
 				biometricRecord = packetManagerService.getBiometrics(registrationId,
-						MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationType, ProviderStageName.WORKFLOW_MANAGER);				
+						MappingJsonConstants.INDIVIDUAL_BIOMETRICS, registrationType, ProviderStageName.WORKFLOW_MANAGER);
 			}
-			json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
-					metaInfoMap, packet.getStatusCode(), packet.getRegistrationStageName());
-			addToBeUpdatedAnonymousProfileList(registrationId, packet.getRegistrationStageName(), json);			
-			convertAndAddToBeUpdatedRegStatusRecords(packet);
+			String json = anonymousProfileService.buildJsonStringFromPacketInfo(biometricRecord, fieldMap, fieldTypeMap,
+					metaInfoMap, packet.statusCode, packet.registrationStageName);
+			return newAnonymousProfileEntity(packet.registrationStageName, json);
 		} catch (Exception e) {
 			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
+			return null;
 		}
 	}
 
@@ -258,50 +433,30 @@ public class AnonymousProfileScheduler {
 		}
 	}
 
-	private void convertAndAddToBeUpdatedRegStatusRecords(InternalRegistrationStatusDto dto) {
-		BaseRegistrationPKEntity pk = new BaseRegistrationPKEntity();
-		pk.setWorkflowInstanceId(dto.getWorkflowInstanceId());
-
-		RegistrationStatusEntity registrationStatusEntity = new RegistrationStatusEntity();
-		registrationStatusEntity.setId(pk);
-		registrationStatusEntity.setRegId(dto.getRegistrationId());
-		registrationStatusEntity.setRegistrationType(dto.getRegistrationType());
-		registrationStatusEntity.setIteration(dto.getIteration());
-		registrationStatusEntity.setReferenceRegistrationId(dto.getReferenceRegistrationId());
-		registrationStatusEntity.setStatusCode(dto.getStatusCode());
-		registrationStatusEntity.setLangCode(dto.getLangCode());
-		registrationStatusEntity.setStatusComment(dto.getStatusComment());
-		registrationStatusEntity.setLatestRegistrationTransactionId(dto.getLatestRegistrationTransactionId());
-		registrationStatusEntity.setIsActive(dto.isActive());
-		registrationStatusEntity.setCreatedBy(dto.getCreatedBy());
-		if (dto.getCreateDateTime() == null) {
-			registrationStatusEntity.setCreateDateTime(LocalDateTime.now(ZoneId.of("UTC")));
-		} else {
-			registrationStatusEntity.setCreateDateTime(dto.getCreateDateTime());
-		}
-		registrationStatusEntity.setUpdatedBy("anonymous");
-		registrationStatusEntity.setUpdateDateTime(dto.getUpdateDateTime());
-		registrationStatusEntity.setIsDeleted(dto.isDeleted());
-
-		if (registrationStatusEntity.isDeleted() != null && registrationStatusEntity.isDeleted()) {
-			registrationStatusEntity.setDeletedDateTime(LocalDateTime.now(ZoneId.of("UTC")));
-		} else {
-			registrationStatusEntity.setDeletedDateTime(null);
-		}
-
-		registrationStatusEntity.setRetryCount(dto.getRetryCount());
-		registrationStatusEntity.setApplicantType(dto.getApplicantType());
-		registrationStatusEntity.setRegProcessRetryCount(dto.getReProcessRetryCount());
-		registrationStatusEntity.setLatestTransactionStatusCode(dto.getLatestTransactionStatusCode());
-		registrationStatusEntity.setLatestTransactionTypeCode(dto.getLatestTransactionTypeCode());
-		registrationStatusEntity.setRegistrationStageName(dto.getRegistrationStageName());
-		registrationStatusEntity.setLatestTransactionTimes(dto.getLatestTransactionTimes());
-		registrationStatusEntity.setResumeTimeStamp(dto.getResumeTimeStamp());
-		registrationStatusEntity.setDefaultResumeAction(dto.getDefaultResumeAction());
-		registrationStatusEntity.setNeedsNotification(dto.getNeedsNotification());
-		registrationStatusEntity.setNotificationSent(dto.getNotificationSent());
-		registrationStatusEntity.setIsAnonymousProfileAdded(true);
-		toBeUpdatedRegStatusRecords.add(registrationStatusEntity);
+	private static String asString(Object value) {
+		return value == null ? null : value.toString();
 	}
-	
+
+	private static Timestamp toTimestamp(Object value) {
+		if (value instanceof Timestamp) {
+			return (Timestamp) value;
+		}
+		if (value instanceof LocalDateTime) {
+			return Timestamp.valueOf((LocalDateTime) value);
+		}
+		if (value instanceof java.util.Date) {
+			return new Timestamp(((java.util.Date) value).getTime());
+		}
+		throw new IllegalStateException("Unexpected upd_dtimes type: " + (value == null ? null : value.getClass()));
+	}
+
+	private static java.util.concurrent.ThreadFactory namedDaemonThreads(String prefix) {
+		AtomicInteger counter = new AtomicInteger(1);
+		return runnable -> {
+			Thread thread = new Thread(runnable, prefix + "-" + counter.getAndIncrement());
+			thread.setDaemon(true);
+			return thread;
+		};
+	}
+
 }
