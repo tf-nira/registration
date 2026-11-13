@@ -289,9 +289,10 @@ public class RegistrationStatusDao {
 	 * {@link RegistrationRepositary#getAnonymousNotAddedPacketsForUpdate}.
 	 */
 	public List<Object[]> getAnonymousNotAddedPacketsForUpdate(java.sql.Timestamp afterUpdDtimes,
-			String afterWorkflowInstanceId, Integer fetchSize) {
+			String afterWorkflowInstanceId, java.sql.Timestamp createdFrom, java.sql.Timestamp createdToExclusive,
+			Integer fetchSize) {
 		return registrationStatusRepositary.getAnonymousNotAddedPacketsForUpdate(afterUpdDtimes,
-				afterWorkflowInstanceId, fetchSize);
+				afterWorkflowInstanceId, createdFrom, createdToExclusive, fetchSize);
 	}
 
 	public int markAnonymousProfileAdded(List<String> workflowInstanceIds, String updatedBy) {

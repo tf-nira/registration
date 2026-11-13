@@ -84,16 +84,21 @@ public interface RegistrationRepositary<T extends BaseRegistrationEntity, E> ext
 	 * scheduler instances can run side by side without picking the same packet.
 	 * Keyset paging on {@code (upd_dtimes, workflow_instance_id)} lets the caller
 	 * move past packets that fail permanently instead of re-reading them forever.
+	 * Only packets created in {@code [createdFrom, createdToExclusive)} (by
+	 * {@code cr_dtimes}) are returned.
 	 * <p>
 	 * Each row is {@code [workflow_instance_id, reg_id, process, status_code,
 	 * reg_stage_name, upd_dtimes]}.
 	 */
 	@Query(value = "SELECT r.workflow_instance_id, r.reg_id, r.process, r.status_code, r.reg_stage_name, r.upd_dtimes "
 			+ "FROM registration r WHERE r.upd_dtimes < CURRENT_DATE AND r.is_anonymous_profile_added IS NOT TRUE "
+			+ "AND r.cr_dtimes >= :createdFrom AND r.cr_dtimes < :createdToExclusive "
 			+ "AND (r.upd_dtimes, r.workflow_instance_id) > (:afterUpdDtimes, :afterWorkflowInstanceId) "
 			+ "ORDER BY r.upd_dtimes, r.workflow_instance_id LIMIT :fetchSize FOR UPDATE SKIP LOCKED", nativeQuery = true)
 	public List<Object[]> getAnonymousNotAddedPacketsForUpdate(@Param("afterUpdDtimes") java.sql.Timestamp afterUpdDtimes,
-			@Param("afterWorkflowInstanceId") String afterWorkflowInstanceId, @Param("fetchSize") Integer fetchSize);
+			@Param("afterWorkflowInstanceId") String afterWorkflowInstanceId,
+			@Param("createdFrom") java.sql.Timestamp createdFrom,
+			@Param("createdToExclusive") java.sql.Timestamp createdToExclusive, @Param("fetchSize") Integer fetchSize);
 
 	/**
 	 * Flags packets as having their anonymous profile added. Only the flag (and

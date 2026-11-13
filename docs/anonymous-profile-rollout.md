@@ -42,6 +42,35 @@ Also note the current values of these properties on prod (config server):
 `mosip.anonymous.profile.bioInfo.required`, the Hikari pool size, and how many notification-service
 pods run.
 
+## 1a. Optional date range
+
+The scheduler can be limited to packets created between two dates (`registration.cr_dtimes`), on top
+of the existing `upd_dtimes < CURRENT_DATE` cutoff:
+
+```properties
+# both optional, format yyyy-MM-dd; empty = no limit on that side
+mosip.anonymous.profile.scheduler.from.date=2026-11-01
+mosip.anonymous.profile.scheduler.to.date=2026-11-10
+```
+
+- The end date is inclusive: `to.date=2026-11-10` includes everything created up to
+  `2026-11-10 23:59:59`.
+- `cr_dtimes` is compared as stored. MOSIP writes these as UTC wall-clock time, so the days are UTC days.
+- A date that cannot be parsed, or `from.date` after `to.date`, makes the run log an error and do nothing.
+  It never falls back to processing everything.
+- To see how many packets a range covers:
+
+```sql
+SELECT count(*) FROM regprc.registration
+WHERE upd_dtimes < CURRENT_DATE AND is_anonymous_profile_added IS NOT TRUE
+  AND cr_dtimes >= TIMESTAMP '2026-11-01 00:00:00'
+  AND cr_dtimes <  TIMESTAMP '2026-11-11 00:00:00';   -- end date + 1 day
+```
+
+- The partial index is ordered by `upd_dtimes`, so a narrow range inside a large backlog makes the
+  database scan and filter. If `EXPLAIN` shows that, create the optional second index described in
+  `anonymous_profile_pending_index.sql`.
+
 ## 2. Staging verification
 
 Use a copy of production data if possible, mid-day (the eligibility cut-off is `CURRENT_DATE`, so do
@@ -56,6 +85,7 @@ EXPLAIN
 SELECT r.workflow_instance_id, r.reg_id, r.process, r.status_code, r.reg_stage_name, r.upd_dtimes
 FROM regprc.registration r
 WHERE r.upd_dtimes < CURRENT_DATE AND r.is_anonymous_profile_added IS NOT TRUE
+  AND r.cr_dtimes >= TIMESTAMP '1970-01-01' AND r.cr_dtimes < TIMESTAMP '9999-12-31'
   AND (r.upd_dtimes, r.workflow_instance_id) > (TIMESTAMP '1970-01-01', '')
 ORDER BY r.upd_dtimes, r.workflow_instance_id
 LIMIT 1000 FOR UPDATE SKIP LOCKED;

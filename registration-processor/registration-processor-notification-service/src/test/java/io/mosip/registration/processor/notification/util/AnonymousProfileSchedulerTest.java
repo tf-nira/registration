@@ -115,7 +115,7 @@ public class AnonymousProfileSchedulerTest {
 	public void insertsProfilesAndFlagsOnlyThePacketsThatSucceeded() throws Exception {
 		List<Object[]> chunk = Arrays.asList(row("wf1", "RID1", T1, "PacketValidatorStage"),
 				row("wf2", "RID2", T2, "PacketValidatorStage"), row("wf3", "RID3", T3, "PacketValidatorStage"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenReturn(chunk).thenReturn(Collections.<Object[]>emptyList());
 		// the second packet cannot be read
 		when(packetManagerService.getFieldByMappingJsonKey(eq("RID2"), any(), any(), any()))
@@ -134,15 +134,16 @@ public class AnonymousProfileSchedulerTest {
 	public void secondChunkStartsAfterTheLastPacketOfTheFirstChunk() {
 		List<Object[]> chunk = Arrays.asList(row("wf1", "RID1", T1, "PacketValidatorStage"),
 				row("wf2", "RID2", T2, "PacketValidatorStage"), row("wf3", "RID3", T3, "PacketValidatorStage"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenReturn(chunk).thenReturn(Collections.<Object[]>emptyList());
 
 		scheduler.runJob();
 
 		verify(registrationStatusDao).getAnonymousNotAddedPacketsForUpdate(Timestamp.valueOf("1970-01-01 00:00:00"),
-				"", 3);
-		verify(registrationStatusDao).getAnonymousNotAddedPacketsForUpdate(T3, "wf3", 3);
-		verify(registrationStatusDao, times(2)).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt());
+				"", Timestamp.valueOf("1970-01-01 00:00:00"), Timestamp.valueOf("9999-12-31 00:00:00"), 3);
+		verify(registrationStatusDao).getAnonymousNotAddedPacketsForUpdate(T3, "wf3",
+				Timestamp.valueOf("1970-01-01 00:00:00"), Timestamp.valueOf("9999-12-31 00:00:00"), 3);
+		verify(registrationStatusDao, times(2)).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt());
 	}
 
 	@Test
@@ -150,7 +151,7 @@ public class AnonymousProfileSchedulerTest {
 		List<Object[]> failing = Arrays.asList(row("wf1", "RID1", T1, "PacketValidatorStage"),
 				row("wf2", "RID2", T2, "PacketValidatorStage"));
 		List<Object[]> healthy = Arrays.<Object[]>asList(row("wf3", "RID3", T3, "PacketValidatorStage"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenReturn(failing).thenReturn(healthy).thenReturn(Collections.<Object[]>emptyList());
 		when(packetManagerService.getFieldByMappingJsonKey(eq("RID1"), any(), any(), any()))
 				.thenThrow(new RuntimeException("packet not found"));
@@ -167,7 +168,7 @@ public class AnonymousProfileSchedulerTest {
 	@Test
 	public void packetWithoutStageNameIsLeftForALaterRun() {
 		List<Object[]> chunk = Arrays.<Object[]>asList(row("wf1", "RID1", T1, null));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenReturn(chunk).thenReturn(Collections.<Object[]>emptyList());
 
 		scheduler.runJob();
@@ -180,7 +181,7 @@ public class AnonymousProfileSchedulerTest {
 	public void failedInsertRollsTheChunkBackAndTheRunMovesOn() {
 		List<Object[]> bad = Arrays.<Object[]>asList(row("wf1", "RID1", T1, "PacketValidatorStage"));
 		List<Object[]> good = Arrays.<Object[]>asList(row("wf2", "RID2", T2, "PacketValidatorStage"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenReturn(bad).thenReturn(good).thenReturn(Collections.<Object[]>emptyList());
 		org.mockito.Mockito.doThrow(new RuntimeException("insert failed")).doNothing().when(anonymousProfileService)
 				.saveAnonymousProfilesBatch(anyList(), anyInt());
@@ -194,18 +195,18 @@ public class AnonymousProfileSchedulerTest {
 
 	@Test
 	public void runStopsAfterRepeatedChunkFailures() {
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenThrow(new RuntimeException("database unavailable"));
 
 		scheduler.runJob();
 
-		verify(registrationStatusDao, times(3)).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt());
+		verify(registrationStatusDao, times(3)).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt());
 		verify(anonymousProfileService, never()).saveAnonymousProfilesBatch(anyList(), anyInt());
 	}
 
 	@Test
 	public void nothingPendingDoesNotWriteAnything() {
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), anyInt()))
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
 				.thenReturn(Collections.<Object[]>emptyList());
 
 		scheduler.runJob();
@@ -213,5 +214,52 @@ public class AnonymousProfileSchedulerTest {
 		verify(anonymousProfileService, never()).saveAnonymousProfilesBatch(anyList(), anyInt());
 		verify(registrationStatusDao, never()).markAnonymousProfileAdded(anyList(), anyString());
 		assertTrue(true);
+	}
+
+	@Test
+	public void configuredDatesLimitThePacketsByCreationDateAndIncludeTheWholeEndDay() {
+		ReflectionTestUtils.setField(scheduler, "fromDate", "2026-11-01");
+		ReflectionTestUtils.setField(scheduler, "toDate", " 2026-11-10 ");
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
+				.thenReturn(Collections.<Object[]>emptyList());
+
+		scheduler.runJob();
+
+		// end date is inclusive: the range stops at the start of the following day
+		verify(registrationStatusDao).getAnonymousNotAddedPacketsForUpdate(any(), anyString(),
+				eq(Timestamp.valueOf("2026-11-01 00:00:00")), eq(Timestamp.valueOf("2026-11-11 00:00:00")), anyInt());
+	}
+
+	@Test
+	public void onlyFromDateLeavesTheUpperLimitOpen() {
+		ReflectionTestUtils.setField(scheduler, "fromDate", "2026-11-01");
+		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
+				.thenReturn(Collections.<Object[]>emptyList());
+
+		scheduler.runJob();
+
+		verify(registrationStatusDao).getAnonymousNotAddedPacketsForUpdate(any(), anyString(),
+				eq(Timestamp.valueOf("2026-11-01 00:00:00")), eq(Timestamp.valueOf("9999-12-31 00:00:00")), anyInt());
+	}
+
+	@Test
+	public void unparsableDateStopsTheRunInsteadOfProcessingEverything() {
+		ReflectionTestUtils.setField(scheduler, "fromDate", "01-11-2026");
+
+		scheduler.runJob();
+
+		verify(registrationStatusDao, never()).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(),
+				anyInt());
+	}
+
+	@Test
+	public void fromDateAfterToDateStopsTheRun() {
+		ReflectionTestUtils.setField(scheduler, "fromDate", "2026-11-10");
+		ReflectionTestUtils.setField(scheduler, "toDate", "2026-11-01");
+
+		scheduler.runJob();
+
+		verify(registrationStatusDao, never()).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(),
+				anyInt());
 	}
 }

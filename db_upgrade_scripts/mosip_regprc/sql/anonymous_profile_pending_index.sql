@@ -16,3 +16,11 @@
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reg_anonymous_profile_pending
     ON regprc.registration (upd_dtimes, workflow_instance_id)
     WHERE is_anonymous_profile_added IS NOT TRUE;
+
+-- OPTIONAL: only if you use mosip.anonymous.profile.scheduler.from.date / to.date with a narrow range
+-- inside a large backlog and EXPLAIN shows the index above scanning and filtering many rows.
+-- It costs extra writes on registration, so do not create it by default.
+--
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reg_anonymous_profile_pending_cr
+--     ON regprc.registration (cr_dtimes)
+--     WHERE is_anonymous_profile_added IS NOT TRUE;

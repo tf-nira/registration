@@ -2,8 +2,10 @@ package io.mosip.registration.processor.notification.util;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +79,10 @@ public class AnonymousProfileScheduler {
 
 	private static final Timestamp CURSOR_START = Timestamp.valueOf("1970-01-01 00:00:00");
 
+	/** Used when no from/to date is configured, so the range is effectively open. */
+	private static final Timestamp CREATED_FROM_OPEN = Timestamp.valueOf("1970-01-01 00:00:00");
+	private static final Timestamp CREATED_TO_OPEN = Timestamp.valueOf("9999-12-31 00:00:00");
+
 	/** Number of packets locked and processed per transaction. */
 	@Value("${mosip.anonymous.profile.scheduler.fetchsize:1000}")
 	private Integer fetchSize;
@@ -93,6 +99,21 @@ public class AnonymousProfileScheduler {
 	 */
 	@Value("${mosip.anonymous.profile.scheduler.max.run.seconds:150}")
 	private Integer maxRunSeconds;
+
+	/**
+	 * Optional, format yyyy-MM-dd. Only packets created (registration.cr_dtimes) on
+	 * or after this date are processed. Empty means no lower limit.
+	 */
+	@Value("${mosip.anonymous.profile.scheduler.from.date:}")
+	private String fromDate;
+
+	/**
+	 * Optional, format yyyy-MM-dd. Only packets created (registration.cr_dtimes) on
+	 * or before this date are processed; the whole day is included. Empty means no
+	 * upper limit.
+	 */
+	@Value("${mosip.anonymous.profile.scheduler.to.date:}")
+	private String toDate;
 
 	/** Rows per JDBC batch when inserting profiles. */
 	@Value("${mosip.anonymous.profile.scheduler.insert.batch.size:500}")
@@ -170,6 +191,9 @@ public class AnonymousProfileScheduler {
 	private static class Cursor {
 		Timestamp updDtimes = CURSOR_START;
 		String workflowInstanceId = "";
+		/** Packets created in [createdFrom, createdToExclusive) are processed. */
+		Timestamp createdFrom = CREATED_FROM_OPEN;
+		Timestamp createdToExclusive = CREATED_TO_OPEN;
 	}
 
 	private static class ChunkResult {
@@ -240,6 +264,15 @@ public class AnonymousProfileScheduler {
 		long startedAt = System.nanoTime();
 		long deadline = startedAt + TimeUnit.SECONDS.toNanos(maxRunSeconds);
 		Cursor cursor = new Cursor();
+		Timestamp[] createdRange = resolveCreatedRange();
+		if (createdRange == null) {
+			// misconfigured dates: do not run unfiltered by accident
+			return;
+		}
+		cursor.createdFrom = createdRange[0];
+		cursor.createdToExclusive = createdRange[1];
+		regProcLogger.info("Anonymous profile packets created from {} (inclusive) to {} (exclusive) are processed",
+				cursor.createdFrom, cursor.createdToExclusive);
 		long claimed = 0;
 		long added = 0;
 		int consecutiveFailures = 0;
@@ -283,7 +316,7 @@ public class AnonymousProfileScheduler {
 	 */
 	private ChunkResult processChunk(Cursor cursor) {
 		List<Object[]> rows = registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(cursor.updDtimes,
-				cursor.workflowInstanceId, fetchSize);
+				cursor.workflowInstanceId, cursor.createdFrom, cursor.createdToExclusive, fetchSize);
 		if (rows == null || rows.isEmpty()) {
 			return new ChunkResult(0, 0);
 		}
@@ -317,6 +350,34 @@ public class AnonymousProfileScheduler {
 			markAsAdded(processedWorkflowInstanceIds);
 		}
 		return new ChunkResult(packets.size(), profiles.size());
+	}
+
+	/**
+	 * Turns the configured from/to dates into [from, to + 1 day), so the whole end
+	 * day is included. Returns null, after logging the reason, if a date cannot be
+	 * parsed or from is after to.
+	 */
+	private Timestamp[] resolveCreatedRange() {
+		try {
+			LocalDate from = parseDate(fromDate);
+			LocalDate to = parseDate(toDate);
+			if (from != null && to != null && from.isAfter(to)) {
+				regProcLogger.error("Anonymous profile job not run: from.date {} is after to.date {}", from, to);
+				return null;
+			}
+			Timestamp createdFrom = from == null ? CREATED_FROM_OPEN : Timestamp.valueOf(from.atStartOfDay());
+			Timestamp createdToExclusive = to == null ? CREATED_TO_OPEN
+					: Timestamp.valueOf(to.plusDays(1).atStartOfDay());
+			return new Timestamp[] { createdFrom, createdToExclusive };
+		} catch (DateTimeParseException e) {
+			regProcLogger.error("Anonymous profile job not run: from.date/to.date must be yyyy-MM-dd but were '"
+					+ fromDate + "' / '" + toDate + "'", e);
+			return null;
+		}
+	}
+
+	private static LocalDate parseDate(String value) {
+		return value == null || value.trim().isEmpty() ? null : LocalDate.parse(value.trim());
 	}
 
 	private void markAsAdded(List<String> workflowInstanceIds) {
