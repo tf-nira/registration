@@ -284,16 +284,19 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 					userServiceType = tags.getOrDefault("ID_OBJECT-applicantCitizenshipType",
 							tags.get("ID_OBJECT-userServiceType"));
 				}
-
+				
+				boolean isAlienCop = "Alien-COP".equals(userServiceType);
+				
 				boolean isAlien = "Alien New Registration".equals(userServiceType) || 
-								   "Renewal of Alien".equals(userServiceType);
+								   "Renewal of Alien".equals(userServiceType) ||
+								   "Alien Replacement".equals(userServiceType) || isAlienCop;
 
-				if ((!isAdult && !isAlien) || "DEACTIVATED".equals(object.getReg_type())) {
-					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
+				if (!isAlienCop && (((!isAdult && !isAlien) || "DEACTIVATED".equals(object.getReg_type())))) {
+    				filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
 				}
 
-				if (!isAdult) {
-					filteredPartners.removeIf(p -> "digitalcardPartner".equals(p.getId()));
+				if (!isAlienCop && !isAdult) {
+				    filteredPartners.removeIf(p -> "digitalcardPartner".equals(p.getId()));
 				}
 				
 				for (CredentialPartner key : filteredPartners) {
