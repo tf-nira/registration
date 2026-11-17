@@ -262,49 +262,4 @@ public class AnonymousProfileSchedulerTest {
 		verify(registrationStatusDao, never()).getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(),
 				anyInt());
 	}
-
-	@Test
-	public void onlyTheFieldsTheProfileNeedsAreRequestedFromThePacketManager() throws Exception {
-		ReflectionTestUtils.setField(scheduler, "requiredFieldsOnly", true);
-		when(idSchemaUtil.getDefaultFields(any())).thenReturn(new ArrayList<>(Arrays.asList("a", "b", "c", "d")));
-		when(anonymousProfileService.getRequiredFieldNames()).thenReturn(Arrays.asList("b", "d", "notInSchema"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
-				.thenReturn(Arrays.<Object[]>asList(row("wf1", "RID1", T1, "PacketValidatorStage")))
-				.thenReturn(Collections.<Object[]>emptyList());
-
-		scheduler.runJob();
-
-		verify(packetManagerService).getFields(eq("RID1"), eq(Arrays.asList("b", "d")), any(), any());
-	}
-
-	@Test
-	public void allSchemaFieldsAreRequestedWhenTheSwitchIsOff() throws Exception {
-		ReflectionTestUtils.setField(scheduler, "requiredFieldsOnly", false);
-		List<String> all = new ArrayList<>(Arrays.asList("a", "b", "c"));
-		when(idSchemaUtil.getDefaultFields(any())).thenReturn(all);
-		when(anonymousProfileService.getRequiredFieldNames()).thenReturn(Arrays.asList("b"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
-				.thenReturn(Arrays.<Object[]>asList(row("wf1", "RID1", T1, "PacketValidatorStage")))
-				.thenReturn(Collections.<Object[]>emptyList());
-
-		scheduler.runJob();
-
-		verify(packetManagerService).getFields(eq("RID1"), eq(all), any(), any());
-	}
-
-	@Test
-	public void allSchemaFieldsAreRequestedWhenNoneOfTheNeededFieldsIsInTheSchema() throws Exception {
-		ReflectionTestUtils.setField(scheduler, "requiredFieldsOnly", true);
-		List<String> all = new ArrayList<>(Arrays.asList("a", "b"));
-		when(idSchemaUtil.getDefaultFields(any())).thenReturn(all);
-		when(anonymousProfileService.getRequiredFieldNames()).thenReturn(Arrays.asList("x", "y"));
-		when(registrationStatusDao.getAnonymousNotAddedPacketsForUpdate(any(), anyString(), any(), any(), anyInt()))
-				.thenReturn(Arrays.<Object[]>asList(row("wf1", "RID1", T1, "PacketValidatorStage")))
-				.thenReturn(Collections.<Object[]>emptyList());
-
-		scheduler.runJob();
-
-		verify(packetManagerService).getFields(eq("RID1"), eq(all), any(), any());
-	}
-
 }

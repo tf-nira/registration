@@ -239,20 +239,3 @@ registration id. That is why check 2.4 A should be done in staging, and again at
 - Most of the time per packet is spent reading from packet manager (four calls, including biometrics).
   If the target is not met, set `mosip.anonymous.profile.bioInfo.required=false` if the business accepts
   profiles without biometric quality data.
-
-### 4.1 Only the needed packet fields are requested
-
-By default (`mosip.anonymous.profile.scheduler.required.fields.only=true`) the scheduler asks packet manager
-only for the fields the profile reads (date of birth, gender, district, service type, disability, tribe,
-email, phone, preferred language and the location hierarchy fields from the mapping json), not for every
-field of the ID schema. Packet manager reads a multi-field request one field at a time, so a request for
-the whole schema (about 400 fields) takes several seconds per packet, while about 10 fields take a fraction
-of that.
-
-- The profile content is unchanged: `buildJsonStringFromPacketInfo` only reads those keys. On staging, run
-  the same packets once with `required.fields.only=false` and once with `true` and compare the profile JSON.
-- If none of the needed fields is found in the schema, the scheduler falls back to all schema fields.
-- Rollback: set `mosip.anonymous.profile.scheduler.required.fields.only=false` (no redeploy of other settings).
-- If a new field is added to `buildJsonStringFromPacketInfo`, add its mapping key to
-  `PROFILE_FIELD_MAPPING_KEYS` in `AnonymousProfileServiceImpl`; the unit test
-  `profileOnlyReadsFieldsFromTheRequiredFieldListTest` fails if one is missed.

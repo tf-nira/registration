@@ -395,31 +395,4 @@ public class AnonymousProfileServiceImplTest {
 		anonymousProfileService.saveAnonymousProfilesBatch(profiles(1), 500);
 	}
 
-	@Test
-	public void requiredFieldNamesListOnlyTheFieldsTheProfileReadsTest() throws IOException {
-		// "address" is in the mapping json but the profile does not read it; district and
-		// service type are not mapped in this fixture
-		assertEquals(Arrays.asList("dateOfBirth", "gender", "email", "phone", "zone", "postalCode"), anonymousProfileService.getRequiredFieldNames());
-	}
-
-	@Test
-	public void profileOnlyReadsFieldsFromTheRequiredFieldListTest() throws Exception {
-		final java.util.Set<String> read = new java.util.HashSet<>();
-		Map<String, String> recording = new java.util.HashMap<String, String>() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public String get(Object key) {
-				if (key != null) { read.add((String) key); }
-				return super.get(key);
-			}
-		};
-		anonymousProfileService.buildJsonStringFromPacketInfo(null, recording, new java.util.HashMap<String, String>(),
-				new java.util.HashMap<String, String>(), "PROCESSED", "packetValidatorStage");
-		org.junit.Assert.assertFalse(read.isEmpty());
-		org.junit.Assert.assertTrue("profile reads " + read + " but only asks for "
-				+ anonymousProfileService.getRequiredFieldNames(),
-				anonymousProfileService.getRequiredFieldNames().containsAll(read));
-	}
-
 }

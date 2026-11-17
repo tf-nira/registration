@@ -7,10 +7,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -117,15 +115,6 @@ public class AnonymousProfileScheduler {
 	@Value("${mosip.anonymous.profile.scheduler.to.date:}")
 	private String toDate;
 
-	/**
-	 * When true (default) only the packet fields the profile actually reads are
-	 * requested from the packet manager. The packet manager reads a multi-field
-	 * request one field at a time, so asking for every schema field (hundreds) is
-	 * very slow. Set to false to request all schema fields as before.
-	 */
-	@Value("${mosip.anonymous.profile.scheduler.required.fields.only:true}")
-	private boolean requiredFieldsOnly;
-
 	/** Rows per JDBC batch when inserting profiles. */
 	@Value("${mosip.anonymous.profile.scheduler.insert.batch.size:500}")
 	private Integer insertBatchSize;
@@ -170,13 +159,11 @@ public class AnonymousProfileScheduler {
 		final Double schemaVersion;
 		final Map<String, String> fieldTypes;
 		final List<String> defaultFields;
-		final Set<String> defaultFieldSet;
 
 		SchemaMetadata(Double version, Map<String, String> types, List<String> defaults) {
 			this.schemaVersion = version;
 			this.fieldTypes = types;
 			this.defaultFields = defaults;
-			this.defaultFieldSet = defaults == null ? new HashSet<>() : new HashSet<>(defaults);
 		}
 	}
 	private final Map<Double, SchemaMetadata> schemaMetadataCache = new ConcurrentHashMap<>();
@@ -441,6 +428,7 @@ public class AnonymousProfileScheduler {
 
 			SchemaMetadata metadata = getOrLoadSchemaMetadata(schemaVersionDouble);
 			Map<String, String> fieldTypeMap = metadata.fieldTypes;
+			List<String> defaultFields = metadata.defaultFields;
 
 			schemaUsageCounter.computeIfAbsent(schemaVersionDouble, k -> new AtomicInteger(0)).incrementAndGet();
 
@@ -449,7 +437,7 @@ public class AnonymousProfileScheduler {
 
 			// Optimization 2: Get fields and metadata in batch
 			Map<String, String> fieldMap = packetManagerService.getFields(registrationId,
-					fieldsToFetch(metadata), registrationType,
+					defaultFields, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
 			Map<String, String> metaInfoMap = packetManagerService.getMetaInfo(registrationId, registrationType,
 					ProviderStageName.WORKFLOW_MANAGER);
@@ -465,24 +453,6 @@ public class AnonymousProfileScheduler {
 			regProcLogger.error("Failed to add anonymous profile: " + e.getMessage(), e);
 			return null;
 		}
-	}
-
-	/**
-	 * The fields to request from the packet manager: the ones the profile reads,
-	 * limited to fields that exist in this schema version. Falls back to every
-	 * schema field if the switch is off or nothing could be worked out.
-	 */
-	private List<String> fieldsToFetch(SchemaMetadata metadata) throws IOException {
-		if (!requiredFieldsOnly) {
-			return metadata.defaultFields;
-		}
-		List<String> fields = new ArrayList<>();
-		for (String name : anonymousProfileService.getRequiredFieldNames()) {
-			if (metadata.defaultFieldSet.contains(name)) {
-				fields.add(name);
-			}
-		}
-		return fields.isEmpty() ? metadata.defaultFields : fields;
 	}
 
 	private SchemaMetadata getOrLoadSchemaMetadata(Double schemaVersion) {

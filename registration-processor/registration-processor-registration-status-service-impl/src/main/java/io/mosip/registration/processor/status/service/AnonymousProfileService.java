@@ -40,14 +40,4 @@ public interface AnonymousProfileService {
 	 * @param batchSize         rows sent to the database per JDBC batch
 	 */
 	public void saveAnonymousProfilesBatch(List<AnonymousProfileEntity> anonymousProfiles, int batchSize);
-
-	/**
-	 * Names of the packet fields {@link #buildJsonStringFromPacketInfo} actually reads
-	 * (taken from the mapping json). Asking the packet manager for only these is far
-	 * cheaper than asking for every schema field.
-	 *
-	 * @return the field names, never null
-	 * @throws IOException if the mapping json cannot be read
-	 */
-	public List<String> getRequiredFieldNames() throws IOException;
 }

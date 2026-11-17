@@ -8,13 +8,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -84,40 +81,11 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 	private static final class ParsedIdentity {
 		private final String source;
 		private final org.json.simple.JSONObject identity;
-		private final List<String> requiredFields;
 
 		private ParsedIdentity(String source, org.json.simple.JSONObject identity) {
 			this.source = source;
 			this.identity = identity;
-			this.requiredFields = Collections.unmodifiableList(collectRequiredFields(identity));
 		}
-	}
-
-	/**
-	 * Mapping json keys whose field values {@link #buildJsonStringFromPacketInfo}
-	 * reads from the packet. Keep in sync with that method.
-	 */
-	private static final String[] PROFILE_FIELD_MAPPING_KEYS = { MappingJsonConstants.DOB,
-			MappingJsonConstants.PREFERRED_LANGUAGE, MappingJsonConstants.GENDER, MappingJsonConstants.DISTRICT,
-			MappingJsonConstants.SERVICE_TYPE, MappingJsonConstants.DISABILITY, MappingJsonConstants.GUARDIAN_TRIBE,
-			MappingJsonConstants.EMAIL, MappingJsonConstants.PHONE,
-			MappingJsonConstants.LOCATION_HIERARCHY_FOR_PROFILING };
-
-	private static List<String> collectRequiredFields(org.json.simple.JSONObject identity) {
-		Set<String> names = new LinkedHashSet<>();
-		for (String key : PROFILE_FIELD_MAPPING_KEYS) {
-			org.json.simple.JSONObject entry = JsonUtil.getJSONObject(identity, key);
-			String value = entry == null ? null : JsonUtil.getJSONValue(entry, MappingJsonConstants.VALUE);
-			if (value == null) {
-				continue;
-			}
-			for (String name : value.split(",")) {
-				if (!name.trim().isEmpty()) {
-					names.add(name.trim());
-				}
-			}
-		}
-		return new ArrayList<>(names);
 	}
 
 	private volatile ParsedIdentity parsedIdentity;
@@ -319,27 +287,17 @@ public class AnonymousProfileServiceImpl implements AnonymousProfileService {
 	 * expensive at high volume, so the parsed form is cached as well.
 	 */
 	private org.json.simple.JSONObject getRegProcessorIdentityJson() throws IOException {
-		return getParsedIdentity().identity;
-	}
-
-	private ParsedIdentity getParsedIdentity() throws IOException {
 		String mappingJsonString = registrationUtility.getMappingJson();
 		ParsedIdentity cached = parsedIdentity;
 		if (cached != null && (cached.source == mappingJsonString || cached.source.equals(mappingJsonString))) {
-			return cached;
+			return cached.identity;
 		}
 		org.json.simple.JSONObject mappingJsonObject = mapper.readValue(mappingJsonString,
 				org.json.simple.JSONObject.class);
 		org.json.simple.JSONObject identity = JsonUtil.getJSONObject(mappingJsonObject,
 				MappingJsonConstants.IDENTITY);
-		ParsedIdentity parsed = new ParsedIdentity(mappingJsonString, identity);
-		parsedIdentity = parsed;
-		return parsed;
-	}
-
-	@Override
-	public List<String> getRequiredFieldNames() throws IOException {
-		return getParsedIdentity().requiredFields;
+		parsedIdentity = new ParsedIdentity(mappingJsonString, identity);
+		return identity;
 	}
 
 	private String getLanguageBasedValueForSimpleType(String fieldValue, String language) throws JSONException {
