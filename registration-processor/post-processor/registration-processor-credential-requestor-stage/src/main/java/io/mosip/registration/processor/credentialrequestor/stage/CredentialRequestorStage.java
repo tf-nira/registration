@@ -230,6 +230,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 		boolean isTransactionSuccessful = false;
 		String uin = null;
+		String nin = null;
 		String refIds = null;
 		boolean updateTransaction = true;
 		String regId = object.getRid();
@@ -249,6 +250,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 			String registrationType = registrationStatusDto.getRegistrationType();
 			JSONObject jsonObject = utilities.idrepoRetrieveIdentityByRid(regId);
 			uin = JsonUtil.getJSONValue(jsonObject, IdType.UIN.toString());
+			nin = JsonUtil.getJSONValue(jsonObject, "NIN");
 			if (uin == null) {
 				regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
 						LoggerFileConstant.REGISTRATIONID.toString(), null,
@@ -322,7 +324,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				}
 				
 				for (CredentialPartner key : filteredPartners) {
-					CredentialRequestDto credentialRequestDto = getCredentialRequestDto(regId, registrationStatusDto.getRegistrationType(), key);
+					CredentialRequestDto credentialRequestDto = getCredentialRequestDto(regId, registrationStatusDto.getRegistrationType(), key, nin);
 					LocalDateTime localdatetime = LocalDateTime.parse(
 							DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN)), format);
 					requestWrapper.setRequesttime(localdatetime);
@@ -589,7 +591,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		notificationMessageService.saveRecord(record);
 	}
 
-	private CredentialRequestDto getCredentialRequestDto(String regId, String process, CredentialPartner key) {
+	private CredentialRequestDto getCredentialRequestDto(String regId, String process, CredentialPartner key, String nin) {
 		CredentialRequestDto credentialRequestDto = new CredentialRequestDto();
 		Map<String, Object> additionalAttributes=new HashMap<>();
 
@@ -605,6 +607,12 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 		additionalAttributes.put("registrationId", regId);
 		if (CollectionUtils.isNotEmpty(key.getMetaInfoFields()))
 			getAdditionalCredentialFields(regId, process, key.getMetaInfoFields(), additionalAttributes);
+
+		if (nin != null && nin.toUpperCase().startsWith("A")
+				&& "UPDATE".equalsIgnoreCase(String.valueOf(additionalAttributes.get("registrationType")))) {
+			additionalAttributes.put("registrationType", "ALIENCOP");
+		}
+
 		credentialRequestDto.setAdditionalData(additionalAttributes);
 
 		return credentialRequestDto;
