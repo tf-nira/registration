@@ -593,7 +593,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 
 		if (nin != null && nin.toUpperCase().startsWith("A")
 				&& "UPDATE".equalsIgnoreCase(String.valueOf(additionalAttributes.get("registrationType")))) {
-			additionalAttributes.put("registrationType", "Alien-COP");
+			additionalAttributes.put("registrationType", "ALIENCOP");
 		}
 
 		credentialRequestDto.setAdditionalData(additionalAttributes);
