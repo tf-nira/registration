@@ -297,7 +297,9 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				}
 				
 				boolean isAdult = false;
-				if (RegistrationType.NEW.toString().equalsIgnoreCase(registrationType)) {
+				if (RegistrationType.NEW.toString().equalsIgnoreCase(registrationType) ||
+						RegistrationType.UPDATE.toString().equalsIgnoreCase(registrationType) ||
+						RegistrationType.RENEWAL.toString().equalsIgnoreCase(registrationType)) {
 					double age = utilities.getApplicantAge(regId, object.getReg_type(),
 							ProviderStageName.CREDENTIAL_REQUESTOR);
 					if (age >= 16) {
@@ -315,7 +317,7 @@ public class CredentialRequestorStage extends MosipVerticleAPIManager {
 				}
 
 				boolean isAlien = "Alien New Registration".equals(userServiceType) ||
-						"Renewal of Alien".equals(userServiceType) || "Alien Replacement".equals(userServiceType);
+						"Renewal of Alien".equals(userServiceType) || "Alien Replacement".equals(userServiceType) || "Alien-COP".equals(userServiceType);
 
 				if ((!isAdult && !isAlien) || "DEACTIVATED".equals(object.getReg_type())) {
 					filteredPartners.removeIf(p -> "printPartner".equals(p.getId()));
